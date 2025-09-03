@@ -138,12 +138,20 @@ def verificar_resposta(request):
             questao=questao,
             defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
         )
+        
+        # --- LINHA MODIFICADA ---
+        # Agora, convertemos o markdown para HTML aqui, antes de enviar.
+        explicacao_html = markdown.markdown(questao.explicacao) if questao.explicacao else ""
+        
         return JsonResponse({
             'status': 'success',
             'correta': correta,
             'gabarito': questao.gabarito,
-            'explicacao': questao.explicacao
+            # Enviamos o HTML já processado
+            'explicacao': explicacao_html 
         })
+        # --- FIM DA MODIFICAÇÃO ---
+
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     

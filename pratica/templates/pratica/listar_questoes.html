@@ -62,7 +62,7 @@
         vertical-align: middle; /* Alinha com os outros botões */
     }
     .btn-color-tiptap:hover {
-        border-color: #86bfe;
+        border-color: #86bfee;
     }
     
     
@@ -84,7 +84,7 @@
     
     /* Foco no editor */
     .tiptap:focus {
-        border-color: #86bfe;
+        border-color: #86bfee;
         outline: 0;
         box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
     }
@@ -138,87 +138,96 @@
     
     /* --- INÍCIO: ESTILOS UNIFICADOS PARA O CONTEÚDO DO EDITOR E DO COMENTÁRIO --- */
     
-    /* BASE: Garante que o texto padrão (parágrafos) tenha o mesmo tamanho nos dois lugares */
-    .tiptap,
-    .comment-body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        font-size: 12px;
-        line-height: 1.6;
-        color: #212529;
-    }
-    
-    /* TÍTULOS: Força um tamanho de fonte consistente e menor para os títulos,
-       sobrescrevendo o que for colado ou o padrão do navegador. */
-    .tiptap h1, .comment-body h1,
-    .tiptap h2, .comment-body h2,
-    .tiptap h3, .comment-body h3,
-    .tiptap h4, .comment-body h4,
-    .tiptap h5, .comment-body h5,
-    .tiptap h6, .comment-body h6 {
-        margin-top: 1.25rem;
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-        line-height: 1.3;
-    }
-    
-    /* Define tamanhos de fonte específicos e menores para os títulos DENTRO do editor/comentário */
-    .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
-    .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
-    .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
-    .tiptap h4, .comment-body h4 { font-size: 1.0rem !important; }
-    
-    
-    /* PARÁGRAFOS: Garante espaçamento consistente */
-    .tiptap p,
-    .comment-body p {
-        margin-bottom: 1rem;
-    }
-    .tiptap p:last-child,
-    .comment-body p:last-child {
-        margin-bottom: 0;
-    }
-    
-    /* Adiciona espaço vertical entre elementos (parágrafos, listas, etc.) */
-    .tiptap > * + *,
-    .comment-body > * + * {
-        margin-top: 0.75em;
-    }
-    
-    
-    /* LISTAS E OUTROS ELEMENTOS: Mantém a consistência */
-    .tiptap ul,   .comment-body ul,
-    .tiptap ol,   .comment-body ol {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    
-    .tiptap li,   .comment-body li {
-        margin-bottom: 0.5rem;
-    }
-    
-    .tiptap blockquote, .comment-body blockquote {
-        font-style: italic;
-        color: #6c757d;
-        padding-left: 1rem;
-        border-left: 3px solid #dee2e6;
-        margin-left: 0;
-    }
-    
-    .tiptap code, .comment-body code {
-        background-color: rgba(97, 97, 97, 0.1);
-        color: #616161;
-        padding: .1rem .3rem;
-        border-radius: .2rem;
-        font-size: 90%;
-    }
-    
-    .tiptap hr, .comment-body hr {
-        border: none;
-        border-top: 2px solid rgba(0, 0, 0, 0.1);
-        margin: 1rem 0;
-    }
-    
-    /* --- FIM: ESTILOS UNIFICADOS --- */
+    /* --- INÍCIO: ESTILOS UNIFICADOS PARA TODO O CONTEÚDO MARKDOWN --- */
+
+/* BASE: Garante que o texto padrão tenha o mesmo tamanho em todos os lugares */
+.enunciado-formatado,
+.explicacao,
+.tiptap,
+.comment-body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #212529;
+}
+
+/* TÍTULOS: Força um tamanho de fonte consistente */
+.enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1,
+.enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2,
+.enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3,
+.enunciado-formatado h4, .explicacao h4, .tiptap h4, .comment-body h4,
+.enunciado-formatado h5, .explicacao h5, .tiptap h5, .comment-body h5,
+.enunciado-formatado h6, .explicacao h6, .tiptap h6, .comment-body h6 {
+    margin-top: 1.25rem;
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+/* Define tamanhos de fonte específicos para os títulos */
+.enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
+.enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
+.enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
+.enunciado-formatado h4, .explicacao h4, .tiptap h4, .comment-body h4 { font-size: 1.0rem !important; }
+
+
+/* PARÁGRAFOS: Garante espaçamento consistente */
+.enunciado-formatado p,
+.explicacao p,
+.tiptap p,
+.comment-body p {
+    margin-bottom: 1rem;
+}
+.enunciado-formatado p:last-child,
+.explicacao p:last-child,
+.tiptap p:last-child,
+.comment-body p:last-child {
+    margin-bottom: 0;
+}
+
+/* Espaçamento vertical entre elementos */
+.enunciado-formatado > * + *,
+.explicacao > * + *,
+.tiptap > * + *,
+.comment-body > * + * {
+    margin-top: 0.75em;
+}
+
+
+/* LISTAS E OUTROS ELEMENTOS: Mantém a consistência */
+.enunciado-formatado ul,   .explicacao ul,   .tiptap ul,   .comment-body ul,
+.enunciado-formatado ol,   .explicacao ol,   .tiptap ol,   .comment-body ol {
+    padding-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.enunciado-formatado li,   .explicacao li,   .tiptap li,   .comment-body li {
+    margin-bottom: 0.5rem;
+}
+
+.enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
+    font-style: italic;
+    color: #6c757d;
+    padding-left: 1rem;
+    border-left: 3px solid #dee2e6;
+    margin-left: 0;
+}
+
+.enunciado-formatado code, .explicacao code, .tiptap code, .comment-body code {
+    background-color: rgba(97, 97, 97, 0.1);
+    color: #616161;
+    padding: .1rem .3rem;
+    border-radius: .2rem;
+    font-size: 90%;
+}
+
+.enunciado-formatado hr, .explicacao hr, .tiptap hr, .comment-body hr {
+    border: none;
+    border-top: 2px solid rgba(0, 0, 0, 0.1);
+    margin: 1rem 0;
+}
+
+/* --- FIM: ESTILOS UNIFICADOS --- */
     </style>
 {% endblock %}
 

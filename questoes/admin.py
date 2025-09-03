@@ -4,7 +4,7 @@ from django.contrib import admin
 from django import forms
 from .models import Disciplina, Banca, Assunto, Questao, Instituicao # Importado 'Instituicao'
 import json
-from easymde.widgets import EasyMDEEditor
+from .widgets import TiptapEditorWidget 
 
 # Registra os modelos
 admin.site.register(Disciplina)
@@ -25,10 +25,13 @@ class QuestaoAdminForm(forms.ModelForm):
         # --- CAMPO 'instituicao' ADICIONADO À LISTA DE CAMPOS ---
         fields = ('disciplina', 'assunto', 'banca', 'instituicao', 'ano', 'imagem_enunciado', 'enunciado', 'gabarito', 'explicacao', 'is_inedita')
         
+# --- SEÇÃO MODIFICADA ---
+        # Substituímos o EasyMDEEditor pelo nosso TiptapEditorWidget
         widgets = {
-            'enunciado': EasyMDEEditor(),
-            'explicacao': EasyMDEEditor(),
+            'enunciado': TiptapEditorWidget(),
+            'explicacao': TiptapEditorWidget(),
         }
+        # --- FIM DA MODIFICAÇÃO ---
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

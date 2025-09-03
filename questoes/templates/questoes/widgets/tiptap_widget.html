@@ -1,0 +1,29 @@
+{% comment %} Adicionamos {% load static %} para poder usar os caminhos dos arquivos {% endcomment %}
+{% load static %}
+
+{% comment %} Carregamos o CSS do nosso editor aqui {% endcomment %}
+<link rel="stylesheet" href="{% static 'questoes/css/tiptap_admin.css' %}">
+
+<div class="tiptap-admin-container">
+    <div class="tiptap-toolbar">
+        <button type="button" class="btn-tiptap" data-command="toggleBold" title="Negrito"><b>B</b></button>
+        <button type="button" class="btn-tiptap" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+        <button type="button" class="btn-tiptap" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+        <button type="button" class="btn-tiptap" data-command="toggleBulletList" title="Lista de Marcadores">&#8226;</button>
+        <button type="button" class="btn-tiptap" data-command="toggleOrderedList" title="Lista Numerada">1.</button>
+    </div>
+    
+    <div class="tiptap-editor"></div>
+
+    <textarea name="{{ widget.name }}" class="d-none tiptap-hidden-textarea" {% include "django/forms/widgets/attrs.html" %}>{{ widget.value|default_if_none:'' }}</textarea>
+</div>
+
+{% comment %}
+--- INÍCIO DA ADIÇÃO IMPORTANTE ---
+Carregamos os scripts aqui, no final do nosso template.
+1. O loader precisa de 'type="module"' para que o 'import' funcione.
+2. O init precisa de 'defer' para garantir que ele só execute depois que o HTML for
+   totalmente carregado e o loader já tenha feito seu trabalho.
+{% endcomment %}
+<script src="{% static 'questoes/js/tiptap_loader.js' %}" type="module"></script>
+<script src="{% static 'questoes/js/tiptap_admin_init.js' %}" defer></script>
