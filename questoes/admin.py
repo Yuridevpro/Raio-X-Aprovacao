@@ -55,11 +55,14 @@ class QuestaoAdminForm(forms.ModelForm):
 class QuestaoAdmin(admin.ModelAdmin):
     form = QuestaoAdminForm
     
-    # --- 'instituicao' ADICIONADO AO LIST_DISPLAY E LIST_FILTER ---
-    list_display = ('id', 'disciplina', 'assunto', 'banca', 'instituicao', 'ano', 'is_inedita')
+    # --- CAMPO 'codigo' ADICIONADO ---
+    list_display = ('id', 'codigo', 'disciplina', 'assunto', 'banca', 'instituicao', 'ano', 'is_inedita')
+    
     list_filter = ('disciplina', 'banca', 'instituicao', 'ano', 'is_inedita')
     
-    search_fields = ('enunciado', 'explicacao')
+    # --- CAMPO 'codigo' ADICIONADO AOS CAMPOS DE BUSCA ---
+    search_fields = ('codigo', 'enunciado', 'explicacao')
+    
     list_editable = ('is_inedita',)
     ordering = ('-id',)
 

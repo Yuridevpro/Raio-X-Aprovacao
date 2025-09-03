@@ -3,6 +3,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 import json
+from django.db.models.signals import post_save # Importe o 'post_save'
+from django.dispatch import receiver # Importe o 'receiver'
 
 class Disciplina(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -36,7 +38,8 @@ class Questao(models.Model):
     disciplina = models.ForeignKey(Disciplina, on_delete=models.PROTECT)
     assunto = models.ForeignKey(Assunto, on_delete=models.PROTECT)
     banca = models.ForeignKey(Banca, on_delete=models.PROTECT, null=True, blank=True)
-    
+    codigo = models.CharField(max_length=20, unique=True, null=True, blank=True)
+
     # --- CAMPO ADICIONADO ---
     instituicao = models.ForeignKey(Instituicao, on_delete=models.PROTECT, null=True, blank=True)
     
@@ -58,3 +61,18 @@ class Questao(models.Model):
             try: return json.loads(self.alternativas)
             except json.JSONDecodeError: return {}
         return self.alternativas
+    
+    # --- INÍCIO DO NOVO CÓDIGO (SIGNAL) ---
+# Esta função será executada toda vez que uma nova Questao for salva.
+@receiver(post_save, sender=Questao)
+def gerar_codigo_questao(sender, instance, created, **kwargs):
+    """
+    Gera um código único para a questão no formato Q + ID.
+    O signal post_save é usado para garantir que a instância já tenha um ID.
+    """
+    # 'created' é True apenas na primeira vez que o objeto é salvo.
+    if created and not instance.codigo:
+        # Formata o código e salva a instância novamente, sem disparar o signal de novo.
+        instance.codigo = f'Q{instance.id}'
+        instance.save(update_fields=['codigo'])
+# --- FIM DO NOVO CÓDIGO ---

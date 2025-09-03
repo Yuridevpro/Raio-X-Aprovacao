@@ -14,32 +14,34 @@ from .models import FiltroSalvo # ADICIONE ESTE IMPORT
 # --- ADICIONE ESTES IMPORTS ---
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
+
 @login_required
 def listar_questoes(request):
+    # Começa com todas as questões
     lista_questoes = Questao.objects.all().order_by('-id')
 
     # --- Lógica de Filtragem ---
+    palavra_chave = request.GET.get('palavra_chave', '').strip()
     disciplinas_ids = request.GET.getlist('disciplina')
     assuntos_ids = request.GET.getlist('assunto')
     bancas_ids = request.GET.getlist('banca')
-    instituicoes_ids = request.GET.getlist('instituicao') # ADICIONADO
+    instituicoes_ids = request.GET.getlist('instituicao')
     anos = request.GET.getlist('ano')
     status = request.GET.get('status')
     
-    # Flag para verificar se filtros foram aplicados/modificados
-    filters_applied = any([disciplinas_ids, assuntos_ids, bancas_ids, instituicoes_ids, anos, status])
-
+    # Aplica os filtros de dropdown primeiro
     if disciplinas_ids:
         lista_questoes = lista_questoes.filter(disciplina_id__in=disciplinas_ids)
     if assuntos_ids:
         lista_questoes = lista_questoes.filter(assunto_id__in=assuntos_ids)
     if bancas_ids:
         lista_questoes = lista_questoes.filter(banca_id__in=bancas_ids)
-    if instituicoes_ids: # ADICIONADO
+    if instituicoes_ids:
         lista_questoes = lista_questoes.filter(instituicao_id__in=instituicoes_ids)
     if anos:
         lista_questoes = lista_questoes.filter(ano__in=anos)
     
+    # Aplica o filtro de status
     user_profile = request.user.userprofile
     if status == 'favoritas':
         lista_questoes = lista_questoes.filter(pk__in=user_profile.questoes_favoritas.all())
@@ -56,10 +58,19 @@ def listar_questoes(request):
         acertos_ids = RespostaUsuario.objects.filter(usuario=request.user, foi_correta=True).values_list('questao_id', flat=True)
         lista_questoes = lista_questoes.filter(pk__in=acertos_ids)
         
+    # Por último, aplica o filtro de palavra-chave/código ao resultado já filtrado
+    if palavra_chave:
+        if palavra_chave.upper().startswith('Q') and palavra_chave[1:].isdigit():
+            lista_questoes = lista_questoes.filter(codigo__iexact=palavra_chave)
+        else:
+            lista_questoes = lista_questoes.filter(enunciado__icontains=palavra_chave)
+            
+    # Flag para verificar se filtros foram aplicados (agora inclui palavra_chave)
+    filters_applied = any([palavra_chave, disciplinas_ids, assuntos_ids, bancas_ids, instituicoes_ids, anos, status])
+
     # --- LÓGICA DE PAGINAÇÃO ---
     paginator = Paginator(lista_questoes, 25)
     
-    # Se filtros foram aplicados, sempre volta para a página 1
     if filters_applied:
         page_number = 1
     else:
@@ -91,7 +102,7 @@ def listar_questoes(request):
     disciplinas = Disciplina.objects.all().order_by('nome')
     assuntos = Assunto.objects.all().order_by('nome')
     bancas = Banca.objects.all().order_by('nome')
-    instituicoes = Instituicao.objects.all().order_by('nome') # ADICIONADO
+    instituicoes = Instituicao.objects.all().order_by('nome')
     todos_anos = Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano')
 
     context = {
@@ -99,16 +110,17 @@ def listar_questoes(request):
         'disciplinas': disciplinas,
         'assuntos': assuntos,
         'bancas': bancas,
-        'instituicoes': instituicoes, # ADICIONADO
+        'instituicoes': instituicoes,
         'anos': todos_anos,
         'favoritas_ids': favoritas_ids,
         'selected_disciplinas': [int(i) for i in disciplinas_ids if i.isdigit()],
         'selected_assuntos': [int(i) for i in assuntos_ids if i.isdigit()],
         'selected_bancas': [int(i) for i in bancas_ids if i.isdigit()],
-        'selected_instituicoes': [int(i) for i in instituicoes_ids if i.isdigit()], # ADICIONADO
+        'selected_instituicoes': [int(i) for i in instituicoes_ids if i.isdigit()],
         'selected_anos': [int(i) for i in anos if i.isdigit()],
         'filtros_salvos': filtros_salvos,
         'page_numbers': page_numbers,
+        'palavra_chave_buscada': palavra_chave, # Adicionado para exibir a tag
     }
     return render(request, 'pratica/listar_questoes.html', context)
 

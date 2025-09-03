@@ -4,51 +4,222 @@
 
 {% block head %}
 <style>
-.filter-dropdown .dropdown-menu {
-    width: 350px;
-    padding: 1rem;
-    max-height: 400px;
-    overflow-y: auto;
-}
-.filter-dropdown-options {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-.filter-dropdown-options li {
-    padding: .25rem .5rem;
-}
-
-.enunciado-imagem {
-    max-width: 100%;
-    max-height: 400px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: 8px;
-}
-
-/* Estilo para o botão de filtro de status ativo */
-.btn-status-filter.active {
-    background-color: #0d6efd;
-    color: white;
-    border-color: #0d6efd;
-}
-
-.nav-pagination {
-    display: flex;
-    justify-content: center;
-    margin-top: 20px;
-}
-.page-link {
-    color: #0d6efd; /* Cor do link padrão do Bootstrap primary */
-}
-.page-item.active .page-link {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-    color: white;
-}
-</style>
+    .filter-dropdown .dropdown-menu {
+        width: 350px;
+        padding: 1rem;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .filter-dropdown-options {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+    .filter-dropdown-options li {
+        padding: .25rem .5rem;
+    }
+    
+    .enunciado-imagem {
+        max-width: 100%;
+        max-height: 400px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 8px;
+    }
+    
+    /* Estilo para o botão de filtro de status ativo */
+    .btn-status-filter.active {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+    }
+    
+    .nav-pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 20px;
+    }
+    .page-link {
+        color: #0d6efd; /* Cor do link padrão do Bootstrap primary */
+    }
+    .page-item.active .page-link {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+        color: white;
+    }
+    
+    /* --- INÍCIO: ESTILOS PARA O EDITOR TIPTAP (VERSÃO MELHORADA) --- */
+    
+    /* Estilo para o seletor de cor */
+    .btn-color-tiptap {
+        width: 32px;
+        height: 32px;
+        padding: 0.2rem;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        cursor: pointer;
+        vertical-align: middle; /* Alinha com os outros botões */
+    }
+    .btn-color-tiptap:hover {
+        border-color: #86bfe;
+    }
+    
+    
+    /* Estilização base do container do editor Tiptap */
+    .tiptap {
+        border: 1px solid #ced4da;
+        border-radius: .25rem;
+        padding: .75rem 1rem;
+        min-height: 150px;
+    }
+    
+    /* Remove margens padrão de parágrafos e títulos dentro do editor */
+    .tiptap p,
+    .tiptap h1,
+    .tiptap h2,
+    .tiptap h3 {
+        margin: 0;
+    }
+    
+    /* Foco no editor */
+    .tiptap:focus {
+        border-color: #86bfe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+    }
+    
+    /* --- FIM: ESTILOS PARA O EDITOR TIPTAP --- */
+    
+    
+    /* --- INÍCIO: ESTILOS PARA O CARD DE COMENTÁRIO --- */
+    
+    .comment-card {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+        padding: 1.25rem;
+    }
+    
+    .comment-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-bottom: 0.75rem;
+        margin-bottom: 0.75rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    
+    .comment-user {
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #212529;
+    }
+    
+    .comment-date {
+        font-size: 0.85rem;
+    }
+    
+    .comment-actions .btn {
+        background-color: transparent;
+        border: none;
+        color: #6c757d;
+        padding: .25rem .5rem;
+    }
+    
+    .comment-actions .btn:hover {
+        background-color: #e2e6ea;
+        color: #000;
+    }
+    
+    /* --- FIM: ESTILOS PARA O CARD DE COMENTÁRIO --- */
+    
+    
+    /* --- INÍCIO: ESTILOS UNIFICADOS PARA O CONTEÚDO DO EDITOR E DO COMENTÁRIO --- */
+    
+    /* BASE: Garante que o texto padrão (parágrafos) tenha o mesmo tamanho nos dois lugares */
+    .tiptap,
+    .comment-body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #212529;
+    }
+    
+    /* TÍTULOS: Força um tamanho de fonte consistente e menor para os títulos,
+       sobrescrevendo o que for colado ou o padrão do navegador. */
+    .tiptap h1, .comment-body h1,
+    .tiptap h2, .comment-body h2,
+    .tiptap h3, .comment-body h3,
+    .tiptap h4, .comment-body h4,
+    .tiptap h5, .comment-body h5,
+    .tiptap h6, .comment-body h6 {
+        margin-top: 1.25rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        line-height: 1.3;
+    }
+    
+    /* Define tamanhos de fonte específicos e menores para os títulos DENTRO do editor/comentário */
+    .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
+    .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
+    .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
+    .tiptap h4, .comment-body h4 { font-size: 1.0rem !important; }
+    
+    
+    /* PARÁGRAFOS: Garante espaçamento consistente */
+    .tiptap p,
+    .comment-body p {
+        margin-bottom: 1rem;
+    }
+    .tiptap p:last-child,
+    .comment-body p:last-child {
+        margin-bottom: 0;
+    }
+    
+    /* Adiciona espaço vertical entre elementos (parágrafos, listas, etc.) */
+    .tiptap > * + *,
+    .comment-body > * + * {
+        margin-top: 0.75em;
+    }
+    
+    
+    /* LISTAS E OUTROS ELEMENTOS: Mantém a consistência */
+    .tiptap ul,   .comment-body ul,
+    .tiptap ol,   .comment-body ol {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .tiptap li,   .comment-body li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .tiptap blockquote, .comment-body blockquote {
+        font-style: italic;
+        color: #6c757d;
+        padding-left: 1rem;
+        border-left: 3px solid #dee2e6;
+        margin-left: 0;
+    }
+    
+    .tiptap code, .comment-body code {
+        background-color: rgba(97, 97, 97, 0.1);
+        color: #616161;
+        padding: .1rem .3rem;
+        border-radius: .2rem;
+        font-size: 90%;
+    }
+    
+    .tiptap hr, .comment-body hr {
+        border: none;
+        border-top: 2px solid rgba(0, 0, 0, 0.1);
+        margin: 1rem 0;
+    }
+    
+    /* --- FIM: ESTILOS UNIFICADOS --- */
+    </style>
 {% endblock %}
 
 
@@ -75,9 +246,25 @@
         </div>
         <!-- FIM DOS NOVOS BOTÕES DE FILTRO DE STATUS -->
 
+
     <!-- INÍCIO DO FORMULÁRIO DE FILTROS AVANÇADO -->
     <form id="form-filtros" method="GET" action="{% url 'listar_questoes' %}" class="mb-3 p-4 bg-light rounded">
+                <!-- Input oculto para manter o filtro de status -->
+                <input type="hidden" name="status" value="{{ request.GET.status|default:'' }}">
         <div class="row g-3">
+
+            <!-- INÍCIO DO CAMPO PALAVRA-CHAVE -->
+        <div class="row mb-3">
+            <div class="col-12">
+                <label for="palavra_chave" class="form-label">Palavra-Chave ou Código</label>
+                <div class="input-group">
+                    <input type="text" class="form-control" name="palavra_chave" id="palavra_chave" value="{{ request.GET.palavra_chave_buscada }}" placeholder="Digite para buscar no enunciado ou insira um código (ex: Q123)">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i></button>
+                </div>
+            </div>
+        </div>
+        <!-- FIM DO CAMPO PALAVRA-CHAVE -->
+
             <!-- Filtro Disciplina -->
             <div class="col-md-3">
                 <div class="dropdown filter-dropdown">
@@ -202,9 +389,14 @@
     <h3>Questões Encontradas</h3>
    
     {% for questao in questoes %}
+
+    <!-- FIM DA ADIÇÃO -->
     <div class="card mb-3" id="questao-{{ questao.id }}">
         <div class="card-header d-flex justify-content-between align-items-center">
-            <span>
+                <span>
+                <span class="me-2 fw-bold">{{ forloop.counter0|add:questoes.start_index }}.
+                </span>
+                <span class="badge bg-secondary me-2">{{ questao.codigo }}</span>
                 <strong>{{ questao.disciplina.nome }}</strong> - {{ questao.assunto.nome }}
                 {% if questao.is_inedita %}
                     <span class="badge bg-primary ms-2">Inédita</span>
@@ -251,31 +443,46 @@
         </div>
         
         <div class="card-footer bg-white border-top-0 pt-0">
-            <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-comentarios" data-questao-id="{{ questao.id }}">
-                <i class="far fa-comment"></i> Comentários
-            </button>
+            <button
+            type="button"
+            class="btn btn-outline-secondary btn-sm btn-toggle-comentarios"
+            data-questao-id="{{ questao.id }}"
+            data-url-carregar="{% url 'carregar_comentarios' questao.id %}"
+        >
+            <i class="far fa-comment"></i> Comentários
+        </button>
         </div>
 
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
             <hr class="mt-0">
             <h5>Comentários</h5>
             <div class="comentarios-list mb-3" id="comentarios-list-{{ questao.id }}"></div>
-            <form class="form-comentario" data-questao-id="{{ questao.id }}">
-                <!-- RESTAURADO: Barra de ferramentas manual -->
-                <div class="wysiwyg-toolbar mb-1">
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="bold" title="Negrito"><b>B</b></button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="italic" title="Itálico"><i>I</i></button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="list" title="Lista"><i class="fas fa-list-ul"></i></button>
-                </div>
-                <div class="mb-2">
-                    <textarea class="form-control" name="conteudo" placeholder="Escreva seu comentário..." rows="3" required></textarea>
-                </div>
-                <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
-            </form>
+<!-- INÍCIO: FORMULÁRIO DE COMENTÁRIO MODIFICADO PARA TIPTAP -->
+<form class="form-comentario" data-questao-id="{{ questao.id }}">
+    <div class="tiptap-toolbar mb-1 d-flex align-items-center flex-wrap">
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista de Marcadores"><i class="fas fa-list-ul"></i></button>
+        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+    </div>
+    <div class="mb-2">
+        <!-- O contêiner onde o TipTap será renderizado -->
+        <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
+        <!-- O textarea agora está oculto e será usado para enviar os dados -->
+        <textarea name="conteudo" class="d-none" required></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
+</form>
+<!-- FIM: FORMULÁRIO DE COMENTÁRIO MODIFICADO -->
         </div>
     </div>
     {% empty %}
-    <p>Nenhuma questão encontrada com os filtros selecionados.</p>
+    <!-- INÍCIO DA MENSAGEM CUSTOMIZADA -->
+    <div class="alert alert-warning text-center" role="alert">
+        Nenhuma questão localizada com os filtros atuais. Escolha outro por favor.
+      </div>
+      <!-- FIM DA MENSAGEM CUSTOMIZADA -->
     {% endfor %}
 
     
@@ -370,54 +577,83 @@
       </div>
     </div>
   </div>
+
+
+
 {% endblock %}
 
 
 
 {% block scripts %}
+
+
 <!-- ======================================================================= -->
-<!-- SCRIPT 1: Lógica dos Filtros Avançados (AJAX)                         -->
+<script type="module">
+    // Importa os módulos principais
+    import { Editor } from 'https://esm.sh/@tiptap/core'
+    import StarterKit from 'https://esm.sh/@tiptap/starter-kit'
+    import { Markdown } from 'https://esm.sh/tiptap-markdown'
+
+    // Importa as NOVAS extensões que vamos usar
+    import Underline from 'https://esm.sh/@tiptap/extension-underline'
+   
+
+    // Anexa tudo ao objeto global 'window' para ser acessível no SCRIPT 2
+    window.TipTap = {
+        Editor,
+        StarterKit,
+        Markdown,
+        Underline,
+    };
+</script>
+
+<!-- ======================================================================= -->
+<!-- SCRIPT 1: Lógica dos Filtros Avançados (AJAX) - NOVA LÓGICA             -->
 <!-- ======================================================================= -->
 <script>
-function filterDropdownOptions(input) {
-    const filter = input.value.toUpperCase();
-    const ul = input.nextElementSibling;
-    const items = ul.getElementsByTagName('li');
-    for (let i = 0; i < items.length; i++) {
-        const label = items[i].querySelector("label");
-        if (label) {
-            const txtValue = label.textContent || label.innerText;
-            items[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+    // Função auxiliar para a "Busca Rápida"
+    function filterDropdownOptions(input) {
+        const filter = input.value.toUpperCase();
+        const ul = input.nextElementSibling;
+        const items = ul.getElementsByTagName('li');
+        for (let i = 0; i < items.length; i++) {
+            const label = items[i].querySelector("label");
+            if (label) {
+                const txtValue = label.textContent || label.innerText;
+                items[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+            }
         }
     }
-}
 
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('form-filtros');
-    if (!form) return;
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('form-filtros');
+        if (!form) return;
 
-    const activeFiltersContainer = document.getElementById('active-filters-container');
-    const disciplinaCheckboxes = form.querySelectorAll('input[name="disciplina"]');
-    const assuntoOptionsContainer = document.getElementById('options-assunto');
-    const assuntoDropdownButton = document.getElementById('dropdownAssunto');
-    const btnLimpar = document.getElementById('btn-limpar-filtros');
-    
-    function updateAssuntoOptions() {
-        const previouslySelectedAssuntoIds = new Set(
-            Array.from(form.querySelectorAll('input[name="assunto"]:checked')).map(cb => cb.value)
-        );
+        const activeFiltersContainer = document.getElementById('active-filters-container');
+        const disciplinaCheckboxes = form.querySelectorAll('input[name="disciplina"]');
+        const assuntoOptionsContainer = document.getElementById('options-assunto');
+        const assuntoDropdownButton = document.getElementById('dropdownAssunto');
+        const btnLimpar = document.getElementById('btn-limpar-filtros');
 
-        const selectedDisciplinaIds = Array.from(form.querySelectorAll('input[name="disciplina"]:checked')).map(cb => cb.value);
-        
-        assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
-        assuntoOptionsContainer.innerHTML = '';
+        // Função principal: carrega assuntos do zero
+        function loadAssuntos() {
+            const selectedDisciplinaIds = Array.from(
+                form.querySelectorAll('input[name="disciplina"]:checked')
+            ).map(cb => cb.value);
 
-        if (selectedDisciplinaIds.length > 0) {
+            assuntoOptionsContainer.innerHTML = '';
+            assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
+
+            if (selectedDisciplinaIds.length === 0) {
+                updateUI();
+                return;
+            }
+
             $.ajax({
                 url: "{% url 'get_assuntos_por_disciplina' %}",
                 data: { 'disciplina_ids': selectedDisciplinaIds },
                 dataType: 'json',
-                success: function(data) {
+                success: function (data) {
                     const assuntosAgrupados = data.assuntos.reduce((acc, assunto) => {
                         const disciplinaNome = assunto.disciplina__nome;
                         if (!acc[disciplinaNome]) acc[disciplinaNome] = [];
@@ -425,14 +661,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         return acc;
                     }, {});
 
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const assuntosMarcados = urlParams.getAll('assunto');
+
                     for (const disciplinaNome in assuntosAgrupados) {
                         const grupoHeader = document.createElement('li');
                         grupoHeader.className = 'dropdown-header';
                         grupoHeader.textContent = disciplinaNome;
                         assuntoOptionsContainer.appendChild(grupoHeader);
-                        
+
                         assuntosAgrupados[disciplinaNome].forEach(assunto => {
-                            const isChecked = previouslySelectedAssuntoIds.has(String(assunto.id));
+                            const isChecked = assuntosMarcados.includes(String(assunto.id));
                             const li = document.createElement('li');
                             li.innerHTML = `
                                 <div class="form-check">
@@ -446,66 +685,74 @@ document.addEventListener('DOMContentLoaded', function() {
                     updateUI();
                 }
             });
-        } else {
-            updateUI();
         }
-    }
 
-    function updateUI() {
-        activeFiltersContainer.innerHTML = '<strong>Filtrar por:</strong>';
-        let hasFilters = false;
-
-        ['disciplina', 'assunto', 'banca', 'instituicao', 'ano'].forEach(name => {
-            const checkboxes = form.querySelectorAll(`input[name="${name}"]:checked`);
-            const countSpan = document.getElementById(`count-${name}`);
-            
-            if (countSpan) {
-                countSpan.textContent = checkboxes.length;
-                countSpan.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
-            }
-            
-            checkboxes.forEach(cb => {
-                hasFilters = true;
-                const label = cb.parentElement.querySelector('label').textContent;
-                const tag = document.createElement('span');
-                tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
-                tag.innerHTML = `
-                    <span class="text-muted">${name.charAt(0).toUpperCase() + name.slice(1)}:</span> ${label}
-                    <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="${name}" data-value="${cb.value}"></button>
+        // Atualiza os filtros ativos e os contadores
+        function updateUI() {
+            activeFiltersContainer.innerHTML = '<strong>Filtrar por:</strong>';
+            if (document.querySelector('input[name="palavra_chave"]')?.value) {
+                activeFiltersContainer.innerHTML += `
+                    <span class="badge bg-light text-dark me-2 mb-2 p-2 fw-normal">
+                        <span class="text-muted">Palavra Chave:</span> ${document.querySelector('input[name="palavra_chave"]').value}
+                        <a href="?{{ request.GET.urlencode | cut:'palavra_chave=' }}" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close"></a>
+                    </span>
                 `;
-                activeFiltersContainer.appendChild(tag);
-            });
-        });
-        activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
-    }
-
-    disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', updateAssuntoOptions));
-
-    btnLimpar.addEventListener('click', function() {
-        form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        form.submit();
-    });
-
-    activeFiltersContainer.addEventListener('click', function(e) {
-        if (e.target.classList.contains('btn-close')) {
-            const name = e.target.dataset.name;
-            const value = e.target.dataset.value;
-            const checkboxToUncheck = form.querySelector(`input[name="${name}"][value="${value}"]`);
-            if (checkboxToUncheck) {
-                checkboxToUncheck.checked = false;
-                form.submit();
             }
-        }
-    });
 
-    form.addEventListener('change', (e) => {
-        if (e.target.name !== 'disciplina') {
-            updateUI();
-        }
-    });
+            let hasFilters = !!document.querySelector('input[name="palavra_chave"]')?.value;
 
-    updateAssuntoOptions();
-});
+            ['disciplina', 'assunto', 'banca', 'instituicao', 'ano'].forEach(name => {
+                const checkboxes = form.querySelectorAll(`input[name="${name}"]:checked`);
+                const countSpan = document.getElementById(`count-${name}`);
+                if (countSpan) {
+                    countSpan.textContent = checkboxes.length;
+                    countSpan.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
+                }
+                checkboxes.forEach(cb => {
+                    hasFilters = true;
+                    const label = cb.parentElement.querySelector('label').textContent;
+                    const tag = document.createElement('span');
+                    tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
+                    tag.innerHTML = `
+                        <span class="text-muted">${name.charAt(0).toUpperCase() + name.slice(1)}:</span> ${label}
+                        <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="${name}" data-value="${cb.value}"></button>
+                    `;
+                    activeFiltersContainer.appendChild(tag);
+                });
+            });
+            activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
+        }
+
+        // Eventos
+        disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', loadAssuntos));
+
+        btnLimpar.addEventListener('click', function () {
+            form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            form.querySelector('input[name="palavra_chave"]').value = '';
+            form.submit();
+        });
+
+        activeFiltersContainer.addEventListener('click', function (e) {
+            if (e.target.classList.contains('btn-close')) {
+                const name = e.target.dataset.name;
+                const value = e.target.dataset.value;
+                const checkboxToUncheck = form.querySelector(`input[name="${name}"][value="${value}"]`);
+                if (checkboxToUncheck) {
+                    checkboxToUncheck.checked = false;
+                    form.submit();
+                }
+            }
+        });
+
+        form.addEventListener('change', (e) => {
+            if (e.target.name !== 'disciplina') {
+                updateUI();
+            }
+        });
+
+        // Carrega os assuntos na carga inicial
+        loadAssuntos();
+    });
 </script>
 
 <!-- ======================================================================= -->
@@ -518,41 +765,174 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const confirmarExclusaoModalEl = document.getElementById('confirmarExclusaoModal');
     const confirmarExclusaoModal = confirmarExclusaoModalEl ? new bootstrap.Modal(confirmarExclusaoModalEl) : null;
-    
-    document.addEventListener('click', function(e) {
-        const target = e.target;
-        
-        if (target.classList.contains('fa-star')) {
-            handleFavoritar(target);
-            return;
-        }
-        
-        const button = target.closest('button');
-        if (!button) return;
 
-        if (button.id === 'btn-confirmar-salvar-filtro') {
-            handleSalvarFiltro();
-        } else if (button.classList.contains('btn-deletar-filtro')) {
-            const filtroId = button.dataset.filtroId;
-            const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
-            abrirModalConfirmacao(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
-        } else if (button.classList.contains('btn-responder')) {
-            handleResponder(button);
-        } else if (button.classList.contains('btn-toggle-comentarios')) {
-            handleToggleComentarios(button);
-        } else if (button.classList.contains('btn-excluir-comentario')) {
-            const comentarioId = button.dataset.comentarioId;
-            abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
-        } else if (button.classList.contains('btn-editar-comentario')) {
-            handleAbrirEdicao(button);
-        } else if (button.classList.contains('btn-salvar-edicao')) {
-            handleSalvarEdicao(button);
-        } else if (button.classList.contains('btn-cancelar-edicao')) {
-            handleCancelarEdicao(button);
-        } else if (button.closest('.wysiwyg-toolbar')) {
-            handleToolbarClick(button);
+        
+    // Armazena as instâncias dos editores Tiptap para novos comentários
+        const tiptapEditors = {}; 
+        // Guarda a instância única do nosso editor móvel para edição
+        let editTiptapEditor = null; 
+
+        // Inicializa o editor de edição UMA VEZ quando a página carrega.
+        // Ele não precisa de um elemento HTML agora, pois sua view será movida depois.
+        const { Editor, StarterKit, Markdown, Underline } = window.TipTap;
+        if (Editor) { // Boa prática verificar se o Tiptap carregou
+            editTiptapEditor = new Editor({
+                extensions: [ StarterKit, Markdown.configure({ html: false }), Underline ],
+                content: '',
+            });
+        } else {
+            console.error("Tiptap não foi carregado a tempo para criar o editor de edição.");
+        }
+
+    
+/**
+ * Inicializa um editor Tiptap para um formulário de comentário.
+ */
+ function initializeTiptapEditor({ editorElement, toolbarElement, hiddenTextarea }) {
+    if (editorElement.tiptapEditor) {
+        return editorElement.tiptapEditor;
+    }
+
+    const { Editor, StarterKit, Markdown, Underline, TextStyle, Color } = window.TipTap;
+    if (!Editor) {
+        console.error("Tiptap não foi carregado corretamente.");
+        return;
+    }
+
+    const editor = new Editor({
+        element: editorElement,
+        extensions: [
+            StarterKit,
+            Markdown.configure({ html: false, linkify: true, breaks: true }),
+            Underline,
+        
+        ],
+        content: '',
+        editorProps: {
+            handleDOMEvents: {
+                paste: () => false, // Usa o tratamento padrão do Tiptap para colar texto
+            },
+            // --- INÍCIO DA ADIÇÃO ---
+            // Esta função intercepta o HTML colado e o limpa antes de ser inserido.
+            transformPastedHTML(html) {
+                // Usa a API nativa do navegador para criar um documento temporário na memória.
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                
+                // Seleciona TODOS os elementos ('*') dentro do conteúdo colado.
+                doc.body.querySelectorAll('*').forEach(el => {
+                    // Remove o atributo 'style', que é a principal fonte de formatação indesejada (tamanho, cor, etc.).
+                    el.removeAttribute('style');
+                    // Remove também o atributo 'class' para evitar conflitos com seu CSS.
+                    el.removeAttribute('class');
+                });
+
+                // Retorna a string de HTML já limpa para o Tiptap processar.
+                return doc.body.innerHTML;
+            }
+            // --- FIM DA ADIÇÃO ---
+        },
+        onUpdate: ({ editor }) => {
+            hiddenTextarea.value = editor.storage.markdown.getMarkdown();
+        },
+        onTransaction: ({ editor }) => {
+            const updateButtonState = (command, activeState) => {
+                const button = toolbarElement.querySelector(`[data-command="${command}"]`);
+                if (button) {
+                    button.classList.toggle('active', editor.isActive(activeState));
+                }
+            };
+            updateButtonState('toggleBold', 'bold');
+            updateButtonState('toggleItalic', 'italic');
+            updateButtonState('toggleUnderline', 'underline');
+            updateButtonState('toggleBulletList', 'bulletList');
+            updateButtonState('toggleOrderedList', 'orderedList');
         }
     });
+
+    // Adiciona eventos de clique aos botões da barra de ferramentas
+    toolbarElement.querySelectorAll('button[data-command]').forEach(button => {
+        button.addEventListener('click', () => {
+            const command = button.dataset.command;
+            const commands = {
+                toggleBold: () => editor.chain().focus().toggleBold().run(),
+                toggleItalic: () => editor.chain().focus().toggleItalic().run(),
+                toggleUnderline: () => editor.chain().focus().toggleUnderline().run(),
+                toggleBulletList: () => editor.chain().focus().toggleBulletList().run(),
+                toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(),
+            };
+            if (commands[command]) {
+                commands[command]();
+            }
+        });
+    });
+
+    // Adiciona evento para o seletor de cor
+    const colorInput = toolbarElement.querySelector('input[type="color"]');
+    if (colorInput) {
+        colorInput.addEventListener('input', (event) => {
+            editor.chain().focus().setColor(event.target.value).run();
+        });
+    }
+
+    editorElement.tiptapEditor = editor;
+    return editor;
+}
+    // --- FIM: LÓGICA DO TIPTAP ---
+
+    
+    document.addEventListener('click', function(e) {
+    const target = e.target;
+    
+    // Lógica para favoritar (não muda)
+    if (target.classList.contains('fa-star')) {
+        handleFavoritar(target);
+        return;
+    }
+    
+    // Pega o botão mais próximo, se houver
+    const button = target.closest('button');
+    if (!button) return;
+
+    // Lógica dos modais (não muda)
+    if (button.id === 'btn-confirmar-salvar-filtro') {
+        handleSalvarFiltro();
+    } else if (button.classList.contains('btn-deletar-filtro')) {
+        const filtroId = button.dataset.filtroId;
+        const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
+        abrirModalConfirmacao(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
+    
+    // Lógica da questão (não muda)
+    } else if (button.classList.contains('btn-responder')) {
+        handleResponder(button);
+    } else if (button.classList.contains('btn-toggle-comentarios')) {
+        handleToggleComentarios(button);
+    
+    // Lógica de excluir comentário (não muda)
+    } else if (button.classList.contains('btn-excluir-comentario')) {
+        const comentarioId = button.dataset.comentarioId;
+        abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
+    
+    // --- INÍCIO DAS MUDANÇAS NA LÓGICA DE EDIÇÃO ---
+
+    } else if (button.classList.contains('btn-editar-comentario')) {
+        // Agora chama a nova função de abrir edição
+        handleAbrirEdicao(button); 
+    
+    } else if (button.classList.contains('btn-salvar-edicao')) {
+        // Agora chama a nova função de salvar edição
+        handleSalvarEdicao(button); 
+    
+    } else if (button.classList.contains('btn-cancelar-edicao')) {
+        // ESTA É A PARTE QUE VOCÊ PERGUNTOU
+        // Chama a nova função de cancelar, passando o formulário diretamente
+        cancelarEdicao(button.closest('.comment-edit-form')); 
+
+    // --- FIM DAS MUDANÇAS ---
+    
+    } else if (button.closest('.wysiwyg-toolbar')) { // Mantido por compatibilidade com a toolbar do Tiptap
+        handleToolbarClick(button);
+    }
+});
 
     document.addEventListener('submit', function(e) {
         if (e.target.classList.contains('form-comentario')) {
@@ -659,13 +1039,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleToggleComentarios(button) {
         const questaoId = button.dataset.questaoId;
+        const urlCarregar = button.dataset.urlCarregar;
         const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
+
+        if (!comentariosSection) {
+            console.error(`Elemento #comentarios-section-${questaoId} não encontrado.`);
+            return;
+        }
+
         const isHidden = comentariosSection.style.display === 'none';
         comentariosSection.style.display = isHidden ? 'block' : 'none';
-        if (isHidden && comentariosSection.dataset.carregado !== 'true') {
-            carregarComentarios(questaoId);
+
+        if (isHidden) {
+            // Inicializa o editor Tiptap se for a primeira vez
+            if (!tiptapEditors[questaoId]) {
+                const form = comentariosSection.querySelector('.form-comentario');
+                if (form) {
+                    const editorElement = form.querySelector('.tiptap-editor');
+                    const toolbarElement = form.querySelector('.tiptap-toolbar');
+                    const hiddenTextarea = form.querySelector('textarea[name="conteudo"]');
+                    if (editorElement && toolbarElement && hiddenTextarea) {
+                        tiptapEditors[questaoId] = initializeTiptapEditor({ editorElement, toolbarElement, hiddenTextarea });
+                    }
+                }
+            }
+
+            // Carrega os comentários se ainda não foram carregados
+            if (comentariosSection.dataset.carregado !== 'true') {
+                carregarComentarios(questaoId, urlCarregar);
+            }
         }
     }
+    
 
     function handleAdicionarComentario(form) {
         const questaoId = form.dataset.questaoId;
@@ -681,15 +1086,23 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(result => {
             if (result.status === 'success') {
-                textarea.value = '';
+                // Limpa o conteúdo do editor Tiptap e da textarea oculta
+                const editor = tiptapEditors[questaoId];
+                if (editor) {
+                    editor.commands.clearContent();
+                } else {
+                    textarea.value = ''; // Fallback caso o editor não seja encontrado
+                }
+
                 const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
                 const pVazio = comentariosList.querySelector('p');
                 if (pVazio) pVazio.remove();
                 comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(result.comentario));
-            } else { alert('Erro: ' + result.message); }
+            } else {
+                alert('Erro: ' + result.message);
+            }
         });
     }
-
     function handleExcluirComentario(comentarioId) {
         fetch("{% url 'excluir_comentario' %}", {
             method: 'POST',
@@ -705,45 +1118,91 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleAbrirEdicao(button) {
-        const comentarioId = button.dataset.comentarioId;
-        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
-        const rawContent = contentDiv.dataset.rawContent;
-        contentDiv.dataset.originalHtml = contentDiv.innerHTML;
-        contentDiv.innerHTML = `
-            <textarea class="form-control" rows="3">${rawContent}</textarea>
-            <div class="mt-2">
-                <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
-                <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao" data-comentario-id="${comentarioId}">Cancelar</button>
-            </div>
-        `;
-    }
+    const comentarioId = button.dataset.comentarioId;
+    const commentCard = document.getElementById(`comentario-${comentarioId}`);
+    const contentDiv = commentCard.querySelector('.comment-content');
+    const editFormDiv = commentCard.querySelector('.comment-edit-form');
     
-    function handleSalvarEdicao(button) {
-        const comentarioId = button.dataset.comentarioId;
-        const textarea = document.querySelector(`#comentario-${comentarioId} textarea`);
-        const novoConteudo = textarea.value;
-
-        fetch("{% url 'editar_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if(result.status === 'success') {
-                const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
-                contentDiv.innerHTML = result.conteudo_html;
-                contentDiv.dataset.rawContent = novoConteudo;
-            } else { alert('Erro ao salvar: ' + result.message); }
-        });
-    }
-    
-    function handleCancelarEdicao(button) {
-        const comentarioId = button.dataset.comentarioId;
-        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
-        contentDiv.innerHTML = contentDiv.dataset.originalHtml;
+    // Se outro comentário já estiver aberto para edição, cancele-o primeiro.
+    const outroFormAberto = document.querySelector('.comment-edit-form:not([style*="display: none"])');
+    if (outroFormAberto) {
+        cancelarEdicao(outroFormAberto);
     }
 
+    const rawContent = contentDiv.dataset.rawContent;
+
+    // Preenche o div de edição com a estrutura do editor e anexa a instância do Tiptap
+    editFormDiv.innerHTML = `
+        <div class="tiptap-toolbar mb-1 d-flex align-items-center flex-wrap">
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista de Marcadores"><i class="fas fa-list-ul"></i></button>
+            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+        </div>
+        <div class="mb-2">
+            <div class="tiptap-editor" id="tiptap-editor-edit-${comentarioId}"></div>
+        </div>
+        <div class="mt-2">
+            <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
+            <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao">Cancelar</button>
+        </div>
+    `;
+
+    // Move o DOM do editor para o novo placeholder
+    const editorPlaceholder = editFormDiv.querySelector('.tiptap-editor');
+    editorPlaceholder.appendChild(editTiptapEditor.view.dom);
+
+    // Define o conteúdo e foca no editor
+    editTiptapEditor.commands.setContent(rawContent, false);
+    editTiptapEditor.commands.focus();
+    
+    // Esconde o conteúdo e mostra o formulário de edição
+    contentDiv.style.display = 'none';
+    editFormDiv.style.display = 'block';
+}
+
+function handleSalvarEdicao(button) {
+    const comentarioId = button.dataset.comentarioId;
+    const novoConteudo = editTiptapEditor.storage.markdown.getMarkdown();
+
+    fetch("{% url 'editar_comentario' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if(result.status === 'success') {
+            const commentCard = document.getElementById(`comentario-${comentarioId}`);
+            const contentDiv = commentCard.querySelector('.comment-content');
+            
+            // Atualiza o conteúdo HTML e o conteúdo "raw" no dataset
+            contentDiv.innerHTML = result.conteudo_html;
+            contentDiv.dataset.rawContent = novoConteudo;
+            
+            // Esconde o formulário de edição e mostra o conteúdo atualizado
+            cancelarEdicao(button.closest('.comment-edit-form'));
+        } else { 
+            alert('Erro ao salvar: ' + result.message); 
+        }
+    });
+}
+
+// A função agora recebe o formulário a ser fechado como argumento
+function cancelarEdicao(editFormDiv) {
+    if (!editFormDiv) return;
+
+    const commentCard = editFormDiv.closest('.comment-card');
+    const contentDiv = commentCard.querySelector('.comment-content');
+
+    // Mostra o conteúdo original novamente
+    contentDiv.style.display = 'block';
+
+    // Esconde e limpa o formulário de edição para a próxima vez
+    editFormDiv.style.display = 'none';
+    editFormDiv.innerHTML = '';
+}
     function handleToolbarClick(button) {
         const format = button.dataset.format;
         const textarea = button.closest('.form-comentario').querySelector('textarea');
@@ -794,33 +1253,42 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    function criarHtmlComentario(comentario) {
-        let buttons = '';
-        if (comentario.pode_editar) {
-            buttons = `
-                <div class="comment-actions">
-                    <button type="button" class="btn btn-sm btn-light btn-editar-comentario" data-comentario-id="${comentario.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                    <button type="button" class="btn btn-sm btn-light text-danger btn-excluir-comentario" data-comentario-id="${comentario.id}" title="Excluir"><i class="fas fa-times"></i></button>
-                </div>
-            `;
-        }
-        return `
-            <div class="d-flex border-bottom pb-2 mb-2" id="comentario-${comentario.id}">
-                <div class="flex-shrink-0" style="width: 150px;">
-                    <strong class="d-block">${comentario.usuario}</strong>
-                </div>
-                <div class="flex-grow-1 ms-3">
-                    <div class="d-flex justify-content-between">
-                        <small class="text-muted">${comentario.data_criacao}</small>
-                        ${buttons}
-                    </div>
-                    <div class="comment-content mt-2" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
-                        ${comentario.conteudo}
-                    </div>
-                </div>
+// Dentro do seu SCRIPT 2, altere esta função
+function criarHtmlComentario(comentario) {
+    let buttons = '';
+    if (comentario.pode_editar) {
+        buttons = `
+            <div class="comment-actions">
+                <button type="button" class="btn btn-sm btn-light btn-editar-comentario" data-comentario-id="${comentario.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                <button type="button" class="btn btn-sm btn-light text-danger btn-excluir-comentario" data-comentario-id="${comentario.id}" title="Excluir"><i class="fas fa-times"></i></button>
             </div>
         `;
     }
+
+    // A nova estrutura de "card" para o comentário
+    return `
+        <div class="comment-card" id="comentario-${comentario.id}">
+            <div class="comment-header">
+                <div>
+                    <span class="comment-user">${comentario.usuario}</span>
+                    <small class="comment-date text-muted ms-2">${comentario.data_criacao}</small>
+                </div>
+                ${buttons}
+            </div>
+            
+            <!-- 1. Área de visualização do conteúdo -->
+            <div class="comment-body comment-content" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
+                ${comentario.conteudo}
+            </div>
+
+            <!-- 2. Área de edição (inicialmente oculta) -->
+            <div class="comment-edit-form mt-2" style="display: none;">
+                <!-- O editor Tiptap será inserido aqui -->
+            </div>
+        </div>
+    `;
+}
+
 });
 </script>
 {% endblock %}
