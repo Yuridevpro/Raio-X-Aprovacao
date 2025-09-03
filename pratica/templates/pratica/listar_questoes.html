@@ -1,0 +1,826 @@
+{% extends 'base.html' %}
+{% load pratica_extras %}
+{% block title %}Praticar Questões{% endblock %}
+
+{% block head %}
+<style>
+.filter-dropdown .dropdown-menu {
+    width: 350px;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.filter-dropdown-options {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+.filter-dropdown-options li {
+    padding: .25rem .5rem;
+}
+
+.enunciado-imagem {
+    max-width: 100%;
+    max-height: 400px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 8px;
+}
+
+/* Estilo para o botão de filtro de status ativo */
+.btn-status-filter.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.nav-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+.page-link {
+    color: #0d6efd; /* Cor do link padrão do Bootstrap primary */
+}
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">Filtrar Questões</h2>
+        <div>
+            <button class="btn btn-secondary" type="button" data-bs-toggle="modal" data-bs-target="#filtrosSalvosModal">
+                <i class="fas fa-filter me-2"></i>Meus Filtros
+            </button>
+        </div>
+    </div>
+
+        <!-- INÍCIO DOS NOVOS BOTÕES DE FILTRO DE STATUS -->
+        <div class="mb-4">
+            <div class="btn-group flex-wrap" role="group" aria-label="Filtros de status">
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=" class="btn btn-outline-primary btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=respondidas" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=nao_respondidas" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=acertei" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=errei" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
+            </div>
+        </div>
+        <!-- FIM DOS NOVOS BOTÕES DE FILTRO DE STATUS -->
+
+    <!-- INÍCIO DO FORMULÁRIO DE FILTROS AVANÇADO -->
+    <form id="form-filtros" method="GET" action="{% url 'listar_questoes' %}" class="mb-3 p-4 bg-light rounded">
+        <div class="row g-3">
+            <!-- Filtro Disciplina -->
+            <div class="col-md-3">
+                <div class="dropdown filter-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownDisciplina" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        Disciplina <span class="badge bg-primary rounded-pill" id="count-disciplina" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownDisciplina">
+                        <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+                        <ul class="filter-dropdown-options">
+                            {% for d in disciplinas %}
+                            <li>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="disciplina" value="{{ d.id }}" id="disciplina-{{ d.id }}" {% if d.id in selected_disciplinas %}checked{% endif %}>
+                                    <label class="form-check-label" for="disciplina-{{ d.id }}">{{ d.nome }}</label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro Assunto -->
+            <div class="col-md-3">
+                <div class="dropdown filter-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownAssunto" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        Assunto <span class="badge bg-primary rounded-pill" id="count-assunto" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownAssunto">
+                        <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+                        <ul class="filter-dropdown-options" id="options-assunto">
+                            <!-- Opções e grupos de disciplinas serão inseridos aqui pelo JavaScript -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro Banca -->
+            <div class="col-md-3">
+                 <div class="dropdown filter-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownBanca" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        Banca <span class="badge bg-primary rounded-pill" id="count-banca" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownBanca">
+                        <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+                        <ul class="filter-dropdown-options">
+                            {% for b in bancas %}
+                            <li>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="banca" value="{{ b.id }}" id="banca-{{ b.id }}" {% if b.id in selected_bancas %}checked{% endif %}>
+                                    <label class="form-check-label" for="banca-{{ b.id }}">{{ b.nome }}</label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILTRO INSTITUIÇÃO -->
+            <div class="col-md-3">
+                <div class="dropdown filter-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownInstituicao" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        Instituição <span class="badge bg-primary rounded-pill" id="count-instituicao" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownInstituicao">
+                        <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+                        <ul class="filter-dropdown-options">
+                            {% for i in instituicoes %}
+                            <li>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="instituicao" value="{{ i.id }}" id="instituicao-{{ i.id }}" {% if i.id in selected_instituicoes %}checked{% endif %}>
+                                    <label class="form-check-label" for="instituicao-{{ i.id }}">{{ i.nome }}</label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filtro Ano -->
+            <div class="col-md-3">
+                <div class="dropdown filter-dropdown">
+                    <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownAno" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
+                        Ano <span class="badge bg-primary rounded-pill" id="count-ano" style="display: none;">0</span>
+                    </button>
+                    <div class="dropdown-menu" aria-labelledby="dropdownAno">
+                        <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+                        <ul class="filter-dropdown-options">
+                            {% for a in anos %}
+                            <li>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="ano" value="{{ a }}" id="ano-{{ a }}" {% if a in selected_anos %}checked{% endif %}>
+                                    <label class="form-check-label" for="ano-{{ a }}">{{ a }}</label>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center mt-3">
+            <button type="submit" class="btn btn-primary">Aplicar Filtros</button>
+            <button type="button" id="btn-limpar-filtros" class="btn btn-outline-secondary">Limpar</button>
+        </div>
+    </form>
+    
+    <div class="mb-3" id="active-filters-container" style="display: none;">
+        <strong>Filtrar por:</strong>
+    </div>
+    
+    <div class="text-end mb-4">
+        <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#salvarFiltroModal">
+            <i class="fas fa-save me-2"></i>Salvar Filtros Atuais
+        </button>
+    </div>
+    
+    <hr>
+    
+    <h3>Questões Encontradas</h3>
+   
+    {% for questao in questoes %}
+    <div class="card mb-3" id="questao-{{ questao.id }}">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>
+                <strong>{{ questao.disciplina.nome }}</strong> - {{ questao.assunto.nome }}
+                {% if questao.is_inedita %}
+                    <span class="badge bg-primary ms-2">Inédita</span>
+                {% elif questao.banca and questao.ano %}
+                    ({{ questao.banca.nome }} - {{ questao.ano }})
+                {% endif %}
+            </span>
+            <i class="fa-star {% if questao.id in favoritas_ids %}fas text-warning{% else %}far{% endif %}"
+               style="cursor: pointer;"
+               data-questao-id="{{ questao.id }}"
+               title="Marcar como favorita"></i>
+        </div>
+        <div class="card-body">
+            {% if questao.imagem_enunciado %}
+                <img src="{{ questao.imagem_enunciado.url }}" class="enunciado-imagem mb-3" alt="Imagem da questão">
+            {% endif %}
+
+            <div class="card-text enunciado-formatado">
+                {{ questao.enunciado|render_markdown|safe }}
+            </div>
+            
+            <hr>
+
+            <div class="alternativas" data-questao-id="{{ questao.id }}">
+                {% for key, value in questao.get_alternativas_dict.items %}
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="alternativa-{{ questao.id }}" id="q{{ questao.id }}-{{ key }}" value="{{ key }}">
+                    <label class="form-check-label" for="q{{ questao.id }}-{{ key }}">
+                        <strong>{{ key }})</strong> {{ value }}
+                    </label>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <button type="button" class="btn btn-success mt-3 btn-responder" data-questao-id="{{ questao.id }}">Responder</button>
+
+            <div class="feedback mt-3" style="display: none;">
+                <div class="alert"></div>
+                <div class="explicacao p-3 bg-light border rounded" style="display: none;">
+                    <h5>Explicação:</h5>
+                    <p></p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card-footer bg-white border-top-0 pt-0">
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-comentarios" data-questao-id="{{ questao.id }}">
+                <i class="far fa-comment"></i> Comentários
+            </button>
+        </div>
+
+        <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
+            <hr class="mt-0">
+            <h5>Comentários</h5>
+            <div class="comentarios-list mb-3" id="comentarios-list-{{ questao.id }}"></div>
+            <form class="form-comentario" data-questao-id="{{ questao.id }}">
+                <!-- RESTAURADO: Barra de ferramentas manual -->
+                <div class="wysiwyg-toolbar mb-1">
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="bold" title="Negrito"><b>B</b></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="italic" title="Itálico"><i>I</i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" data-format="list" title="Lista"><i class="fas fa-list-ul"></i></button>
+                </div>
+                <div class="mb-2">
+                    <textarea class="form-control" name="conteudo" placeholder="Escreva seu comentário..." rows="3" required></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
+            </form>
+        </div>
+    </div>
+    {% empty %}
+    <p>Nenhuma questão encontrada com os filtros selecionados.</p>
+    {% endfor %}
+
+    
+
+</div>
+
+<!-- INÍCIO DA PAGINAÇÃO -->
+<nav aria-label="Page navigation" class="nav-pagination">
+    <ul class="pagination">
+        <li class="page-item {% if questoes.has_previous %}{% else %}disabled{% endif %}">
+            <a class="page-link" href="{% if questoes.has_previous %}?{{ request.GET.urlencode | remove_page_param }}&page={{ questoes.previous_page_number }}{% else %}#{% endif %}" aria-label="Previous">
+                <span aria-hidden="true">«</span>
+            </a>
+        </li>
+        {% for num in page_numbers %}
+            {% if num == "..." %}
+                <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% else %}
+                <li class="page-item {% if questoes.number == num %}active{% endif %}">
+                    <a class="page-link" href="?{{ request.GET.urlencode | remove_page_param }}&page={{ num }}">{{ num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+        <li class="page-item {% if questoes.has_next %}{% else %}disabled{% endif %}">
+            <a class="page-link" href="{% if questoes.has_next %}?{{ request.GET.urlencode | remove_page_param }}&page={{ questoes.next_page_number }}{% else %}#{% endif %}" aria-label="Next">
+                <span aria-hidden="true">»</span>
+            </a>
+        </li>
+    </ul>
+</nav>
+<!-- FIM DA PAGINAÇÃO -->
+
+
+<!-- MODAIS BOOTSTRAP -->
+<div class="modal fade" id="salvarFiltroModal" tabindex="-1" aria-labelledby="salvarFiltroModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="salvarFiltroModalLabel">Salvar Novo Filtro</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Digite um nome para o conjunto de filtros atual.</p>
+          <input type="text" class="form-control" id="input-nome-filtro" placeholder="Nome do novo filtro">
+          <div class="invalid-feedback">Por favor, insira um nome.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-filtro">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal fade" id="filtrosSalvosModal" tabindex="-1" aria-labelledby="filtrosSalvosModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="filtrosSalvosModalLabel">Meus Filtros Salvos</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <ul class="list-group" id="lista-modal-filtros-salvos">
+              {% for filtro in filtros_salvos %}
+                  <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-{{ filtro.id }}">
+                      <a href="?{{ filtro.parametros_url }}" class="text-decoration-none text-dark flex-grow-1">{{ filtro.nome }}</a>
+                      <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="{{ filtro.id }}">&times;</button>
+                  </li>
+              {% empty %}
+                  <p id="sem-filtros-salvos-msg" class="text-center text-muted">Nenhum filtro salvo.</p>
+              {% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="modal fade" id="confirmarExclusaoModal" tabindex="-1" aria-labelledby="confirmarExclusaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="confirmarExclusaoModalLabel">Confirmar Exclusão</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="corpo-modal-exclusao">Deseja realmente excluir este item?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-danger" id="btn-confirmar-exclusao">Sim, Excluir</button>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+
+
+{% block scripts %}
+<!-- ======================================================================= -->
+<!-- SCRIPT 1: Lógica dos Filtros Avançados (AJAX)                         -->
+<!-- ======================================================================= -->
+<script>
+function filterDropdownOptions(input) {
+    const filter = input.value.toUpperCase();
+    const ul = input.nextElementSibling;
+    const items = ul.getElementsByTagName('li');
+    for (let i = 0; i < items.length; i++) {
+        const label = items[i].querySelector("label");
+        if (label) {
+            const txtValue = label.textContent || label.innerText;
+            items[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('form-filtros');
+    if (!form) return;
+
+    const activeFiltersContainer = document.getElementById('active-filters-container');
+    const disciplinaCheckboxes = form.querySelectorAll('input[name="disciplina"]');
+    const assuntoOptionsContainer = document.getElementById('options-assunto');
+    const assuntoDropdownButton = document.getElementById('dropdownAssunto');
+    const btnLimpar = document.getElementById('btn-limpar-filtros');
+    
+    function updateAssuntoOptions() {
+        const previouslySelectedAssuntoIds = new Set(
+            Array.from(form.querySelectorAll('input[name="assunto"]:checked')).map(cb => cb.value)
+        );
+
+        const selectedDisciplinaIds = Array.from(form.querySelectorAll('input[name="disciplina"]:checked')).map(cb => cb.value);
+        
+        assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
+        assuntoOptionsContainer.innerHTML = '';
+
+        if (selectedDisciplinaIds.length > 0) {
+            $.ajax({
+                url: "{% url 'get_assuntos_por_disciplina' %}",
+                data: { 'disciplina_ids': selectedDisciplinaIds },
+                dataType: 'json',
+                success: function(data) {
+                    const assuntosAgrupados = data.assuntos.reduce((acc, assunto) => {
+                        const disciplinaNome = assunto.disciplina__nome;
+                        if (!acc[disciplinaNome]) acc[disciplinaNome] = [];
+                        acc[disciplinaNome].push(assunto);
+                        return acc;
+                    }, {});
+
+                    for (const disciplinaNome in assuntosAgrupados) {
+                        const grupoHeader = document.createElement('li');
+                        grupoHeader.className = 'dropdown-header';
+                        grupoHeader.textContent = disciplinaNome;
+                        assuntoOptionsContainer.appendChild(grupoHeader);
+                        
+                        assuntosAgrupados[disciplinaNome].forEach(assunto => {
+                            const isChecked = previouslySelectedAssuntoIds.has(String(assunto.id));
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="assunto" value="${assunto.id}" id="assunto-${assunto.id}" ${isChecked ? 'checked' : ''}>
+                                    <label class="form-check-label" for="assunto-${assunto.id}">${assunto.nome}</label>
+                                </div>
+                            `;
+                            assuntoOptionsContainer.appendChild(li);
+                        });
+                    }
+                    updateUI();
+                }
+            });
+        } else {
+            updateUI();
+        }
+    }
+
+    function updateUI() {
+        activeFiltersContainer.innerHTML = '<strong>Filtrar por:</strong>';
+        let hasFilters = false;
+
+        ['disciplina', 'assunto', 'banca', 'instituicao', 'ano'].forEach(name => {
+            const checkboxes = form.querySelectorAll(`input[name="${name}"]:checked`);
+            const countSpan = document.getElementById(`count-${name}`);
+            
+            if (countSpan) {
+                countSpan.textContent = checkboxes.length;
+                countSpan.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
+            }
+            
+            checkboxes.forEach(cb => {
+                hasFilters = true;
+                const label = cb.parentElement.querySelector('label').textContent;
+                const tag = document.createElement('span');
+                tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
+                tag.innerHTML = `
+                    <span class="text-muted">${name.charAt(0).toUpperCase() + name.slice(1)}:</span> ${label}
+                    <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="${name}" data-value="${cb.value}"></button>
+                `;
+                activeFiltersContainer.appendChild(tag);
+            });
+        });
+        activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
+    }
+
+    disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', updateAssuntoOptions));
+
+    btnLimpar.addEventListener('click', function() {
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        form.submit();
+    });
+
+    activeFiltersContainer.addEventListener('click', function(e) {
+        if (e.target.classList.contains('btn-close')) {
+            const name = e.target.dataset.name;
+            const value = e.target.dataset.value;
+            const checkboxToUncheck = form.querySelector(`input[name="${name}"][value="${value}"]`);
+            if (checkboxToUncheck) {
+                checkboxToUncheck.checked = false;
+                form.submit();
+            }
+        }
+    });
+
+    form.addEventListener('change', (e) => {
+        if (e.target.name !== 'disciplina') {
+            updateUI();
+        }
+    });
+
+    updateAssuntoOptions();
+});
+</script>
+
+<!-- ======================================================================= -->
+<!-- SCRIPT 2: Lógica Principal da Página (VERSÃO FUNCIONAL E SIMPLES)       -->
+<!-- ======================================================================= -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const salvarFiltroModalEl = document.getElementById('salvarFiltroModal');
+    const salvarFiltroModal = salvarFiltroModalEl ? new bootstrap.Modal(salvarFiltroModalEl) : null;
+    
+    const confirmarExclusaoModalEl = document.getElementById('confirmarExclusaoModal');
+    const confirmarExclusaoModal = confirmarExclusaoModalEl ? new bootstrap.Modal(confirmarExclusaoModalEl) : null;
+    
+    document.addEventListener('click', function(e) {
+        const target = e.target;
+        
+        if (target.classList.contains('fa-star')) {
+            handleFavoritar(target);
+            return;
+        }
+        
+        const button = target.closest('button');
+        if (!button) return;
+
+        if (button.id === 'btn-confirmar-salvar-filtro') {
+            handleSalvarFiltro();
+        } else if (button.classList.contains('btn-deletar-filtro')) {
+            const filtroId = button.dataset.filtroId;
+            const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
+            abrirModalConfirmacao(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
+        } else if (button.classList.contains('btn-responder')) {
+            handleResponder(button);
+        } else if (button.classList.contains('btn-toggle-comentarios')) {
+            handleToggleComentarios(button);
+        } else if (button.classList.contains('btn-excluir-comentario')) {
+            const comentarioId = button.dataset.comentarioId;
+            abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
+        } else if (button.classList.contains('btn-editar-comentario')) {
+            handleAbrirEdicao(button);
+        } else if (button.classList.contains('btn-salvar-edicao')) {
+            handleSalvarEdicao(button);
+        } else if (button.classList.contains('btn-cancelar-edicao')) {
+            handleCancelarEdicao(button);
+        } else if (button.closest('.wysiwyg-toolbar')) {
+            handleToolbarClick(button);
+        }
+    });
+
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('form-comentario')) {
+            e.preventDefault();
+            handleAdicionarComentario(e.target);
+        }
+    });
+    
+    function handleSalvarFiltro() {
+        const inputNome = document.getElementById('input-nome-filtro');
+        const nomeFiltro = inputNome.value;
+        if (!nomeFiltro.trim()) { inputNome.classList.add('is-invalid'); return; }
+        inputNome.classList.remove('is-invalid');
+        const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
+        
+        fetch("{% url 'salvar_filtro' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ nome: nomeFiltro, parametros: params })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                if(salvarFiltroModal) salvarFiltroModal.hide();
+                const lista = document.getElementById('lista-modal-filtros-salvos');
+                const itemExistente = document.getElementById(`filtro-salvo-item-${result.filtro.id}`);
+                if(itemExistente) itemExistente.remove();
+
+                const filtroHtml = `
+                    <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
+                        <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
+                        <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
+                    </li>`;
+                const msgVazio = document.getElementById('sem-filtros-salvos-msg');
+                if(msgVazio) msgVazio.remove();
+                lista.insertAdjacentHTML('beforeend', filtroHtml);
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+    
+    function handleDeletarFiltro(filtroId) {
+        fetch("{% url 'deletar_filtro' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ filtro_id: filtroId })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
+                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+
+    function abrirModalConfirmacao(mensagem, callback) {
+        document.getElementById('corpo-modal-exclusao').textContent = mensagem;
+        const btnConfirmar = document.getElementById('btn-confirmar-exclusao');
+        const newBtn = btnConfirmar.cloneNode(true);
+        btnConfirmar.parentNode.replaceChild(newBtn, btnConfirmar);
+        newBtn.addEventListener('click', callback, { once: true });
+        if(confirmarExclusaoModal) confirmarExclusaoModal.show();
+    }
+
+    function handleResponder(button) {
+        const questaoId = button.dataset.questaoId;
+        const questaoCard = document.getElementById(`questao-${questaoId}`);
+        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+        if (!alternativaSelecionada) { alert('Por favor, selecione uma alternativa.'); return; }
+        const data = { questao_id: questaoId, alternativa: alternativaSelecionada.value };
+        fetch("{% url 'verificar_resposta' %}", { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify(data) })
+        .then(response => response.json())
+        .then(result => {
+            const feedbackDiv = questaoCard.querySelector('.feedback');
+            const alertDiv = feedbackDiv.querySelector('.alert');
+            const explicacaoDiv = feedbackDiv.querySelector('.explicacao');
+            const explicacaoP = explicacaoDiv.querySelector('p');
+            questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+            button.style.display = 'none';
+            if (result.correta) { alertDiv.className = 'alert alert-success'; alertDiv.textContent = `Correto! O gabarito é ${result.gabarito}.`; } else { alertDiv.className = 'alert alert-danger'; alertDiv.textContent = `Incorreto. A resposta correta era ${result.gabarito}.`; }
+            const labels = questaoCard.querySelectorAll('.form-check-label');
+            labels.forEach(label => {
+                const key = label.getAttribute('for').split('-')[1];
+                if(key === result.gabarito) { label.classList.add('text-success', 'fw-bold'); }
+                if(!result.correta && key === alternativaSelecionada.value){ label.classList.add('text-danger'); }
+            });
+            if (result.explicacao) { explicacaoP.innerHTML = result.explicacao; explicacaoDiv.style.display = 'block'; }
+            feedbackDiv.style.display = 'block';
+        });
+    }
+
+    function handleFavoritar(icon) {
+        const questaoId = icon.dataset.questaoId;
+        fetch("{% url 'favoritar_questao' %}", { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify({ questao_id: questaoId }) })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                icon.classList.toggle('far');
+                icon.classList.toggle('fas');
+                icon.classList.toggle('text-warning');
+            }
+        });
+    }
+    
+    function handleToggleComentarios(button) {
+        const questaoId = button.dataset.questaoId;
+        const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
+        const isHidden = comentariosSection.style.display === 'none';
+        comentariosSection.style.display = isHidden ? 'block' : 'none';
+        if (isHidden && comentariosSection.dataset.carregado !== 'true') {
+            carregarComentarios(questaoId);
+        }
+    }
+
+    function handleAdicionarComentario(form) {
+        const questaoId = form.dataset.questaoId;
+        const textarea = form.querySelector('textarea');
+        const conteudo = textarea.value;
+        if (!conteudo.trim()) return;
+
+        fetch("{% url 'adicionar_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ questao_id: questaoId, conteudo: conteudo })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                textarea.value = '';
+                const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+                const pVazio = comentariosList.querySelector('p');
+                if (pVazio) pVazio.remove();
+                comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(result.comentario));
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+
+    function handleExcluirComentario(comentarioId) {
+        fetch("{% url 'excluir_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ comentario_id: comentarioId })
+        })
+        .then(r => r.json()).then(res => {
+            if(res.status === 'success') {
+                document.getElementById(`comentario-${comentarioId}`).remove();
+                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
+            } else { alert('Erro: ' + res.message); }
+        });
+    }
+
+    function handleAbrirEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+        const rawContent = contentDiv.dataset.rawContent;
+        contentDiv.dataset.originalHtml = contentDiv.innerHTML;
+        contentDiv.innerHTML = `
+            <textarea class="form-control" rows="3">${rawContent}</textarea>
+            <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
+                <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao" data-comentario-id="${comentarioId}">Cancelar</button>
+            </div>
+        `;
+    }
+    
+    function handleSalvarEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const textarea = document.querySelector(`#comentario-${comentarioId} textarea`);
+        const novoConteudo = textarea.value;
+
+        fetch("{% url 'editar_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if(result.status === 'success') {
+                const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+                contentDiv.innerHTML = result.conteudo_html;
+                contentDiv.dataset.rawContent = novoConteudo;
+            } else { alert('Erro ao salvar: ' + result.message); }
+        });
+    }
+    
+    function handleCancelarEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+        contentDiv.innerHTML = contentDiv.dataset.originalHtml;
+    }
+
+    function handleToolbarClick(button) {
+        const format = button.dataset.format;
+        const textarea = button.closest('.form-comentario').querySelector('textarea');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        const selected = text.substring(start, end);
+        let newText = '';
+        let cursorOffset = 0;
+
+        if (format === 'bold') {
+            newText = `**${selected}**`;
+            cursorOffset = 2;
+        } else if (format === 'italic') {
+            newText = `*${selected}*`;
+            cursorOffset = 1;
+        } else if (format === 'list') {
+            const listPrefix = '\n- ';
+            newText = `${listPrefix}${selected || 'Item'}`;
+            cursorOffset = listPrefix.length;
+        }
+        
+        textarea.value = text.substring(0, start) + newText + text.substring(end);
+        textarea.focus();
+        
+        if(selected){
+            textarea.selectionStart = start;
+            textarea.selectionEnd = start + newText.length;
+        } else {
+            textarea.selectionStart = start + cursorOffset;
+            textarea.selectionEnd = start + cursorOffset;
+        }
+    }
+
+    function carregarComentarios(questaoId) {
+        const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+        comentariosList.innerHTML = '<p class="text-center">Carregando...</p>';
+        fetch(`/pratica/carregar-comentarios/${questaoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                comentariosList.innerHTML = '';
+                if (data.comentarios.length > 0) {
+                    data.comentarios.forEach(c => comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(c)));
+                } else {
+                    comentariosList.innerHTML = '<p class="text-center text-muted">Nenhum comentário ainda.</p>';
+                }
+                document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
+            });
+    }
+    
+    function criarHtmlComentario(comentario) {
+        let buttons = '';
+        if (comentario.pode_editar) {
+            buttons = `
+                <div class="comment-actions">
+                    <button type="button" class="btn btn-sm btn-light btn-editar-comentario" data-comentario-id="${comentario.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                    <button type="button" class="btn btn-sm btn-light text-danger btn-excluir-comentario" data-comentario-id="${comentario.id}" title="Excluir"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+        }
+        return `
+            <div class="d-flex border-bottom pb-2 mb-2" id="comentario-${comentario.id}">
+                <div class="flex-shrink-0" style="width: 150px;">
+                    <strong class="d-block">${comentario.usuario}</strong>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">${comentario.data_criacao}</small>
+                        ${buttons}
+                    </div>
+                    <div class="comment-content mt-2" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
+                        ${comentario.conteudo}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+});
+</script>
+{% endblock %}

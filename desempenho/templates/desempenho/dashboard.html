@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% block title %}Meu Desempenho{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Dashboard de Desempenho</h2>
+
+    {% if not total_respondidas %}
+    <div class="alert alert-info">
+        Você ainda não respondeu nenhuma questão. <a href="{% url 'listar_questoes' %}" class="alert-link">Comece a praticar agora!</a>
+    </div>
+    {% else %}
+    <!-- Estatísticas Gerais -->
+    <div class="row mb-4">
+        <!-- Card de Questões Resolvidas -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 text-center">
+                <div class="card-body">
+                    <h5 class="card-title text-muted">Questões Resolvidas</h5>
+                    <p class="display-4">{{ total_respondidas }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Card de Acertos -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 text-center text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Acertos</h5>
+                    <p class="display-4">{{ total_acertos }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Card de Erros -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 text-center text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Erros</h5>
+                    <p class="display-4">{{ total_erros }}</p>
+                </div>
+            </div>
+        </div>
+        <!-- Card de Percentual de Acerto -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card h-100 text-center text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">% de Acerto Geral</h5>
+                    <p class="display-4">{{ percentual_acerto_geral }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <hr>
+
+    <!-- Gráficos -->
+    <div class="row mt-4">
+        <!-- Gráfico de Rendimento Geral (Rosca) -->
+        <div class="col-lg-5 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4>Percentual de Rendimento</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="rendimentoGeralChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <!-- Gráfico de Desempenho por Banca (Barras) -->
+        <div class="col-lg-7 col-md-12 mb-4">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h4>Acertos por Banca</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="bancaChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráfico e Tabela de Disciplinas -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Desempenho por Disciplina</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Gráfico de Disciplinas -->
+                        <div class="col-lg-6 col-md-12 mb-4">
+                            <canvas id="disciplinaChart"></canvas>
+                        </div>
+                        <!-- Tabela de Disciplinas -->
+                        <div class="col-lg-6 col-md-12">
+                             <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Disciplina</th>
+                                        <th class="text-center">Acertos</th>
+                                        <th class="text-center">Total</th>
+                                        <th class="text-center">% Acerto</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for d in desempenho_disciplina %}
+                                    <tr>
+                                        <td>{{ d.nome }}</td>
+                                        <td class="text-center">{{ d.acertos }}</td>
+                                        <td class="text-center">{{ d.total }}</td>
+                                        <td class="text-center">{{ d.percentual_acerto|floatformat:2 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% endif %}
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% if total_respondidas %}
+
+    // --- GRÁFICO 1: Rendimento Geral (Rosca/Doughnut) ---
+    const ctxRendimento = document.getElementById('rendimentoGeralChart').getContext('2d');
+    new Chart(ctxRendimento, {
+        type: 'doughnut',
+        data: {
+            labels: ['Acertos', 'Erros'],
+            datasets: [{
+                label: 'Rendimento',
+                data: [{{ total_acertos }}, {{ total_erros }}],
+                backgroundColor: ['rgba(75, 192, 192, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+        }
+    });
+
+    // --- GRÁFICO 2: Desempenho por Banca (Barras) ---
+    const ctxBanca = document.getElementById('bancaChart').getContext('2d');
+    new Chart(ctxBanca, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_banca|safe }},
+            datasets: [{
+                label: 'Acertos',
+                data: {{ data_acertos_banca|safe }},
+                backgroundColor: 'rgba(54, 162, 235, 0.7)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: { beginAtZero: true }
+            }
+        }
+    });
+
+    // --- GRÁFICO 3: Desempenho por Disciplina (Barras Empilhadas) ---
+    const ctxDisciplina = document.getElementById('disciplinaChart').getContext('2d');
+    new Chart(ctxDisciplina, {
+        type: 'bar',
+        data: {
+            labels: {{ labels_disciplina|safe }},
+            datasets: [{
+                label: 'Acertos',
+                data: {{ data_acertos_disciplina|safe }},
+                backgroundColor: 'rgba(75, 192, 192, 0.7)'
+            }, {
+                label: 'Erros',
+                data: {{ data_erros_disciplina|safe }},
+                backgroundColor: 'rgba(255, 99, 132, 0.7)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true },
+                y: { stacked: true, beginAtZero: true }
+            }
+        }
+    });
+
+    {% endif %}
+});
+</script>
+{% endblock %}

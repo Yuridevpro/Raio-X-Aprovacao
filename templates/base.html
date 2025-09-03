@@ -1,0 +1,132 @@
+<!-- templates/base.html -->
+{% load static %}
+<!doctype html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}Raio-X da Aprovaçao{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Nosso CSS base -->
+    <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    
+    <!-- INÍCIO DA ADIÇÃO: CSS DO SELECT2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <!-- FIM DA ADIÇÃO: CSS DO SELECT2 -->
+
+     <!-- INÍCIO DA ADIÇÃO: CSS DO EDITOR EASYMDE -->
+     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+     <!-- FIM DA ADIÇÃO -->
+
+     <!-- Adicionados os estilos do SimpleMDE via CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+
+    {% block head %}{% endblock %}
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">Raio-X da Aprovaçao</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                    {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'listar_questoes' %}">Praticar</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'dashboard' %}">Meu Desempenho</a>
+                    </li>
+                    {% endif %}
+                    
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                Olá, {{ user.userprofile.nome }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{% url 'editar_perfil' %}">Editar Perfil</a></li>
+                                <li><a class="dropdown-item" href="{% url 'alterar_senha' %}">Alterar Senha</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'sair' %}">Sair</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link btn btn-primary text-white ms-2 px-3" href="{% url 'cadastro' %}" role="button">Cadastre-se</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container mt-4">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer class="py-5 bg-dark text-white mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-6 col-md-3 mb-3">
+                    <h5>Raio-X da Aprovaçao</h5>
+                    <p class="text-muted small">Estude de forma inteligente. Acompanhe seu progresso e conquiste sua aprovação.</p>
+                </div>
+
+                <div class="col-6 col-md-3 mb-3">
+                    <h5>Navegação</h5>
+                    <ul class="nav flex-column">
+                        <li class="nav-item mb-2"><a href="{% url 'home' %}" class="nav-link p-0 text-muted">Início</a></li>
+                        <li class="nav-item mb-2"><a href="{% url 'listar_questoes' %}" class="nav-link p-0 text-muted">Praticar</a></li>
+                        {% if user.is_authenticated %}
+                        <li class="nav-item mb-2"><a href="{% url 'dashboard' %}" class="nav-link p-0 text-muted">Desempenho</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div class="col-12 col-md-6 mb-3">
+                    <h5>Sobre</h5>
+                    <p class="text-muted small">
+                        Plataforma desenvolvida para auxiliar estudantes de todo o Brasil na preparação para concursos públicos, oferecendo uma vasta gama de questões e análise de desempenho.
+                    </p>
+                </div>
+            </div>
+
+            <div class="d-flex flex-column flex-sm-row justify-content-between pt-4 mt-4 border-top">
+                <p>&copy; 2025 Raio-X da Aprovaçao Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Scripts -->
+    <!-- INÍCIO DA ADIÇÃO: JQUERY E SCRIPTS DO SELECT2 -->
+    <!-- O jQuery deve vir ANTES do Bootstrap JS e do Select2 JS -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- FIM DA ADIÇÃO: JQUERY E SCRIPTS DO SELECT2 -->
+    
+    <!-- Bloco para scripts específicos de cada página -->
+
+    <!-- INÍCIO DA ADIÇÃO: SCRIPT DO EDITOR EASYMDE -->
+    <script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+    <!-- FIM DA ADIÇÃO -->
+
+    <script src="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.js"></script>
+    {% block scripts %}{% endblock %}
+
+</body>
+</html>

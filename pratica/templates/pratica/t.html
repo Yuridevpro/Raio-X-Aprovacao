@@ -1,0 +1,462 @@
+{% block scripts %}
+
+<script>
+// Função auxiliar global para a "Busca Rápida" dentro dos dropdowns.
+function filterDropdownOptions(input) {
+    const filter = input.value.toUpperCase();
+    const ul = input.nextElementSibling;
+    const li = ul.getElementsByTagName('li');
+    for (let i = 0; i < li.length; i++) {
+        const item = li[i];
+        // Mantém os cabeçalhos de grupo sempre visíveis
+        if (item.classList.contains('dropdown-header')) {
+            item.style.display = "";
+            continue;
+        }
+        const label = item.getElementsByTagName("label")[0];
+        if (label) {
+            const txtValue = label.textContent || label.innerText;
+            item.style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // --- INSTÂNCIAS E VARIÁVEIS GLOBAIS ---
+    const form = document.getElementById('form-filtros');
+    if (!form) return;
+
+    // Elementos do DOM para os filtros
+    const activeFiltersContainer = document.getElementById('active-filters-container');
+    const disciplinaCheckboxes = form.querySelectorAll('input[name="disciplina"]');
+    const assuntoOptionsContainer = document.getElementById('options-assunto');
+    const assuntoDropdownButton = document.getElementById('dropdownAssunto');
+    const btnLimpar = document.getElementById('btn-limpar-filtros');
+    
+    // Modais
+    const salvarFiltroModal = new bootstrap.Modal(document.getElementById('salvarFiltroModal'));
+    const confirmarExclusaoModal = new bootstrap.Modal(document.getElementById('confirmarExclusaoModal'));
+    
+    // Armazenamento para editores e seleções
+    const editorInstances = {};
+    let assuntosSelecionadosInicialmente = Array.from(form.querySelectorAll('input[name="assunto"]:checked')).map(cb => cb.value);
+
+    // --- LÓGICA DE FILTRO EM CASCATA E GRUPOS ---
+    function updateAssuntoOptions() {
+        const selectedDisciplinaIds = Array.from(form.querySelectorAll('input[name="disciplina"]:checked')).map(cb => cb.value);
+        
+        assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
+
+        if (selectedDisciplinaIds.length > 0) {
+            $.ajax({
+                url: "{% url 'get_assuntos_por_disciplina' %}",
+                data: { 'disciplina_ids': selectedDisciplinaIds },
+                dataType: 'json',
+                success: function(data) {
+                    assuntoOptionsContainer.innerHTML = '';
+                    const assuntosAgrupados = data.assuntos.reduce((acc, assunto) => {
+                        const disciplinaNome = assunto.disciplina__nome;
+                        if (!acc[disciplinaNome]) acc[disciplinaNome] = [];
+                        acc[disciplinaNome].push(assunto);
+                        return acc;
+                    }, {});
+
+                    for (const disciplinaNome in assuntosAgrupados) {
+                        const grupoHeader = document.createElement('li');
+                        grupoHeader.className = 'dropdown-header';
+                        grupoHeader.textContent = disciplinaNome;
+                        assuntoOptionsContainer.appendChild(grupoHeader);
+                        
+                        assuntosAgrupados[disciplinaNome].forEach(assunto => {
+                            const isChecked = assuntosSelecionadosInicialmente.includes(assunto.id.toString());
+                            const li = document.createElement('li');
+                            li.innerHTML = `
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="assunto" value="${assunto.id}" id="assunto-${assunto.id}" ${isChecked ? 'checked' : ''}>
+                                    <label class="form-check-label" for="assunto-${assunto.id}">${assunto.nome}</label>
+                                </div>
+                            `;
+                            assuntoOptionsContainer.appendChild(li);
+                        });
+                    }
+                    // Após a primeira carga, limpa a variável para que a seleção manual funcione
+                    assuntosSelecionadosInicialmente = [];
+                }
+            });
+        } else {
+            assuntoOptionsContainer.innerHTML = '';
+        }
+        updateUI();
+    }
+
+    // --- FUNÇÃO PARA ATUALIZAR A UI (Contadores e Tags) ---
+    function updateUI() {
+        activeFiltersContainer.innerHTML = '<strong>Filtrar por:</strong>';
+        let hasFilters = false;
+
+        ['disciplina', 'assunto', 'banca', 'ano'].forEach(name => {
+            const checkboxes = form.querySelectorAll(`input[name="${name}"]:checked`);
+            const countSpan = document.getElementById(`count-${name}`);
+            if (countSpan) {
+                countSpan.textContent = checkboxes.length;
+                countSpan.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
+            }
+            checkboxes.forEach(cb => {
+                hasFilters = true;
+                const label = cb.parentElement.querySelector('label').textContent;
+                const tag = document.createElement('span');
+                tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
+                tag.innerHTML = `
+                    <span class="text-muted">${name.charAt(0).toUpperCase() + name.slice(1)}:</span> ${label}
+                    <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="${name}" data-value="${cb.value}"></button>
+                `;
+                activeFiltersContainer.appendChild(tag);
+            });
+        });
+        activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
+    }
+
+    // --- OUVINTES DE EVENTOS (FILTROS) ---
+    disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', updateAssuntoOptions));
+    btnLimpar.addEventListener('click', () => {
+        form.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        form.submit();
+    });
+    activeFiltersContainer.addEventListener('click', e => {
+        if (e.target.classList.contains('btn-close')) {
+            const { name, value } = e.target.dataset;
+            const checkboxToUncheck = form.querySelector(`input[name="${name}"][value="${value}"]`);
+            if (checkboxToUncheck) {
+                checkboxToUncheck.checked = false;
+                form.submit();
+            }
+        }
+    });
+    form.addEventListener('change', updateUI);
+
+    // --- INICIALIZAÇÃO DOS FILTROS ---
+    updateAssuntoOptions();
+    updateUI();
+    
+        // --- LÓGICA DE DELEGAÇÃO DE EVENTOS PARA A PÁGINA ---
+        document.addEventListener('click', function(e) {
+        const target = e.target;
+        const button = target.closest('button');
+
+        // Favoritar Questão (clique no ícone)
+        if (target.classList.contains('fa-star')) {
+            handleFavoritar(target);
+            return;
+        }
+        
+        // Se não for um botão, não faz mais nada
+        if (!button) return;
+
+        // Ações dos botões
+        if (button.closest('[data-bs-target="#salvarFiltroModal"]')) {
+             handleAbrirModalSalvar();
+        } else if (button.id === 'btn-confirmar-salvar-filtro') {
+            handleSalvarFiltro();
+        } else if (button.classList.contains('btn-deletar-filtro')) {
+            const filtroId = button.dataset.filtroId;
+            const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
+            abrirModalConfirmacao(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
+        } else if (button.classList.contains('btn-responder')) {
+            handleResponder(button);
+        } else if (button.classList.contains('btn-toggle-comentarios')) {
+            handleToggleComentarios(button);
+        } else if (button.classList.contains('btn-excluir-comentario')) {
+            const comentarioId = button.dataset.comentarioId;
+            abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
+        } else if (button.classList.contains('btn-editar-comentario')) {
+            handleAbrirEdicao(button);
+        } else if (button.classList.contains('btn-salvar-edicao')) {
+            handleSalvarEdicao(button);
+        } else if (button.classList.contains('btn-cancelar-edicao')) {
+            handleCancelarEdicao(button);
+        }
+    });
+
+    // Submissão de Formulários
+    document.addEventListener('submit', function(e) {
+        if (e.target.classList.contains('form-comentario')) {
+            e.preventDefault();
+            handleAdicionarComentario(e.target);
+        }
+    });
+    
+    // --- DEFINIÇÃO DE TODAS AS FUNÇÕES HANDLE* ---
+
+    function handleAbrirModalSalvar() {
+        document.getElementById('input-nome-filtro').value = '';
+        if(salvarFiltroModal) salvarFiltroModal.show();
+    }
+
+    function handleSalvarFiltro() {
+        const inputNome = document.getElementById('input-nome-filtro');
+        const nomeFiltro = inputNome.value;
+        if (!nomeFiltro.trim()) { inputNome.classList.add('is-invalid'); return; }
+        inputNome.classList.remove('is-invalid');
+        const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
+        
+        fetch("{% url 'salvar_filtro' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ nome: nomeFiltro, parametros: params })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                if(salvarFiltroModal) salvarFiltroModal.hide();
+                const lista = document.getElementById('lista-modal-filtros-salvos');
+                const itemExistente = document.getElementById(`filtro-salvo-item-${result.filtro.id}`);
+                if(itemExistente) itemExistente.remove();
+
+                const filtroHtml = `
+                    <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
+                        <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
+                        <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
+                    </li>`;
+                const msgVazio = document.getElementById('sem-filtros-salvos-msg');
+                if(msgVazio) msgVazio.remove();
+                lista.insertAdjacentHTML('beforeend', filtroHtml);
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+    
+    function handleDeletarFiltro(filtroId) {
+        fetch("{% url 'deletar_filtro' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ filtro_id: filtroId })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
+                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+
+    function abrirModalConfirmacao(mensagem, callback) {
+        document.getElementById('corpo-modal-exclusao').textContent = mensagem;
+        const btnConfirmar = document.getElementById('btn-confirmar-exclusao');
+        const newBtn = btnConfirmar.cloneNode(true); // Clona para remover ouvintes antigos
+        btnConfirmar.parentNode.replaceChild(newBtn, btnConfirmar);
+        newBtn.addEventListener('click', callback, { once: true }); // Executa o callback apenas uma vez
+        if(confirmarExclusaoModal) confirmarExclusaoModal.show();
+    }
+
+    function handleResponder(button) {
+        const questaoId = button.dataset.questaoId;
+        const questaoCard = document.getElementById(`questao-${questaoId}`);
+        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+        if (!alternativaSelecionada) { alert('Por favor, selecione uma alternativa.'); return; }
+        const data = { questao_id: questaoId, alternativa: alternativaSelecionada.value };
+        fetch("{% url 'verificar_resposta' %}", { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify(data) })
+        .then(response => response.json())
+        .then(result => {
+            const feedbackDiv = questaoCard.querySelector('.feedback');
+            const alertDiv = feedbackDiv.querySelector('.alert');
+            const explicacaoDiv = feedbackDiv.querySelector('.explicacao');
+            const explicacaoP = explicacaoDiv.querySelector('p');
+            questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+            button.style.display = 'none';
+            if (result.correta) { alertDiv.className = 'alert alert-success'; alertDiv.textContent = `Correto! O gabarito é ${result.gabarito}.`; } else { alertDiv.className = 'alert alert-danger'; alertDiv.textContent = `Incorreto. A resposta correta era ${result.gabarito}.`; }
+            const labels = questaoCard.querySelectorAll('.form-check-label');
+            labels.forEach(label => {
+                const key = label.getAttribute('for').split('-')[1];
+                if(key === result.gabarito) { label.classList.add('text-success', 'fw-bold'); }
+                if(!result.correta && key === alternativaSelecionada.value){ label.classList.add('text-danger'); }
+            });
+            if (result.explicacao) { explicacaoP.innerHTML = result.explicacao; explicacaoDiv.style.display = 'block'; }
+            feedbackDiv.style.display = 'block';
+        });
+    }
+
+    function handleFavoritar(icon) {
+        const questaoId = icon.dataset.questaoId;
+        fetch("{% url 'favoritar_questao' %}", { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' }, body: JSON.stringify({ questao_id: questaoId }) })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                icon.classList.toggle('far');
+                icon.classList.toggle('fas');
+                icon.classList.toggle('text-warning');
+            }
+        });
+    }
+    
+    function handleToggleComentarios(button) {
+        const questaoId = button.dataset.questaoId;
+        const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
+        const isHidden = comentariosSection.style.display === 'none';
+        comentariosSection.style.display = isHidden ? 'block' : 'none';
+        
+        if (isHidden) {
+            if (!editorInstances[questaoId]) {
+                const textarea = document.getElementById(`editor-comentario-${questaoId}`);
+                if(textarea) {
+                    editorInstances[questaoId] = new EasyMDE({
+                        element: textarea,
+                        spellChecker: false,
+                        toolbar: ["bold", "italic", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+                        minHeight: "150px",
+                        status: false,
+                        placeholder: "Escreva seu comentário aqui...",
+                    });
+                }
+            }
+            if (comentariosSection.dataset.carregado !== 'true') {
+                carregarComentarios(questaoId);
+            }
+        }
+    }
+
+    function handleAdicionarComentario(form) {
+        const questaoId = form.dataset.questaoId;
+        const easyMDEInstance = editorInstances[questaoId];
+        const conteudo = easyMDEInstance.value();
+
+        if (!conteudo.trim()) return;
+
+        fetch("{% url 'adicionar_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ questao_id: questaoId, conteudo: conteudo })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                easyMDEInstance.value("");
+                const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+                const pVazio = comentariosList.querySelector('p');
+                if (pVazio) pVazio.remove();
+                comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(result.comentario));
+            } else { alert('Erro: ' + result.message); }
+        });
+    }
+
+    function handleExcluirComentario(comentarioId) {
+        fetch("{% url 'excluir_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ comentario_id: comentarioId })
+        })
+        .then(r => r.json()).then(res => {
+            if(res.status === 'success') {
+                document.getElementById(`comentario-${comentarioId}`).remove();
+                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
+            } else { alert('Erro: ' + res.message); }
+        });
+    }
+
+    function handleAbrirEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+        const rawContent = contentDiv.dataset.rawContent;
+        contentDiv.dataset.originalHtml = contentDiv.innerHTML;
+        
+        contentDiv.innerHTML = `<textarea id="editor-edicao-${comentarioId}">${rawContent}</textarea>`;
+        
+        const editorEdicao = new EasyMDE({
+            element: document.getElementById(`editor-edicao-${comentarioId}`),
+            spellChecker: false,
+            toolbar: ["bold", "italic", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+            minHeight: "100px",
+            status: false,
+        });
+        
+        contentDiv.insertAdjacentHTML('beforeend', `
+            <div class="mt-2">
+                <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
+                <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao" data-comentario-id="${comentarioId}">Cancelar</button>
+            </div>
+        `);
+        contentDiv.editorInstance = editorEdicao;
+    }
+    
+    function handleSalvarEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+        const editorEdicao = contentDiv.editorInstance;
+        const novoConteudo = editorEdicao.value();
+
+        fetch("{% url 'editar_comentario' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
+        })
+        .then(response => response.json())
+        .then(result => {
+            if(result.status === 'success') {
+                if (editorEdicao) {
+                    editorEdicao.toTextArea();
+                    contentDiv.editorInstance = null;
+                }
+                contentDiv.innerHTML = result.conteudo_html;
+                contentDiv.dataset.rawContent = novoConteudo;
+            } else { alert('Erro ao salvar: ' + result.message); }
+        });
+    }
+    
+    function handleCancelarEdicao(button) {
+        const comentarioId = button.dataset.comentarioId;
+        const contentDiv = document.querySelector(`#comentario-${comentarioId} .comment-content`);
+        const editorEdicao = contentDiv.editorInstance;
+        if (editorEdicao) {
+            editorEdicao.toTextArea();
+            contentDiv.editorInstance = null;
+        }
+        contentDiv.innerHTML = contentDiv.dataset.originalHtml;
+    }
+
+    function carregarComentarios(questaoId) {
+        const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+        comentariosList.innerHTML = '<p class="text-center">Carregando...</p>';
+        fetch(`/pratica/carregar-comentarios/${questaoId}/`)
+            .then(response => response.json())
+            .then(data => {
+                comentariosList.innerHTML = '';
+                if (data.comentarios.length > 0) {
+                    data.comentarios.forEach(c => comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(c)));
+                } else {
+                    comentariosList.innerHTML = '<p class="text-center text-muted">Nenhum comentário ainda.</p>';
+                }
+                document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
+            });
+    }
+    
+    function criarHtmlComentario(comentario) {
+        let buttons = '';
+        if (comentario.pode_editar) {
+            buttons = `
+                <div class="comment-actions">
+                    <button type="button" class="btn btn-sm btn-light btn-editar-comentario" data-comentario-id="${comentario.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
+                    <button type="button" class="btn btn-sm btn-light text-danger btn-excluir-comentario" data-comentario-id="${comentario.id}" title="Excluir"><i class="fas fa-times"></i></button>
+                </div>
+            `;
+        }
+        return `
+            <div class="d-flex border-bottom pb-2 mb-2" id="comentario-${comentario.id}">
+                <div class="flex-shrink-0" style="width: 150px;">
+                    <strong class="d-block">${comentario.usuario}</strong>
+                </div>
+                <div class="flex-grow-1 ms-3">
+                    <div class="d-flex justify-content-between">
+                        <small class="text-muted">${comentario.data_criacao}</small>
+                        ${buttons}
+                    </div>
+                    <div class="comment-content mt-2" data-raw-content="${String(comentario.conteudo_raw || '').replace(/"/g, '&quot;')}">
+                        ${comentario.conteudo}
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+});
+</script>
+
+{% endblock %}

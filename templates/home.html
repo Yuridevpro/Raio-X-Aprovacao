@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+{% block title %}Bem-vindo ao QConcurso{% endblock %}
+
+{% block content %}
+<div class="px-4 py-5 my-5 text-center">
+    <h1 class="display-5 fw-bold">Sua Jornada Rumo à Aprovação Começa Aqui</h1>
+    <div class="col-lg-6 mx-auto">
+        <p class="lead mb-4">
+            Acesse nosso banco de dados com <strong>{{ total_questoes }}</strong> questões de concursos, filtre por disciplina, banca e ano, e acompanhe seu desempenho com estatísticas detalhadas.
+        </p>
+        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+            {% if user.is_authenticated %}
+                <a href="{% url 'listar_questoes' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Começar a Praticar</a>
+                <a href="{% url 'dashboard' %}" type="button" class="btn btn-outline-secondary btn-lg px-4">Meu Desempenho</a>
+            {% else %}
+                <a href="{% url 'cadastro' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Crie sua Conta Grátis</a>
+                <a href="{% url 'login' %}" type="button" class="btn btn-outline-secondary btn-lg px-4">Fazer Login</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

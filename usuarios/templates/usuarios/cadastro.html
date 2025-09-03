@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Cadastro{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="text-center mt-4">Crie sua Conta</h2>
+        <hr>
+
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="card card-body">
+            <form action="{% url 'cadastro' %}" method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="nome" class="form-label">Nome:</label>
+                    <input type="text" class="form-control" name="nome" required>
+                </div>
+                <div class="mb-3">
+                    <label for="sobrenome" class="form-label">Sobrenome:</label>
+                    <input type="text" class="form-control" name="sobrenome" required>
+                </div>
+                <div class="mb-3">
+                    <label for="email" class="form-label">E-mail:</label>
+                    <input type="email" class="form-control" name="email" required>
+                </div>
+                <div class="mb-3">
+                    <label for="senha" class="form-label">Senha:</label>
+                    <input type="password" class="form-control" name="senha" required>
+                </div>
+                <div class="mb-3">
+                    <label for="confirmar_senha" class="form-label">Confirmar Senha:</label>
+                    <input type="password" class="form-control" name="confirmar_senha" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">Cadastrar</button>
+                </div>
+            </form>
+        </div>
+        <p class="text-center mt-3">
+            Já tem uma conta? <a href="{% url 'login' %}">Faça login aqui!</a>
+        </p>
+    </div>
+</div>
+{% endblock %}
