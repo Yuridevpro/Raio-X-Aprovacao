@@ -1,15 +1,140 @@
+/* static/base/css/base.css */
 
+/* 1. Importação da Fonte e Definição de Variáveis de Design */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
-/* templates/static/base/css/base.css */
+:root {
+    /* Paleta de Cores Refinada */
+    --primary-color: #4A90E2; /* Um azul mais moderno e suave */
+    --primary-color-dark: #357ABD;
+    --secondary-color: #5A6978; /* Cinza azulado para texto secundário */
+    --dark-bg: #2c3e50; /* Um fundo escuro mais suave que o preto puro */
+    --light-bg: #FFFFFF;
+    --body-bg: #F8F9FC; /* Fundo do corpo da página, ligeiramente acinzentado */
+    --border-color: #EAECEF; /* Cor de borda sutil */
+    --success-color: #28a745;
+    --danger-color: #dc3545;
 
-/* Adicione estas regras para um layout de "rodapé fixo" */
+    /* Tipografia e Cores de Texto */
+    --text-dark: #343a40;
+    --text-light: #ffffff;
+    --font-family: 'Poppins', sans-serif;
+
+    /* Estilos de Componentes */
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra mais suave */
+    --border-radius: 12px; /* Bordas mais arredondadas */
+}
+
+/* 2. Estilos Globais e Tipografia */
 body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    background-color: var(--body-bg);
+    font-family: var(--font-family);
+    color: var(--text-dark);
 }
 
 main {
-    flex: 1; /* Faz o conteúdo principal ocupar o espaço disponível */
-    margin-bottom: 5rem; 
+    flex: 1;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 700;
+}
+
+/* 3. Estilos da Navbar Customizada (Agora usa as novas variáveis) */
+.navbar-custom {
+    background-color: var(--dark-bg);
+    transition: background-color 0.3s ease;
+}
+
+.navbar-custom .navbar-brand {
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.navbar-custom .nav-link {
+    color: rgba(255, 255, 255, 0.75);
+    transition: color 0.2s ease-in-out;
+}
+
+.navbar-custom .nav-link:hover,
+.navbar-custom .nav-link.active {
+    color: var(--text-light);
+}
+
+.dropdown-menu {
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    border-radius: var(--border-radius);
+}
+
+.dropdown-item i {
+    width: 20px;
+}
+
+/* 4. Estilos de Componentes Comuns (Botões, Cards, etc.) */
+.btn {
+    border-radius: 8px; /* Arredondamento padrão para botões */
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+    color: var(--text-light);
+    transition: all 0.2s ease-in-out;
+    font-weight: 500;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-color-dark);
+    border-color: var(--primary-color-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilo padrão para cards - pode ser sobrescrito por estilos mais específicos */
+.card {
+    border: 1px solid var(--border-color);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border-radius: var(--border-radius);
+}
+
+/* 5. Estilos do Rodapé Customizado (Agora usa as novas variáveis) */
+.footer-custom {
+    background-color: var(--dark-bg);
+}
+
+.footer-link {
+    color: rgba(255, 255, 255, 0.7); /* Aumentei um pouco a opacidade para melhor leitura */
+    text-decoration: none;
+    transition: color 0.2s ease-in-out;
+}
+
+.footer-link:hover {
+    color: var(--text-light);
+}
+
+/* ========================================================================= */
+/* ======================== INÍCIO: CORREÇÃO APLICADA ====================== */
+/* ========================================================================= */
+/*
+  Esta nova regra sobrescreve a cor da classe .text-muted do Bootstrap
+  APENAS quando ela está dentro do .footer-custom.
+*/
+.footer-custom .text-muted {
+    color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.footer-custom .border-secondary {
+    border-color: rgba(255, 255, 255, 0.15) !important; /* Deixa a linha divisória mais sutil */
+}
+/* ========================================================================= */
+/* ========================= FIM: CORREÇÃO APLICADA ======================== */
+/* ========================================================================= */
+
+
+.footer-social a {
+    font-size: 1.5rem;
 }

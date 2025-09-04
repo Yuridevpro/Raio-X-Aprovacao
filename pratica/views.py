@@ -71,7 +71,7 @@ def listar_questoes(request):
     filters_applied = any([palavra_chave, disciplinas_ids, assuntos_ids, bancas_ids, instituicoes_ids, anos, status])
 
     # --- LÓGICA DE PAGINAÇÃO ---
-    paginator = Paginator(lista_questoes, 25)
+    paginator = Paginator(lista_questoes, 20)
     
     if filters_applied:
         page_number = 1
