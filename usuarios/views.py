@@ -149,9 +149,14 @@ def resetar_senha(request, token):
         messages.error(request, 'Link de redefinição de senha inválido.')
         return redirect('esqueceu_senha')
 
+# usuarios/views.py
+
 @login_required
 def editar_perfil(request):
-    user_profile = request.user.userprofile
+    # --- LINHA ALTERADA ---
+    # get_or_create: busca o perfil. Se não existir, cria um vazio e o retorna.
+    user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
         nome = request.POST.get('nome')
         sobrenome = request.POST.get('sobrenome')
@@ -163,7 +168,8 @@ def editar_perfil(request):
             user_profile.sobrenome = sobrenome
             user_profile.save()
             messages.success(request, 'Perfil atualizado com sucesso!')
-            return redirect('editar_perfil')
+            # Após salvar com sucesso, redireciona para a home ou dashboard
+            return redirect('home')
             
     return render(request, 'usuarios/editar_perfil.html')
 

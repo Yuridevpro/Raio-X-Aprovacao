@@ -4,154 +4,255 @@
 
 {% block head %}
 <style>
-    .filter-dropdown .dropdown-menu {
-        width: 350px;
-        padding: 1rem;
-        max-height: 400px;
-        overflow-y: auto;
-    }
-    .filter-dropdown-options {
-        list-style-type: none;
-        padding: 0;
-        margin: 0;
-    }
-    .filter-dropdown-options li {
-        padding: .25rem .5rem;
-    }
-    
-    .enunciado-imagem {
-        max-width: 100%;
-        max-height: 400px;
-        display: block;
-        margin-left: auto;
-        margin-right: auto;
-        border-radius: 8px;
-    }
-    
-    /* Estilo para o botão de filtro de status ativo */
-    .btn-status-filter.active {
-        background-color: #0d6efd;
-        color: white;
-        border-color: #0d6efd;
-    }
-    
-    .nav-pagination {
-        display: flex;
-        justify-content: center;
-        margin-top: 20px;
-    }
-    .page-link {
-        color: #0d6efd; /* Cor do link padrão do Bootstrap primary */
-    }
-    .page-item.active .page-link {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-        color: white;
-    }
-    
-    /* --- INÍCIO: ESTILOS PARA O EDITOR TIPTAP (VERSÃO MELHORADA) --- */
-    
-    /* Estilo para o seletor de cor */
-    .btn-color-tiptap {
-        width: 32px;
-        height: 32px;
-        padding: 0.2rem;
-        border: 1px solid #ced4da;
-        border-radius: 0.25rem;
-        cursor: pointer;
-        vertical-align: middle; /* Alinha com os outros botões */
-    }
-    .btn-color-tiptap:hover {
-        border-color: #86bfee;
-    }
-    
-    
-    /* Estilização base do container do editor Tiptap */
-    .tiptap {
-        border: 1px solid #ced4da;
-        border-radius: .25rem;
-        padding: .75rem 1rem;
-        min-height: 150px;
-    }
-    
-    /* Remove margens padrão de parágrafos e títulos dentro do editor */
-    .tiptap p,
-    .tiptap h1,
-    .tiptap h2,
-    .tiptap h3 {
-        margin: 0;
-    }
-    
-    /* Foco no editor */
-    .tiptap:focus {
-        border-color: #86bfee;
-        outline: 0;
-        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
-    }
-    
-    /* --- FIM: ESTILOS PARA O EDITOR TIPTAP --- */
-    
-    
-    /* --- INÍCIO: ESTILOS PARA O CARD DE COMENTÁRIO --- */
-    
-    .comment-card {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 0.5rem;
-        margin-bottom: 1rem;
-        padding: 1.25rem;
-    }
-    
-    .comment-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding-bottom: 0.75rem;
-        margin-bottom: 0.75rem;
-        border-bottom: 1px solid #e9ecef;
-    }
-    
-    .comment-user {
-        font-weight: 600;
-        font-size: 1.1rem;
-        color: #212529;
-    }
-    
-    .comment-date {
-        font-size: 0.85rem;
-    }
-    
-    .comment-actions .btn {
-        background-color: transparent;
-        border: none;
-        color: #6c757d;
-        padding: .25rem .5rem;
-    }
-    
-    .comment-actions .btn:hover {
-        background-color: #e2e6ea;
-        color: #000;
-    }
-    
-    /* --- FIM: ESTILOS PARA O CARD DE COMENTÁRIO --- */
-    
-    
-    /* --- INÍCIO: ESTILOS UNIFICADOS PARA O CONTEÚDO DO EDITOR E DO COMENTÁRIO --- */
-    
-    /* --- INÍCIO: ESTILOS UNIFICADOS PARA TODO O CONTEÚDO MARKDOWN --- */
+   /* ================================
+   INÍCIO: ESTILOS PARA DROPDOWN E PAGINAÇÃO
+================================ */
+.filter-dropdown .dropdown-menu {
+    width: 350px;
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+.filter-dropdown-options {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+.filter-dropdown-options li {
+    padding: .25rem .5rem;
+}
 
-/* BASE: Garante que o texto padrão tenha o mesmo tamanho em todos os lugares */
+.enunciado-imagem {
+    max-width: 100%;
+    max-height: 400px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 8px;
+}
+
+/* Botão de filtro de status ativo */
+.btn-status-filter.active {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
+.nav-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+.page-link {
+    color: #0d6efd;
+}
+.page-item.active .page-link {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: white;
+}
+/* ================================
+   FIM: ESTILOS PARA DROPDOWN E PAGINAÇÃO
+================================ */
+
+
+/* ================================
+   INÍCIO: ESTILOS PARA O EDITOR TIPTAP
+================================ */
+.tiptap-toolbar {
+    border: 1px solid #ced4da;
+    border-bottom: none;
+    padding: .5rem;
+    border-top-left-radius: .25rem;
+    border-top-right-radius: .25rem;
+    background-color: #f8f9fa;
+}
+.tiptap-toolbar button.active {
+    background-color: #0d6efd;
+    color: white;
+}
+
+/* Estilização base do container do editor Tiptap */
+.tiptap {
+    border: 1px solid #ced4da;
+    border-radius: .25rem;
+    padding: .75rem 1rem;
+    min-height: 150px;
+}
+
+/* Remove margens padrão */
+.tiptap p,
+.tiptap h1,
+.tiptap h2,
+.tiptap h3 {
+    margin: 0;
+}
+
+/* Foco no editor */
+.tiptap:focus {
+    border-color: #86bfee;
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, .25);
+}
+
+/* Estilo para o seletor de cor */
+.btn-color-tiptap {
+    width: 32px;
+    height: 32px;
+    padding: 0.2rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    vertical-align: middle;
+}
+.btn-color-tiptap:hover {
+    border-color: #86bfee;
+}
+
+/* Estilo para o editor dentro do formulário de edição */
+.comment-edit-form .tiptap {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+/* ================================
+   FIM: ESTILOS PARA O EDITOR TIPTAP
+================================ */
+
+
+/* ==================================================
+   INÍCIO: NOVOS ESTILOS PARA A ÁREA DE COMENTÁRIOS
+================================================== */
+.comentarios-section {
+    background-color: #f7f9fc;
+    border-radius: 8px;
+}
+
+.comment-card {
+    display: flex;
+    gap: 1rem;
+    background-color: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.comment-avatar {
+    flex-shrink: 0;
+}
+
+.comment-avatar .avatar-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #0d6efd;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1rem;
+}
+
+.comment-main {
+    flex-grow: 1;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.comment-user-info .comment-user {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #212529;
+}
+.comment-user-info .comment-date {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.comment-actions .btn {
+    background-color: transparent;
+    border: none;
+    color: #6c757d;
+    padding: .25rem .5rem;
+}
+.comment-actions .btn:hover {
+    background-color: #e9ecef;
+}
+
+.comment-body {
+    padding: 0; /* Removido padding extra */
+}
+
+.comment-footer {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+.comment-footer a {
+    text-decoration: none;
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+.comment-footer a:hover {
+    color: #0d6efd;
+}
+.comment-footer .fas {
+    margin-right: 0.25rem;
+}
+
+/* Formulário de novo comentário */
+.new-comment-form-container {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.new-comment-form-container .form-comentario {
+    flex-grow: 1;
+}
+
+.tiptap.tiptap-editor:focus-within {
+    min-height: 150px;
+}
+
+/* Placeholder para o editor Tiptap */
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+/* ================================================
+   FIM: NOVOS ESTILOS PARA A ÁREA DE COMENTÁRIOS
+================================================ */
+
+
+/* ================================
+   INÍCIO: ESTILOS UNIFICADOS PARA TEXTO E MARKDOWN
+================================ */
 .enunciado-formatado,
 .explicacao,
 .tiptap,
 .comment-body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 12px;
+    font-size: 12px; /* Aumentado para melhor legibilidade */
     line-height: 1.6;
     color: #212529;
 }
 
-/* TÍTULOS: Força um tamanho de fonte consistente */
+/* Títulos */
 .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1,
 .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2,
 .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3,
@@ -163,15 +264,12 @@
     font-weight: 600;
     line-height: 1.3;
 }
-
-/* Define tamanhos de fonte específicos para os títulos */
 .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
 .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
 .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
 .enunciado-formatado h4, .explicacao h4, .tiptap h4, .comment-body h4 { font-size: 1.0rem !important; }
 
-
-/* PARÁGRAFOS: Garante espaçamento consistente */
+/* Parágrafos */
 .enunciado-formatado p,
 .explicacao p,
 .tiptap p,
@@ -193,18 +291,17 @@
     margin-top: 0.75em;
 }
 
-
-/* LISTAS E OUTROS ELEMENTOS: Mantém a consistência */
-.enunciado-formatado ul,   .explicacao ul,   .tiptap ul,   .comment-body ul,
-.enunciado-formatado ol,   .explicacao ol,   .tiptap ol,   .comment-body ol {
+/* Listas */
+.enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul,
+.enunciado-formatado ol, .explicacao ol, .tiptap ol, .comment-body ol {
     padding-left: 1.5rem;
     margin-bottom: 1rem;
 }
-
-.enunciado-formatado li,   .explicacao li,   .tiptap li,   .comment-body li {
+.enunciado-formatado li, .explicacao li, .tiptap li, .comment-body li {
     margin-bottom: 0.5rem;
 }
 
+/* Blocos de citação */
 .enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
     font-style: italic;
     color: #6c757d;
@@ -213,6 +310,7 @@
     margin-left: 0;
 }
 
+/* Código inline */
 .enunciado-formatado code, .explicacao code, .tiptap code, .comment-body code {
     background-color: rgba(97, 97, 97, 0.1);
     color: #616161;
@@ -221,13 +319,43 @@
     font-size: 90%;
 }
 
+/* Linha horizontal */
 .enunciado-formatado hr, .explicacao hr, .tiptap hr, .comment-body hr {
     border: none;
     border-top: 2px solid rgba(0, 0, 0, 0.1);
     margin: 1rem 0;
 }
 
-/* --- FIM: ESTILOS UNIFICADOS --- */
+/* Ajuste margens do primeiro/último filho */
+.enunciado-formatado > *:first-child,
+.comment-body > *:first-child {
+    margin-top: 0;
+}
+.enunciado-formatado > *:last-child,
+.comment-body > *:last-child {
+    margin-bottom: 0;
+}
+/* ================================
+   FIM: ESTILOS UNIFICADOS PARA TEXTO E MARKDOWN
+================================ */
+
+
+
+  .btn-like.liked {
+        color: #0d6efd; /* Cor azul quando curtido */
+        font-weight: bold;
+    }
+
+    
+/* --- INÍCIO DA ADIÇÃO --- */
+.comment-replies {
+    /* Cria o recuo para as respostas aninhadas */
+    margin-left: 2.5rem; 
+    padding-left: 1rem;
+    border-left: 2px solid #e9ecef;
+}
+/* --- FIM DA ADIÇÃO --- */
+
     </style>
 {% endblock %}
 
@@ -251,7 +379,13 @@
                 <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=nao_respondidas" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
                 <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=acertei" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
                 <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=errei" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
+
+                <!-- === BOTÃO ADICIONADO === -->
+                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=favoritas" class="btn btn-outline-primary btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
+                <!-- === FIM DA ADIÇÃO === -->
+
             </div>
+        
         </div>
         <!-- FIM DOS NOVOS BOTÕES DE FILTRO DE STATUS -->
 
@@ -399,7 +533,6 @@
    
     {% for questao in questoes %}
 
-    <!-- FIM DA ADIÇÃO -->
     <div class="card mb-3" id="questao-{{ questao.id }}">
         <div class="card-header d-flex justify-content-between align-items-center">
                 <span>
@@ -462,29 +595,59 @@
         </button>
         </div>
 
+        <!-- ======================================================= -->
+        <!-- INÍCIO: SEÇÃO DE COMENTÁRIOS COM NOVO DESIGN           -->
+        <!-- ======================================================= -->
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
-            <hr class="mt-0">
-            <h5>Comentários</h5>
-            <div class="comentarios-list mb-3" id="comentarios-list-{{ questao.id }}"></div>
-<!-- INÍCIO: FORMULÁRIO DE COMENTÁRIO MODIFICADO PARA TIPTAP -->
-<form class="form-comentario" data-questao-id="{{ questao.id }}">
-    <div class="tiptap-toolbar mb-1 d-flex align-items-center flex-wrap">
-        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
-        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
-        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
-        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista de Marcadores"><i class="fas fa-list-ul"></i></button>
-        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
-    </div>
-    <div class="mb-2">
-        <!-- O contêiner onde o TipTap será renderizado -->
-        <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
-        <!-- O textarea agora está oculto e será usado para enviar os dados -->
-        <textarea name="conteudo" class="d-none" required></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
-</form>
-<!-- FIM: FORMULÁRIO DE COMENTÁRIO MODIFICADO -->
+            
+            <!-- CABEÇALHO DA ÁREA DE COMENTÁRIOS -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="sort-label-{{ questao.id }}">Ordenando por Mais Recentes</span>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="recent" data-questao-id="{{ questao.id }}">Mais Recentes</a></li>
+                        <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="likes" data-questao-id="{{ questao.id }}">Mais Curtidos</a></li>
+                    </ul>
+                </div>
+                
+            </div>
+
+            <!-- LISTA ONDE OS COMENTÁRIOS SERÃO INSERIDOS -->
+            <div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}"></div>
+            
+            <!-- FORMULÁRIO PARA NOVO COMENTÁRIO -->
+            <hr>
+            <h5 class="mb-3">Deixe seu comentário</h5>
+            <div class="new-comment-form-container">
+                <div class="comment-avatar">
+                    <div class="avatar-icon">
+                        <!-- Ícone de usuário, pode ser trocado pela inicial do usuário logado -->
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+                <form class="form-comentario flex-grow-1" data-questao-id="{{ questao.id }}">
+                    <div class="tiptap-toolbar mb-1 d-flex align-items-center flex-wrap">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista de Marcadores"><i class="fas fa-list-ul"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+                    </div>
+                    <div class="mb-2">
+                        <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
+                        <textarea name="conteudo" class="d-none" required></textarea>
+                    </div>
+                    <div class="d-flex justify-content-center">
+                        <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
+                    </div>
+                </form>
+            </div>
         </div>
+        <!-- ======================================================= -->
+        <!-- FIM: SEÇÃO DE COMENTÁRIOS COM NOVO DESIGN              -->
+        <!-- ======================================================= -->
     </div>
     {% empty %}
     <!-- INÍCIO DA MENSAGEM CUSTOMIZADA -->
@@ -538,10 +701,10 @@
           <input type="text" class="form-control" id="input-nome-filtro" placeholder="Nome do novo filtro">
           <div class="invalid-feedback">Por favor, insira um nome.</div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-filtro">Salvar</button>
-        </div>
+        <div class="modal-footer d-flex justify-content-center">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-filtro">Salvar</button>
+          </div>
       </div>
     </div>
   </div>
@@ -579,7 +742,7 @@
         <div class="modal-body">
           <p id="corpo-modal-exclusao">Deseja realmente excluir este item?</p>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer d-flex justify-content-center">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="button" class="btn btn-danger" id="btn-confirmar-exclusao">Sim, Excluir</button>
         </div>
@@ -605,6 +768,7 @@
 
     // Importa as NOVAS extensões que vamos usar
     import Underline from 'https://esm.sh/@tiptap/extension-underline'
+    import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder'
    
 
     // Anexa tudo ao objeto global 'window' para ser acessível no SCRIPT 2
@@ -613,6 +777,7 @@
         StarterKit,
         Markdown,
         Underline,
+        Placeholder
     };
 </script>
 
@@ -783,10 +948,15 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Inicializa o editor de edição UMA VEZ quando a página carrega.
         // Ele não precisa de um elemento HTML agora, pois sua view será movida depois.
-        const { Editor, StarterKit, Markdown, Underline } = window.TipTap;
+        const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
         if (Editor) { // Boa prática verificar se o Tiptap carregou
             editTiptapEditor = new Editor({
-                extensions: [ StarterKit, Markdown.configure({ html: false }), Underline ],
+                extensions: [ 
+                    StarterKit, 
+                    Markdown.configure({ html: false }), 
+                    Underline,
+                    Placeholder.configure({ placeholder: 'Escreva sua resposta...' })
+                ],
                 content: '',
             });
         } else {
@@ -802,7 +972,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return editorElement.tiptapEditor;
     }
 
-    const { Editor, StarterKit, Markdown, Underline, TextStyle, Color } = window.TipTap;
+    const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
     if (!Editor) {
         console.error("Tiptap não foi carregado corretamente.");
         return;
@@ -814,31 +984,23 @@ document.addEventListener('DOMContentLoaded', function() {
             StarterKit,
             Markdown.configure({ html: false, linkify: true, breaks: true }),
             Underline,
-        
+            Placeholder.configure({
+                placeholder: 'Escreva o seu comentário...',
+            }),
         ],
         content: '',
         editorProps: {
             handleDOMEvents: {
-                paste: () => false, // Usa o tratamento padrão do Tiptap para colar texto
+                paste: () => false, 
             },
-            // --- INÍCIO DA ADIÇÃO ---
-            // Esta função intercepta o HTML colado e o limpa antes de ser inserido.
             transformPastedHTML(html) {
-                // Usa a API nativa do navegador para criar um documento temporário na memória.
                 const doc = new DOMParser().parseFromString(html, 'text/html');
-                
-                // Seleciona TODOS os elementos ('*') dentro do conteúdo colado.
                 doc.body.querySelectorAll('*').forEach(el => {
-                    // Remove o atributo 'style', que é a principal fonte de formatação indesejada (tamanho, cor, etc.).
                     el.removeAttribute('style');
-                    // Remove também o atributo 'class' para evitar conflitos com seu CSS.
                     el.removeAttribute('class');
                 });
-
-                // Retorna a string de HTML já limpa para o Tiptap processar.
                 return doc.body.innerHTML;
             }
-            // --- FIM DA ADIÇÃO ---
         },
         onUpdate: ({ editor }) => {
             hiddenTextarea.value = editor.storage.markdown.getMarkdown();
@@ -875,14 +1037,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Adiciona evento para o seletor de cor
-    const colorInput = toolbarElement.querySelector('input[type="color"]');
-    if (colorInput) {
-        colorInput.addEventListener('input', (event) => {
-            editor.chain().focus().setColor(event.target.value).run();
-        });
-    }
-
     editorElement.tiptapEditor = editor;
     return editor;
 }
@@ -891,16 +1045,45 @@ document.addEventListener('DOMContentLoaded', function() {
     
     document.addEventListener('click', function(e) {
     const target = e.target;
-    
-    // Lógica para favoritar (não muda)
+
+    // --- VERIFICAÇÕES DE LINKS PRIMEIRO ---
+
+    const likeLink = target.closest('.btn-like');
+    if (likeLink) {
+        e.preventDefault();
+        handleLikeComentario(likeLink);
+        return; // Sai da função após tratar o clique
+    }
+
+    // Removemos a verificação de .btn-reply daqui e colocamos a de .toggle-replies-btn
+    const toggleRepliesLink = target.closest('.toggle-replies-btn');
+    if (toggleRepliesLink) {
+        e.preventDefault();
+        handleToggleReplies(toggleRepliesLink);
+        return;
+    }
+
+    const sortLink = target.closest('.sort-comments-btn');
+    if (sortLink) {
+        e.preventDefault();
+        handleSortClick(sortLink);
+        return;
+    }
+
+    // --- VERIFICAÇÃO DE ÍCONE (FAVORITAR) ---
+
     if (target.classList.contains('fa-star')) {
         handleFavoritar(target);
         return;
     }
-    
-    // Pega o botão mais próximo, se houver
+
+    // --- VERIFICAÇÕES DE BOTÕES ---
+
     const button = target.closest('button');
-    if (!button) return;
+    if (!button) {
+        // Se não for um botão e nenhuma das verificações acima passou, não faz mais nada
+        return;
+    }
 
     // Lógica dos modais (não muda)
     if (button.id === 'btn-confirmar-salvar-filtro') {
@@ -921,24 +1104,23 @@ document.addEventListener('DOMContentLoaded', function() {
         const comentarioId = button.dataset.comentarioId;
         abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
     
-    // --- INÍCIO DAS MUDANÇAS NA LÓGICA DE EDIÇÃO ---
-
+    // Lógica de edição (não muda)
     } else if (button.classList.contains('btn-editar-comentario')) {
-        // Agora chama a nova função de abrir edição
         handleAbrirEdicao(button); 
-    
     } else if (button.classList.contains('btn-salvar-edicao')) {
-        // Agora chama a nova função de salvar edição
         handleSalvarEdicao(button); 
-    
     } else if (button.classList.contains('btn-cancelar-edicao')) {
-        // ESTA É A PARTE QUE VOCÊ PERGUNTOU
-        // Chama a nova função de cancelar, passando o formulário diretamente
         cancelarEdicao(button.closest('.comment-edit-form')); 
 
-    // --- FIM DAS MUDANÇAS ---
-    
-    } else if (button.closest('.wysiwyg-toolbar')) { // Mantido por compatibilidade com a toolbar do Tiptap
+    // NOVO: Lógica para cancelar uma resposta
+    } else if (button.classList.contains('btn-cancel-reply')) {
+        // Encontra o container do formulário de resposta e o remove
+        const formContainer = button.closest('.reply-form-container');
+        if (formContainer) {
+            formContainer.innerHTML = ''; // Limpa o formulário
+            formContainer.style.display = 'none';
+        }
+    } else if (button.closest('.wysiwyg-toolbar')) {
         handleToolbarClick(button);
     }
 });
@@ -946,7 +1128,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('submit', function(e) {
         if (e.target.classList.contains('form-comentario')) {
             e.preventDefault();
-            handleAdicionarComentario(e.target);
+            // Passamos o próprio elemento do formulário para a função
+            handleAdicionarComentario(e.target); 
         }
     });
     
@@ -1082,49 +1265,170 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     function handleAdicionarComentario(form) {
-        const questaoId = form.dataset.questaoId;
-        const textarea = form.querySelector('textarea');
-        const conteudo = textarea.value;
-        if (!conteudo.trim()) return;
+    // Pega os dados do formulário
+    const questaoId = form.dataset.questaoId;
+    const parentId = form.dataset.parentId; // Será undefined se for um comentário principal
+    const textarea = form.querySelector('textarea[name="conteudo"]');
+    const conteudo = textarea.value;
 
-        fetch("{% url 'adicionar_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ questao_id: questaoId, conteudo: conteudo })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                // Limpa o conteúdo do editor Tiptap e da textarea oculta
+    if (!conteudo.trim()) {
+        alert('O comentário não pode estar vazio.');
+        return;
+    }
+
+    // Monta o objeto de dados para enviar ao backend
+    const postData = {
+        questao_id: questaoId,
+        conteudo: conteudo
+    };
+
+    // Se parentId existir, adiciona ao objeto. O backend saberá que é uma resposta.
+    if (parentId) {
+        postData.parent_id = parentId;
+    }
+
+    // Envia a requisição
+    fetch("{% url 'adicionar_comentario' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify(postData)
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'success') {
+            // SUCESSO! A melhor forma de exibir a nova resposta no lugar certo
+            // é simplesmente recarregar a lista de comentários inteira.
+            // A view do backend e a função criarHtmlComentario já sabem como aninhar tudo.
+            carregarComentarios(questaoId);
+
+            // Apenas limpa o editor principal (Tiptap), não os formulários de resposta.
+            // Os formulários de resposta são removidos automaticamente pela função carregarComentarios.
+            if (!parentId) {
                 const editor = tiptapEditors[questaoId];
                 if (editor) {
                     editor.commands.clearContent();
-                } else {
-                    textarea.value = ''; // Fallback caso o editor não seja encontrado
                 }
-
-                const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
-                const pVazio = comentariosList.querySelector('p');
-                if (pVazio) pVazio.remove();
-                comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(result.comentario));
-            } else {
-                alert('Erro: ' + result.message);
             }
-        });
+        } else {
+            alert('Erro ao enviar comentário: ' + result.message);
+        }
+    });
+}
+// Substitua sua função handleExcluirComentario por esta
+
+function handleExcluirComentario(comentarioId) {
+    // Passo 1: Encontrar o elemento do comentário ANTES de fazer a requisição.
+    // Usamos 'comment-wrapper-' porque ele é o container principal.
+    const commentWrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
+    if (!commentWrapper) {
+        console.error("Não foi possível encontrar o wrapper do comentário para exclusão.");
+        return;
     }
-    function handleExcluirComentario(comentarioId) {
-        fetch("{% url 'excluir_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ comentario_id: comentarioId })
-        })
-        .then(r => r.json()).then(res => {
-            if(res.status === 'success') {
-                document.getElementById(`comentario-${comentarioId}`).remove();
-                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
-            } else { alert('Erro: ' + res.message); }
-        });
+
+    // Passo 2: A partir do comentário, encontrar o ID da questão principal.
+    const questaoCard = commentWrapper.closest('.card');
+    if (!questaoCard) {
+        console.error("Não foi possível encontrar o card da questão associada.");
+        return;
     }
+    const questaoId = questaoCard.id.replace('questao-', '');
+
+    // Passo 3: Fazer a requisição para o backend para deletar o comentário.
+    fetch("{% url 'excluir_comentario' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ comentario_id: comentarioId })
+    })
+    .then(r => r.json())
+    .then(res => {
+        if (res.status === 'success') {
+            // Passo 4: SUCESSO! Em vez de remover apenas um elemento,
+            // recarregamos toda a seção de comentários.
+            // Isso garante que a lista de respostas e o contador do pai sejam atualizados.
+            carregarComentarios(questaoId);
+
+            if (confirmarExclusaoModal) {
+                confirmarExclusaoModal.hide();
+            }
+        } else {
+            alert('Erro ao excluir comentário: ' + res.message);
+        }
+    });
+}
+
+    function handleLikeComentario(link) {
+    const comentarioId = link.dataset.comentarioId;
+    // Assume que a URL 'toggle_like_comentario' está definida no seu urls.py
+    fetch("{% url 'toggle_like_comentario' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ comentario_id: comentarioId })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'success') {
+            const countSpan = link.querySelector('.like-count');
+            if (countSpan) {
+                countSpan.textContent = result.likes_count;
+            }
+            link.classList.toggle('liked', result.liked);
+        }
+    });
+}
+function handleToggleReplies(link) {
+    const comentarioId = link.dataset.comentarioId;
+    const questaoId = link.closest('.card').id.replace('questao-', '');
+    const wrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
+    const repliesWrapper = wrapper.querySelector('.replies-wrapper');
+
+    // Se estiver visível, esconde.
+    if (repliesWrapper.style.display === 'block') {
+        repliesWrapper.style.display = 'none';
+    } else {
+        // Se estiver escondido, mostra.
+        repliesWrapper.style.display = 'block';
+        
+        // E injeta o formulário de resposta no placeholder
+        const formContainer = repliesWrapper.querySelector('.reply-form-container');
+        // Apenas injeta o formulário se ele ainda não existir
+        if (!formContainer.querySelector('form')) {
+            formContainer.innerHTML = `
+                <div class="new-comment-form-container mt-3">
+                    <div class="comment-avatar">
+                        <div class="avatar-icon"><i class="fas fa-user"></i></div>
+                    </div>
+                    <form class="form-comentario form-reply flex-grow-1" data-questao-id="${questaoId}" data-parent-id="${comentarioId}">
+                        <div class="mb-2">
+                            <textarea name="conteudo" class="form-control form-control-sm" rows="3" placeholder="Escreva sua resposta..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-center">
+                            <button type="button" class="btn btn-sm btn-secondary me-2 btn-cancel-reply">Cancelar</button>
+                            <button type="submit" class="btn btn-sm btn-primary">Enviar Resposta</button>
+                        </div>
+                    </form>
+                </div>
+            `;
+        }
+    }
+}
+
+/**
+ * Manipula o clique nos botões de ordenação de comentários.
+ */
+function handleSortClick(link) {
+    const questaoId = link.dataset.questaoId;
+    const sortBy = link.dataset.sort;
+    
+    // Atualiza o texto do botão principal do dropdown
+    const sortLabel = document.getElementById(`sort-label-${questaoId}`);
+    if (sortLabel) {
+        sortLabel.textContent = `Ordenando por ${link.textContent}`;
+    }
+
+    // Recarrega os comentários com o novo critério de ordenação
+    carregarComentarios(questaoId, sortBy);
+}
+    // FUNÇÃO PARA LIKE ---
 
     function handleAbrirEdicao(button) {
     const comentarioId = button.dataset.comentarioId;
@@ -1152,9 +1456,9 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="mb-2">
             <div class="tiptap-editor" id="tiptap-editor-edit-${comentarioId}"></div>
         </div>
-        <div class="mt-2">
+        <div class="mt-2 d-flex justify-content-center">
+            <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao me-2">Cancelar</button>
             <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
-            <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao">Cancelar</button>
         </div>
     `;
 
@@ -1246,56 +1550,116 @@ function cancelarEdicao(editFormDiv) {
         }
     }
 
-    function carregarComentarios(questaoId) {
-        const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
-        comentariosList.innerHTML = '<p class="text-center">Carregando...</p>';
-        fetch(`/pratica/carregar-comentarios/${questaoId}/`)
-            .then(response => response.json())
-            .then(data => {
-                comentariosList.innerHTML = '';
-                if (data.comentarios.length > 0) {
-                    data.comentarios.forEach(c => comentariosList.insertAdjacentHTML('beforeend', criarHtmlComentario(c)));
-                } else {
-                    comentariosList.innerHTML = '<p class="text-center text-muted">Nenhum comentário ainda.</p>';
-                }
-                document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
-            });
-    }
+    function carregarComentarios(questaoId, sortBy = 'recent') {
+    const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+    comentariosList.innerHTML = '<p class="text-center">Carregando...</p>';
     
-// Dentro do seu SCRIPT 2, altere esta função
+    // Adiciona o parâmetro de ordenação na URL da requisição
+    fetch(`/pratica/carregar-comentarios/${questaoId}/?sort_by=${sortBy}`)
+        .then(response => response.json())
+        .then(data => {
+            comentariosList.innerHTML = '';
+            if (data.comentarios.length > 0) {
+                data.comentarios.forEach(c => {
+                    // Agora usamos appendChild porque a função retorna um elemento HTML, não mais uma string
+                    comentariosList.appendChild(criarHtmlComentario(c));
+                });
+            } else {
+                comentariosList.innerHTML = '<p class="text-center text-muted">Nenhum comentário ainda.</p>';
+            }
+            document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
+        });
+}
+
+
+// Substitua sua função criarHtmlComentario por esta versão corrigida
+
 function criarHtmlComentario(comentario) {
     let buttons = '';
     if (comentario.pode_editar) {
         buttons = `
-            <div class="comment-actions">
-                <button type="button" class="btn btn-sm btn-light btn-editar-comentario" data-comentario-id="${comentario.id}" title="Editar"><i class="fas fa-pencil-alt"></i></button>
-                <button type="button" class="btn btn-sm btn-light text-danger btn-excluir-comentario" data-comentario-id="${comentario.id}" title="Excluir"><i class="fas fa-times"></i></button>
+            <div class="comment-actions dropdown">
+                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
+                <ul class="dropdown-menu">
+                    <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${comentario.id}">Editar</button></li>
+                    <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${comentario.id}">Excluir</button></li>
+                </ul>
             </div>
         `;
     }
 
-    // A nova estrutura de "card" para o comentário
-    return `
-        <div class="comment-card" id="comentario-${comentario.id}">
-            <div class="comment-header">
-                <div>
-                    <span class="comment-user">${comentario.usuario}</span>
-                    <small class="comment-date text-muted ms-2">${comentario.data_criacao}</small>
-                </div>
-                ${buttons}
-            </div>
-            
-            <!-- 1. Área de visualização do conteúdo -->
-            <div class="comment-body comment-content" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
-                ${comentario.conteudo}
-            </div>
+    const userInitial = comentario.usuario.charAt(0).toUpperCase();
 
-            <!-- 2. Área de edição (inicialmente oculta) -->
-            <div class="comment-edit-form mt-2" style="display: none;">
-                <!-- O editor Tiptap será inserido aqui -->
+    let footerHtml = '';
+    // SÓ CRIA O RODAPÉ SE O COMENTÁRIO FOR PRINCIPAL
+    if (!comentario.parent_id) {
+        const likedClass = comentario.user_liked ? 'liked' : '';
+        footerHtml = `
+            <div class="comment-footer">
+                <a href="#" class="btn btn-like ${likedClass}" data-comentario-id="${comentario.id}">
+                    <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${comentario.likes_count}</span>)
+                </a>
+                <a href="#" class="btn toggle-replies-btn" data-comentario-id="${comentario.id}">
+                    <i class="fas fa-reply"></i> Respostas (${comentario.respostas_count})
+                </a>
+            </div>
+        `;
+    }
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'comment-wrapper';
+    wrapper.id = `comment-wrapper-${comentario.id}`;
+
+    wrapper.innerHTML = `
+        <div class="comment-card" id="comentario-${comentario.id}">
+            <div class="comment-avatar">
+                <div class="avatar-icon" title="${comentario.usuario}">${userInitial}</div>
+            </div>
+            <div class="comment-main">
+                <div class="comment-header">
+                    <div class="comment-user-info">
+                        <span class="comment-user">${comentario.usuario}</span>
+                        <div class="comment-date">${comentario.data_criacao}</div>
+                    </div>
+                    ${buttons}
+                </div>
+                <div class="comment-content" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
+                    <div class="comment-body">${comentario.conteudo}</div>
+                </div>
+                <div class="comment-edit-form mt-2" style="display: none;"></div>
+                ${footerHtml}
             </div>
         </div>
     `;
+
+    // --- INÍCIO DA CORREÇÃO ---
+    // A lógica de aninhamento agora é ativada para QUALQUER comentário principal,
+    // garantindo que o .replies-wrapper sempre exista para eles.
+    if (!comentario.parent_id) {
+        const repliesWrapper = document.createElement('div');
+        repliesWrapper.className = 'replies-wrapper';
+        repliesWrapper.style.display = 'none'; // Começa escondido
+
+        const repliesContainer = document.createElement('div');
+        repliesContainer.className = 'comment-replies';
+        
+        // Apenas popula com respostas se elas existirem
+        if (comentario.respostas && comentario.respostas.length > 0) {
+            comentario.respostas.forEach(resposta => {
+                repliesContainer.appendChild(criarHtmlComentario(resposta));
+            });
+        }
+        
+        const replyFormContainer = document.createElement('div');
+        replyFormContainer.className = 'reply-form-container';
+
+        repliesWrapper.appendChild(repliesContainer);
+        repliesWrapper.appendChild(replyFormContainer);
+        wrapper.appendChild(repliesWrapper);
+    }
+    // --- FIM DA CORREÇÃO ---
+
+    return wrapper;
 }
 
 });

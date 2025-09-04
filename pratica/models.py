@@ -39,10 +39,13 @@ class Comentario(models.Model):
     
     # Data e hora de criação.
     data_criacao = models.DateTimeField(auto_now_add=True)
+    likes = models.ManyToManyField(User, related_name='comentarios_curtidos', blank=True)
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='respostas')
+
 
     class Meta:
         # Ordena os comentários do mais novo para o mais antigo por padrão.
-        ordering = ['-data_criacao']
+        ordering = ['data_criacao']
 
     def __str__(self):
         return f'Comentário de {self.usuario.username} na questão {self.questao.id}'

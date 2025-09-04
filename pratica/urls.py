@@ -21,4 +21,7 @@ urlpatterns = [
     
     path('api/salvar-filtro/', views.salvar_filtro, name='salvar_filtro'),
     path('api/deletar-filtro/', views.deletar_filtro, name='deletar_filtro'),
+    
+    path('toggle-like-comentario/', views.toggle_like_comentario, name='toggle_like_comentario'),
+
 ]

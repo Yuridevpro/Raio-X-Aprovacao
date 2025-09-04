@@ -5,6 +5,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
+from django.db.models import Count # <-- ADICIONE ESTE IMPORT
+
 
 # Adicionado 'Assunto' ao import
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
@@ -176,23 +178,40 @@ def favoritar_questao(request):
 @login_required
 def carregar_comentarios(request, questao_id):
     questao = get_object_or_404(Questao, id=questao_id)
-    comentarios = questao.comentarios.all().order_by('data_criacao') 
-    
-    comentarios_data = []
-    for comentario in comentarios:
-        comentarios_data.append({
-            'id': comentario.id, # <--- ADICIONADO
+    sort_by = request.GET.get('sort_by', 'recent')
+
+    comentarios_principais = questao.comentarios.filter(parent__isnull=True)
+
+    if sort_by == 'likes':
+        comentarios_qs = comentarios_principais.annotate(num_likes=Count('likes')).order_by('-num_likes', '-data_criacao')
+    else:
+        comentarios_qs = comentarios_principais.order_by('-data_criacao')
+
+    def formatar_arvore_comentarios(comentario):
+        respostas = comentario.respostas.all().order_by('data_criacao')
+        respostas_formatadas = [formatar_arvore_comentarios(r) for r in respostas]
+
+        return {
+            'id': comentario.id,
             'usuario': comentario.usuario.userprofile.nome,
             'conteudo': markdown.markdown(comentario.conteudo),
-            'conteudo_raw': comentario.conteudo, # <--- ADICIONADO (para edição)
+            'conteudo_raw': comentario.conteudo,
             'data_criacao': comentario.data_criacao.strftime('%d de %B de %Y às %H:%M'),
-            'pode_editar': comentario.usuario == request.user # <--- ADICIONADO
-        })
+            'pode_editar': comentario.usuario == request.user,
+            'likes_count': comentario.likes.count(),
+            'user_liked': request.user in comentario.likes.all(),
+            'respostas': respostas_formatadas,
+            'respostas_count': len(respostas_formatadas),
+            # --- ADIÇÃO NECESSÁRIA ---
+            # Informa ao frontend o ID do pai (será None para comentários principais)
+            'parent_id': comentario.parent_id
+        }
+
+    comentarios_data = [formatar_arvore_comentarios(c) for c in comentarios_qs]
+
     return JsonResponse({'comentarios': comentarios_data})
 
-# pratica/views.py
 
-# pratica/views.py - CÓDIGO CORRIGIDO
 
 @login_required
 @require_POST
@@ -201,20 +220,26 @@ def adicionar_comentario(request):
         data = json.loads(request.body)
         questao_id = data.get('questao_id')
         conteudo = data.get('conteudo')
+        parent_id = data.get('parent_id')
 
         if not conteudo or not conteudo.strip():
             return JsonResponse({'status': 'error', 'message': 'O comentário não pode estar vazio.'}, status=400)
 
         questao = get_object_or_404(Questao, id=questao_id)
         
-        # --- LINHA CORRIGIDA ---
-        # Removemos o argumento 'questao=questao' pois o Django já sabe a qual
-        # questão o comentário pertence ao usar o related manager 'questao.comentarios'.
-        novo_comentario = questao.comentarios.create(
-            usuario=request.user,
-            conteudo=conteudo
-        )
-        # --- FIM DA CORREÇÃO ---
+        dados_novo_comentario = {
+            'usuario': request.user,
+            'conteudo': conteudo
+        }
+
+        if parent_id:
+            try:
+                parent_comentario = Comentario.objects.get(id=parent_id)
+                dados_novo_comentario['parent'] = parent_comentario
+            except Comentario.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Comentário pai não encontrado.'}, status=404)
+        
+        novo_comentario = questao.comentarios.create(**dados_novo_comentario)
 
         return JsonResponse({
             'status': 'success',
@@ -224,14 +249,44 @@ def adicionar_comentario(request):
                 'conteudo': markdown.markdown(novo_comentario.conteudo),
                 'conteudo_raw': novo_comentario.conteudo,
                 'data_criacao': novo_comentario.data_criacao.strftime('%d de %B de %Y às %H:%M'),
-                'pode_editar': True
+                'pode_editar': True,
+                'likes_count': 0,
+                'user_liked': False,
+                'respostas': [],
+                # --- ADIÇÕES NECESSÁRIAS ---
+                'respostas_count': 0, # Uma nova resposta não tem respostas
+                'parent_id': novo_comentario.parent_id # Informa ao frontend que este é um filho
             }
         })
 
     except Exception as e:
-        # É uma boa prática logar o erro no servidor para facilitar a depuração
-        # import logging
-        # logging.error(f"Erro ao adicionar comentário: {e}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+# --- INÍCIO DA NOVA VIEW PARA LIKE ---
+@login_required
+@require_POST
+def toggle_like_comentario(request):
+    try:
+        data = json.loads(request.body)
+        comentario_id = data.get('comentario_id')
+        comentario = get_object_or_404(Comentario, id=comentario_id)
+        user = request.user
+
+        if user in comentario.likes.all():
+            # Se já curtiu, remove o like
+            comentario.likes.remove(user)
+            liked = False
+        else:
+            # Se não curtiu, adiciona o like
+            comentario.likes.add(user)
+            liked = True
+
+        return JsonResponse({
+            'status': 'success',
+            'liked': liked,
+            'likes_count': comentario.likes.count()
+        })
+    except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 @login_required

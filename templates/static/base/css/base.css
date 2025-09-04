@@ -11,4 +11,5 @@ body {
 
 main {
     flex: 1; /* Faz o conteúdo principal ocupar o espaço disponível */
+    margin-bottom: 5rem; 
 }
