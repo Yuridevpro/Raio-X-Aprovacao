@@ -457,7 +457,40 @@ a, .btn {
     border-top: 1px solid var(--border-color);
 }
 
-/* templates/static/divulgar/novo_pet/css/novo_pet_mdq.css */
+
+@media only screen and (max-width: 768px) {
+    
+    /* ======================================================= */
+    /* ======== INÍCIO: AJUSTES NO CABEÇALHO DA QUESTÃO (MOBILE) ====== */
+    /* ======================================================= */
+
+    .card-questao .card-header {
+        /* Alinha o ícone da estrela no topo, o que fica melhor com texto empilhado */
+        align-items: flex-start !important;
+        gap: 0.5rem; /* Adiciona um pequeno espaço entre o texto e a estrela */
+    }
+
+    /* Estilizando o título (Disciplina - Assunto) para dar mais destaque */
+    .card-questao .card-header div strong {
+        font-size: 1rem;
+        line-height: 1.4;
+        color: var(--text-dark);
+        margin-top: 0.15rem; /* Pequeno ajuste de espaçamento */
+    }
+
+    /* Estilizando a origem (Banca - Ano) */
+    .card-questao .card-header div .text-muted {
+        font-size: 0.85rem;
+        color: var(--secondary-color);
+    }
+    
+    .card-questao .fa-star {
+        font-size: 1.5rem; /* Aumenta o ícone para facilitar o toque */
+        margin-top: 4px; /* Alinha melhor com a primeira linha de badges */
+    }
+
+}
+
 
 
 </style>

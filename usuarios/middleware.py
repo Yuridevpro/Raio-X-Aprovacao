@@ -35,3 +35,25 @@ class ProfileMiddleware:
                     return redirect('editar_perfil')
         
         return response
+
+# --- INÍCIO DO NOVO MIDDLEWARE DE SESSÃO DO ADMIN ---
+class AdminSessionMiddleware:
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # Verifica se a URL da requisição pertence ao namespace 'admin'
+        # Esta é a forma mais robusta de identificar uma URL do admin
+        if resolve(request.path_info).app_name == 'admin':
+            # Se for uma URL do admin, troca o nome do cookie de sessão
+            # que o Django usará para esta requisição específica.
+            request.session.model._meta.db_table = 'django_admin_sessions'
+            settings.SESSION_COOKIE_NAME = settings.ADMIN_SESSION_COOKIE_NAME
+        else:
+            # Para todas as outras URLs, garante que o cookie padrão seja usado
+            settings.SESSION_COOKIE_NAME = 'qconcurso_sessionid'
+            
+        response = self.get_response(request)
+        
+        return response
+# --- FIM DO NOVO MIDDLEWARE ---

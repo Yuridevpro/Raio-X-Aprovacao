@@ -39,7 +39,8 @@ body {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card:hover {
+/* Aplica o efeito a todos os cards, EXCETO aquele com a classe .card-filtros */
+.card:not(.card-filtros):hover {
     transform: translateY(-5px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
@@ -167,7 +168,7 @@ body {
     </div>
 
     <!-- INÍCIO: Formulário de Filtros Avançados -->
-    <div class="card mb-4">
+    <div class="card mb-4 card-filtros">
         <div class="card-body">
             <form method="GET" action="{% url 'dashboard' %}" class="filter-form">
                 <div class="row g-3 align-items-end">
