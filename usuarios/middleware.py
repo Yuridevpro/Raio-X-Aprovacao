@@ -1,7 +1,7 @@
 # usuarios/middleware.py
 
 from django.shortcuts import redirect
-from django.urls import reverse
+from django.urls import reverse, resolve
 from usuarios.models import UserProfile # Importe seu modelo UserProfile
 
 class ProfileMiddleware:

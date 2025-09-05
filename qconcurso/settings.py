@@ -38,8 +38,6 @@ INSTALLED_APPS = [
     'questoes',
     'pratica',
     'desempenho',
-    # Apps de Terceiros
-    'easymde',
     'storages', # Para integração com S3
 ]
 
