@@ -12,7 +12,8 @@
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }}">{{ message }}</div>
             {% endfor %}
-        {% endif %}
+            {% endif %}
+            
             <div class="card card-body">
                 <form method="POST">
                     {% csrf_token %}
@@ -28,10 +29,57 @@
                         <label for="sobrenome" class="form-label">Sobrenome:</label>
                         <input type="text" class="form-control" name="sobrenome" value="{{ request.user.userprofile.sobrenome }}" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    
+                    <!-- BOTÃO CENTRALIZADO -->
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                    </div>
                 </form>
             </div>
+
+            <!-- INÍCIO DA SEÇÃO DE PERIGO (EXCLUIR CONTA) -->
+            <div class="card border-danger mt-4">
+                <div class="card-header bg-danger text-white">
+                    <strong>Zona de Perigo</strong>
+                </div>
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div>
+                        <p class="card-text mb-0"><strong>Excluir esta conta</strong></p>
+                        <small class="text-muted">Esta ação é permanente e não pode ser desfeita.</small>
+                    </div>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmarExclusaoModal">
+                        Excluir Conta
+                    </button>
+                </div>
+            </div>
+            <!-- FIM DA SEÇÃO DE PERIGO -->
+
         </div>
     </div>
 </div>
+
+<!-- INÍCIO DO MODAL DE CONFIRMAÇÃO -->
+<div class="modal fade" id="confirmarExclusaoModal" tabindex="-1" aria-labelledby="confirmarExclusaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmarExclusaoModalLabel">Confirmar Exclusão de Conta</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você tem certeza que deseja excluir sua conta permanentemente?</p>
+        <p class="text-danger"><strong>Atenção:</strong> Todos os seus dados, incluindo seu progresso, questões favoritas e comentários, serão perdidos para sempre. Esta ação não pode ser desfeita.</p>
+      </div>
+      <div class="modal-footer d-flex justify-content-center">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <!-- O formulário de exclusão está aqui dentro -->
+        <form action="{% url 'deletar_conta' %}" method="POST" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Sim, eu entendo, excluir minha conta</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- FIM DO MODAL DE CONFIRMAÇÃO -->
 {% endblock %}

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <title>Confirmação de Cadastro</title>
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --body-bg: #F8F9FC;
+            --text-dark: #343a40;
+            --text-muted: #6c757d;
+            --font-family: 'Poppins', sans-serif;
+            --border-radius: 12px;
+        }
+        body {
+            font-family: var(--font-family), sans-serif;
+            background-color: var(--body-bg);
+            margin: 0;
+            padding: 20px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: var(--border-radius);
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .email-header {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 30px;
+            text-align: center;
+        }
+        .email-header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .email-body {
+            padding: 30px 40px;
+            color: var(--text-dark);
+            font-size: 16px;
+            line-height: 1.7;
+        }
+        .email-body p {
+            margin: 0 0 1em 0;
+        }
+        .email-button-container {
+            text-align: center;
+            margin: 30px 0;
+        }
+        .email-button {
+            background-color: var(--primary-color);
+            color: #ffffff;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 500;
+            display: inline-block;
+        }
+        .email-footer {
+            text-align: center;
+            padding: 20px 40px;
+            border-top: 1px solid #EAECEF;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="email-header">
+            <h1>Bem-vindo(a) ao Raio-X da Aprovação!</h1>
+        </div>
+        <div class="email-body">
+            <p>Olá, {{ user.userprofile.nome }},</p>
+            <p>Seu cadastro está quase completo! Para ativar sua conta e começar a sua jornada rumo à aprovação, por favor, clique no botão abaixo:</p>
+            <div class="email-button-container">
+                <a href="http://{{ host }}{% url 'confirmar_email' token=token %}" class="email-button">Confirmar Meu E-mail</a>
+            </div>
+            <p>Se você não se cadastrou em nossa plataforma, pode ignorar este e-mail com segurança.</p>
+        </div>
+        <div class="email-footer">
+            <p>&copy; {% now "Y" %} Raio-X da Aprovação. Todos os direitos reservados.</p>
+        </div>
+    </div>
+</body>
+</html>
