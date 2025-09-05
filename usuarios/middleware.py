@@ -3,7 +3,7 @@
 from django.shortcuts import redirect
 from django.urls import reverse, resolve
 from usuarios.models import UserProfile # Importe seu modelo UserProfile
-
+from django.conf import settings
 class ProfileMiddleware:
     def __init__(self, get_response):
         self.get_response = get_response
