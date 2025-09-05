@@ -13,16 +13,26 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'production') # 'production' é o padrão seguro
 DEBUG = (ENVIRONMENT == 'development')
 
+# --- LÓGICA DE ALLOWED_HOSTS DEFINITIVA E ROBUSTA ---
 if DEBUG:
-    # Em desenvolvimento, permite explicitamente o servidor local.
+    # Em desenvolvimento, permitimos o acesso local padrão.
     ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 else:
-    # Em produção, exige que a variável de ambiente seja configurada.
-    allowed_hosts_str = os.getenv('ALLOWED_HOSTS')
-    if not allowed_hosts_str:
-        ALLOWED_HOSTS = [] # Seguro: não permite ninguém se não estiver configurado
-    else:
-        ALLOWED_HOSTS = [host.strip() for host in allowed_hosts_str.split(',')]
+    # Em produção, começamos com uma lista vazia.
+    ALLOWED_HOSTS = []
+    
+    # Adicionamos o hostname que o Render fornece automaticamente.
+    # Esta é a forma mais segura de garantir que o seu site funcione no Render.
+    render_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME')
+    if render_hostname:
+        ALLOWED_HOSTS.append(render_hostname)
+    
+    # Adicionamos também qualquer domínio customizado que você configurar
+    # na variável de ambiente ALLOWED_HOSTS.
+    custom_hosts_str = os.getenv('ALLOWED_HOSTS')
+    if custom_hosts_str:
+        ALLOWED_HOSTS.extend([host.strip() for host in custom_hosts_str.split(',')])
+# --- FIM DA CORREÇÃO ---
 
 
 # --- APLICAÇÕES INSTALADAS ---
