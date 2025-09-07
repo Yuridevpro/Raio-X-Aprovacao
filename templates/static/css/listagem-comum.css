@@ -1,0 +1,111 @@
+/* static/css/listagem-comum.css */
+
+/*
+   =========================================================================
+   ESTILOS COMUNS PARA PÁGINAS DE LISTAGEM DE QUESTÕES (PRATICA E GESTAO)
+   =========================================================================
+*/
+
+/* Variáveis de Design (se ainda não estiverem no seu base.css) */
+:root {
+    --primary-color: #4A90E2;
+    --secondary-color: #5A6978;
+    --light-bg: #FFFFFF;
+    --body-bg: #F8F9FC;
+    --border-color: #EAECEF;
+    --success-color: #28a745;
+    --danger-color: #dc3545;
+    --text-dark: #343a40;
+    --font-family: 'Poppins', sans-serif;
+    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --border-radius: 12px;
+}
+
+/* ========================================================================= */
+/* FILTROS E PAGINAÇÃO */
+/* ========================================================================= */
+.filtros-card {
+    background-color: var(--light-bg);
+    border: none;
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    margin-bottom: 2rem;
+}
+
+/* static/css/listagem-comum.css */
+
+.filter-dropdown .dropdown-menu {
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--box-shadow);
+    padding: 1rem;
+    max-height: 400px;
+    overflow-y: auto;
+    width: 100%; /* Esta regra agora funcionará corretamente */
+}
+
+
+
+.filter-dropdown-options { 
+    list-style-type: none; 
+    padding: 0; 
+    margin: 0; 
+}
+
+.dropdown-header { 
+    font-weight: bold; 
+    color: var(--primary-color); 
+    padding-top: 10px; 
+}
+
+.nav-pagination .page-item .page-link {
+    border-radius: 50% !important;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 5px;
+    border: none;
+    color: var(--secondary-color);
+}
+
+.nav-pagination .page-item.active .page-link {
+    background-color: var(--primary-color);
+    color: #fff;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
+}
+
+
+/* ========================================================================= */
+/* ADIÇÃO: ESTILOS COMUNS DE FILTRO MOVIDOS DO TEMPLATE
+/* ========================================================================= */
+
+/* Estilos para os badges de filtros ativos (ex: "Disciplina: Português [x]") */
+#active-filters-container .badge {
+    font-size: 0.85rem;
+    padding: 0.6em 1em;
+    border-radius: 20px;
+    background-color: #e9ecef !important;
+    color: var(--text-dark) !important;
+    font-weight: 500;
+}
+
+#active-filters-container .btn-close { 
+    background-size: .75em; 
+}
+
+/* Estilos para o painel de filtros "Offcanvas" (Mobile) */
+.filter-offcanvas {
+    /* Define uma altura máxima para não ocupar a tela toda */
+    height: 75vh !important;
+    /* Adiciona cantos arredondados no topo para um visual mais suave */
+    border-top-left-radius: 1.5rem;
+    border-top-right-radius: 1.5rem;
+}
+
+.filter-offcanvas .offcanvas-body {
+    /* Remove o padding padrão do topo para colar o campo de busca no header */
+    padding-top: 0;
+}

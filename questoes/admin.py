@@ -1,75 +1,50 @@
 # questoes/admin.py
 
 from django.contrib import admin
-from django import forms
-from .models import Disciplina, Banca, Assunto, Questao, Instituicao # Importado 'Instituicao'
-import json
-from .widgets import TiptapEditorWidget 
+from .models import Disciplina, Banca, Assunto, Questao, Instituicao
+# --- INÍCIO DAS MUDANÇAS ---
+# Importamos o formulário BASE (sem Tiptap) e o widget Tiptap separadamente
+from .forms import BaseQuestaoForm 
+from .widgets import TiptapEditorWidget
+# --- FIM DAS MUDANÇAS ---
 
-# Registra os modelos
+# Registra os modelos simples
 admin.site.register(Disciplina)
 admin.site.register(Banca)
 admin.site.register(Assunto)
-admin.site.register(Instituicao) # Registrado o novo modelo 'Instituicao'
-
-class QuestaoAdminForm(forms.ModelForm):
-    # Campos virtuais para as alternativas
-    alternativa_a = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'cols': 80}), required=True)
-    alternativa_b = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'cols': 80}), required=True)
-    alternativa_c = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'cols': 80}), required=True)
-    alternativa_d = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'cols': 80}), required=True)
-    alternativa_e = forms.CharField(widget=forms.Textarea(attrs={'rows': 2, 'cols': 80}), required=True)
-
-    class Meta:
-        model = Questao
-        # --- CAMPO 'instituicao' ADICIONADO À LISTA DE CAMPOS ---
-        fields = ('disciplina', 'assunto', 'banca', 'instituicao', 'ano', 'imagem_enunciado', 'enunciado', 'gabarito', 'explicacao', 'is_inedita')
-        
-# --- SEÇÃO MODIFICADA ---
-        # Substituímos o EasyMDEEditor pelo nosso TiptapEditorWidget
-        widgets = {
-            'enunciado': TiptapEditorWidget(),
-            'explicacao': TiptapEditorWidget(),
-        }
-        # --- FIM DA MODIFICAÇÃO ---
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            alternativas_dict = self.instance.get_alternativas_dict()
-            self.fields['alternativa_a'].initial = alternativas_dict.get('A', '')
-            self.fields['alternativa_b'].initial = alternativas_dict.get('B', '')
-            self.fields['alternativa_c'].initial = alternativas_dict.get('C', '')
-            self.fields['alternativa_d'].initial = alternativas_dict.get('D', '')
-            self.fields['alternativa_e'].initial = alternativas_dict.get('E', '')
-            
-    def save(self, commit=True):
-        alternativas_dict = {
-            'A': self.cleaned_data['alternativa_a'],
-            'B': self.cleaned_data['alternativa_b'],
-            'C': self.cleaned_data['alternativa_c'],
-            'D': self.cleaned_data['alternativa_d'],
-            'E': self.cleaned_data['alternativa_e'],
-        }
-        self.instance.alternativas = json.dumps(alternativas_dict)
-        return super().save(commit)
+admin.site.register(Instituicao)
 
 @admin.register(Questao)
 class QuestaoAdmin(admin.ModelAdmin):
-    form = QuestaoAdminForm
+    # --- ALTERADO ---
+    # O admin agora usa o BaseQuestaoForm, que tem a lógica mas não o widget Tiptap por padrão.
+    form = BaseQuestaoForm
     
-    # --- CAMPO 'codigo' ADICIONADO ---
     list_display = ('id', 'codigo', 'disciplina', 'assunto', 'banca', 'instituicao', 'ano', 'is_inedita')
-    
     list_filter = ('disciplina', 'banca', 'instituicao', 'ano', 'is_inedita')
-    
-    # --- CAMPO 'codigo' ADICIONADO AOS CAMPOS DE BUSCA ---
     search_fields = ('codigo', 'enunciado', 'explicacao')
-    
     list_editable = ('is_inedita',)
     ordering = ('-id',)
 
+    # --- ALTERADO ---
+ # --- INÍCIO DA ALTERAÇÃO ---
+    def get_form(self, request, obj=None, **kwargs):
+        form = super().get_form(request, obj, **kwargs)
+        
+        # Define o widget Tiptap para os campos desejados
+        form.base_fields['enunciado'].widget = TiptapEditorWidget()
+        form.base_fields['explicacao'].widget = TiptapEditorWidget()
+
+        # Limpa os atributos para evitar conflitos de classe CSS (como 'form-control')
+        # que podem fazer o textarea oculto aparecer.
+        form.base_fields['enunciado'].widget.attrs.clear()
+        form.base_fields['explicacao'].widget.attrs.clear()
+        
+        return form
+    # --- FIM DA ALTERAÇÃO ---
+
     class Media:
+        # Este JS é para a lógica de esconder 'Banca' e 'Ano' quando 'is_inedita' é marcado
         js = ('admin/js/questao_admin.js',)
 
     def save_model(self, request, obj, form, change):

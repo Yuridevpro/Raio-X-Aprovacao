@@ -33,7 +33,8 @@
 /* O editor Tiptap em si */
 .tiptap-editor .ProseMirror {
     padding: 10px;
-    min-height: 250px;
+    /* --- ALTERADO --- Reduzimos a altura mínima de 250px para 150px */
+    min-height: 150px; 
     outline: none;
     font-size: 14px;
     line-height: 1.6;

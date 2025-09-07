@@ -1,0 +1,300 @@
+<!-- gestao/listar_questoes.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load questoes_extras %} <!-- ATUALIZADO para usar o tag centralizado -->
+{% block title %}Gerenciar Questões{% endblock %}
+
+{% block head %}
+    <!-- Carrega o CSS específico para o painel de gestão -->
+    <link rel="stylesheet" href="{% static 'gestao/css/gestao.css' %}">
+    <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+    
+    <!-- CSS Adicional para os Filtros e novo Design -->
+    <style>
+
+        .questao-card {
+            background-color: var(--light-bg);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 1.25rem;
+            transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
+            display: flex;
+            flex-direction: column;
+        }
+        .questao-card:hover {
+            box-shadow: var(--box-shadow);
+            border-color: #d8dde4;
+        }
+        .questao-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+            gap: 1rem;
+        }
+        .questao-info-principal .codigo {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-right: 0.75rem;
+        }
+        .questao-info-principal .disciplina {
+            font-weight: 500;
+            color: #343a40;
+        }
+        .questao-info-secundaria {
+            font-size: 0.85rem;
+            color: var(--secondary-color);
+            flex-shrink: 0;
+            text-align: right;
+        }
+        .questao-card-body {
+            padding: 1.5rem;
+            color: #495057;
+            flex-grow: 1;
+        }
+        .questao-card-footer {
+            padding: 1rem 1.5rem;
+            background-color: #f8f9fa;
+            border-top: 1px solid var(--border-color);
+            text-align: right;
+        }
+
+    </style>
+{% endblock %}
+    
+{% block content %}
+<div class="container mt-5">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+        <h2 class="h4 mb-0">Gerenciar Questões</h2>
+        <div class="btn-group">
+            <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Adicionar Questão
+            </a>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Opções de Gerenciamento</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Nova Disciplina">Adicionar Disciplina</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal">Adicionar Assunto</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="banca" data-titulo="Adicionar Nova Banca">Adicionar Banca</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="instituicao" data-titulo="Adicionar Nova Instituição">Adicionar Instituição</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>{% endfor %}{% endif %}
+
+    <!-- ======================================================= -->
+    <!-- INCLUSÃO DO COMPONENTE DE FILTROS REUTILIZÁVEL -->
+    <!-- ======================================================= -->
+    {% include 'includes/_filtros_questoes.html' with form_action_url=request.path %}
+
+    <!-- LISTA DE QUESTÕES -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h5 mb-0">Resultados da Busca</h3>
+        <span class="text-muted">{{ questoes.paginator.count }} questões encontradas</span>
+    </div>
+
+    {% if questoes %}
+        <div class="lista-questoes-container">
+            {% for questao in questoes %}
+                <div class="questao-card">
+                    <div class="questao-card-header">
+                        <div class="questao-info-principal">
+                            <span class="codigo">{{ questao.codigo }}</span>
+                            <span class="disciplina">{{ questao.disciplina.nome }}</span>
+                        </div>
+                        <div class="questao-info-secundaria">
+                           {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
+                        </div>
+                    </div>
+                    <div class="questao-card-body">
+                        {{ questao.enunciado|striptags|truncatechars:220 }}
+                    </div>
+                    <div class="questao-card-footer">
+                        <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-info text-white">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </a>
+                        <a href="{% url 'gestao:deletar_questao' questao.id %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash me-1"></i>Deletar
+                        </a>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card card-body text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4 class="h5">Nenhuma questão encontrada</h4>
+            <p class="text-muted">Tente ajustar seus filtros ou buscar por outros termos.</p>
+        </div>
+    {% endif %}
+
+    <!-- ======================================================= -->
+    <!-- INCLUSÃO DO COMPONENTE DE PAGINAÇÃO REUTILIZÁVEL -->
+    <!-- ======================================================= -->
+    {% include 'includes/_paginacao.html' with paginated_object=questoes %} 
+</div> <!-- Fim do .container -->
+
+<!-- MODAIS -->
+<div class="modal fade" id="addEntidadeModal" tabindex="-1" aria-labelledby="addEntidadeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addEntidadeModalLabel">Adicionar Novo Item</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-add-entidade">
+              {% csrf_token %}
+              <input type="hidden" name="tipo_entidade" id="input-tipo-entidade">
+              <div class="mb-3">
+                  <label for="input-nome-entidade" class="form-label">Nome</label>
+                  <input type="text" name="nome" class="form-control" id="input-nome-entidade" required>
+                  <div class="invalid-feedback"></div>
+              </div>
+          </form>
+        </div>
+        <div class="modal-footer d-flex justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-salvar-entidade">Salvar</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addAssuntoModal" tabindex="-1" aria-labelledby="addAssuntoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addAssuntoModalLabel">Adicionar Novo Assunto</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-add-assunto">
+              {% csrf_token %}
+              <div class="mb-3">
+                  <label for="id_disciplina_assunto" class="form-label">Disciplina</label>
+                  <select name="disciplina" id="id_disciplina_assunto" class="form-select" required>
+                      <option value="" selected>---------</option>
+                      {% for d in disciplinas_para_filtro %}
+                          <option value="{{ d.id }}">{{ d.nome }}</option>
+                      {% endfor %}
+                  </select>
+              </div>
+              <div class="mb-3">
+                  <label for="input-nome-assunto" class="form-label">Nome do Novo Assunto</label>
+                  <input type="text" name="nome" class="form-control" id="input-nome-assunto" required>
+                  <div class="invalid-feedback"></div>
+              </div>
+          </form>
+        </div>
+        <div class="modal-footer d-flex justify-content-center">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="btn-salvar-assunto">Salvar Assunto</button>
+        </div>
+      </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<!-- ======================================================= -->
+<!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
+<!-- ======================================================= -->
+<script src="{% static 'js/filtros-questoes.js' %}"></script>
+
+<!-- Scripts específicos para os modais da página de gestão -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addEntidadeModalEl = document.getElementById('addEntidadeModal');
+    if (addEntidadeModalEl) {
+        const addEntidadeModal = new bootstrap.Modal(addEntidadeModalEl);
+        
+        addEntidadeModalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const tipo = button.getAttribute('data-tipo');
+            const titulo = button.getAttribute('data-titulo');
+            
+            const modalTitle = addEntidadeModalEl.querySelector('.modal-title');
+            const inputTipo = addEntidadeModalEl.querySelector('#input-tipo-entidade');
+            
+            modalTitle.textContent = titulo;
+            inputTipo.value = tipo;
+        });
+
+        document.getElementById('btn-salvar-entidade').addEventListener('click', function() {
+            const form = document.getElementById('form-add-entidade');
+            const formData = new FormData(form);
+            const inputNome = form.querySelector('#input-nome-entidade');
+            const feedback = form.querySelector('.invalid-feedback');
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch("{% url 'gestao:adicionar_entidade_simples' %}", {
+                method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') {
+                    addEntidadeModal.hide();
+                    alert(`"${data.entidade.nome}" foi adicionado com sucesso! A página será recarregada para atualizar as listas.`);
+                    window.location.reload();
+                } else {
+                    inputNome.classList.add('is-invalid');
+                    feedback.textContent = data.message;
+                    feedback.style.display = 'block';
+                }
+            });
+        });
+
+        addEntidadeModalEl.addEventListener('hidden.bs.modal', function() {
+            const form = this.querySelector('form');
+            form.reset();
+            this.querySelector('#input-nome-entidade').classList.remove('is-invalid');
+            this.querySelector('.invalid-feedback').style.display = 'none';
+        });
+    }
+
+    const addAssuntoModalEl = document.getElementById('addAssuntoModal');
+    if (addAssuntoModalEl) {
+        const addAssuntoModal = new bootstrap.Modal(addAssuntoModalEl);
+
+        document.getElementById('btn-salvar-assunto').addEventListener('click', function() {
+            const form = document.getElementById('form-add-assunto');
+            const formData = new FormData(form);
+            const inputNome = form.querySelector('#input-nome-assunto');
+            const feedback = form.querySelector('.invalid-feedback');
+            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch("{% url 'gestao:adicionar_assunto' %}", {
+                method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
+            }).then(response => response.json()).then(data => {
+                if (data.status === 'success') {
+                    addAssuntoModal.hide();
+                    alert(`Assunto "${data.assunto.nome}" adicionado com sucesso! A página será recarregada.`);
+                    window.location.reload();
+                } else {
+                    inputNome.classList.add('is-invalid');
+                    feedback.textContent = data.message || "Este campo é obrigatório.";
+                    feedback.style.display = 'block';
+                }
+            });
+        });
+        
+        addAssuntoModalEl.addEventListener('hidden.bs.modal', function() {
+            const form = this.querySelector('form');
+            form.reset();
+            this.querySelector('#input-nome-assunto').classList.remove('is-invalid');
+            this.querySelector('.invalid-feedback').style.display = 'none';
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'questoes',
     'pratica',
     'desempenho',
+    'gestao',
     'storages', # Para integração com S3
 ]
 
@@ -55,7 +56,6 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'usuarios.middleware.AdminSessionMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -143,18 +143,14 @@ else:
     MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
 
 
-# --- CONFIGURAÇÕES DE E-MAIL (DINÂMICO) ---
-if DEBUG:
-    # Em desenvolvimento, os e-mails são impressos no console
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-else:
-    # Em produção, usa um servidor SMTP real
-    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com' # Exemplo para Gmail
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
-    EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+
+#  usa um servidor SMTP real
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com' # Exemplo para Gmail
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
 
 
@@ -162,9 +158,3 @@ else:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_URL = 'login'
 
-# NOMES DOS COOKIES DE SESSÃO ---
-# Nome do cookie para o site do usuário final
-SESSION_COOKIE_NAME = 'qconcurso_sessionid'
-# Nome do cookie para o site de administração
-ADMIN_SESSION_COOKIE_NAME = 'qconcurso_admin_sessionid'
-# --- FIM DA ADIÇÃO ---

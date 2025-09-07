@@ -8,7 +8,6 @@ from django.conf.urls.static import static
 # Importando a view home temporária
 from usuarios.views import home
 
-# qconcurso/urls.py
 
 
 urlpatterns = [
@@ -16,6 +15,9 @@ urlpatterns = [
     path('auth/', include('usuarios.urls')),
     path('pratica/', include('pratica.urls')), 
     path('desempenho/', include('desempenho.urls')),
+    path('gestao/', include('gestao.urls', namespace='gestao')),
+    path('questoes/', include('questoes.urls', namespace='questoes')),
+
     path('', home, name='home'),
 
 ]

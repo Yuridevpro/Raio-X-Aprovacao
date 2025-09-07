@@ -10,7 +10,7 @@
         </p>
         <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
             {% if user.is_authenticated %}
-                <a href="{% url 'listar_questoes' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Começar a Praticar</a>
+                <a href="{% url 'pratica:listar_questoes' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Começar a Praticar</a>
                 <a href="{% url 'dashboard' %}" type="button" class="btn btn-outline-secondary btn-lg px-4">Meu Desempenho</a>
             {% else %}
                 <a href="{% url 'cadastro' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Crie sua Conta Grátis</a>

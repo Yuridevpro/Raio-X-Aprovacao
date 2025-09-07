@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Confirmar Exclusão{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">Confirmar Exclusão</h4>
+                </div>
+                <div class="card-body">
+                    <p class="fs-5">Você tem certeza que deseja deletar permanentemente a seguinte questão?</p>
+                    
+                    <div class="alert alert-secondary">
+                        <p class="mb-1"><strong>Código:</strong> {{ questao.codigo }}</p>
+                        <p class="mb-0"><strong>Enunciado:</strong> {{ questao.enunciado|striptags|truncatechars:150 }}</p>
+                    </div>
+
+                    <p class="text-danger mt-3"><strong>Atenção:</strong> Esta ação não pode ser desfeita.</p>
+                </div>
+                <div class="card-footer text-center">
+                    <form method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger px-4">Sim, tenho certeza</button>
+                    </form>
+                    <a href="{% url 'gestao:listar_questoes' %}" class="btn btn-secondary px-4 ms-2">Cancelar</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

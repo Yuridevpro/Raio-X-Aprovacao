@@ -70,3 +70,52 @@ class FiltroSalvo(models.Model):
 
     def __str__(self):
         return f'Filtro "{self.nome}" de {self.usuario.username}'
+
+# =======================================================================
+# INÍCIO: NOVO MODELO PARA NOTIFICAÇÕES DE ERRO
+# =======================================================================
+class Notificacao(models.Model):
+    # Definindo as opções para os campos de 'choices'
+    class TipoErro(models.TextChoices):
+        ENUNCIADO_ALTERNATIVA = 'ENUNCIADO_ALTERNATIVA', 'Enunciado/alternativa errada'
+        DISCIPLINA_ASSUNTO = 'DISCIPLINA_ASSUNTO', 'Disciplina ou assunto errado'
+        QUESTAO_ANULADA = 'QUESTAO_ANULADA', 'Questão anulada'
+        QUESTAO_DESATUALIZADA = 'QUESTAO_DESATUALIZADA', 'Questão desatualizada'
+        QUESTAO_DUPLICADA = 'QUESTAO_DUPLICADA', 'Questão duplicada'
+
+    class Status(models.TextChoices):
+        PENDENTE = 'PENDENTE', 'Pendente'
+        RESOLVIDO = 'RESOLVIDO', 'Resolvido'
+        # ===================================================================
+        # ADIÇÃO: Novo status para arquivamento.
+        # ===================================================================
+        ARQUIVADO = 'ARQUIVADO', 'Arquivado'
+
+    # Relacionamentos
+    questao = models.ForeignKey(Questao, on_delete=models.CASCADE, related_name='notificacoes')
+    usuario_reportou = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='notificacoes_feitas')
+    resolvido_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='notificacoes_resolvidas')
+
+    # Detalhes da Notificação
+    tipo_erro = models.CharField(max_length=50, choices=TipoErro.choices)
+    descricao = models.TextField(verbose_name="Descrição do erro")
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDENTE)
+    
+    # Datas
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    data_resolucao = models.DateTimeField(null=True, blank=True)
+    data_arquivamento = models.DateTimeField(null=True, blank=True)
+
+
+    class Meta:
+        verbose_name = "Notificação"
+        verbose_name_plural = "Notificações"
+        ordering = ['-data_criacao']
+
+    def __str__(self):
+        # Usamos getattr para evitar erro caso o usuário tenha sido deletado
+        username = getattr(self.usuario_reportou, 'username', 'N/A')
+        return f'Notificação para Q{self.questao.id} ({self.get_tipo_erro_display()}) por {username}'
+# =======================================================================
+# FIM: NOVO MODELO
+# =======================================================================

@@ -7,6 +7,12 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 
+from django.db import models
+
+
+
+
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     nome = models.CharField(max_length=100)

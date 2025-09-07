@@ -5,45 +5,27 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import json
-from django.db.models import Count # <-- ADICIONE ESTE IMPORT
-
-
-# Adicionado 'Assunto' ao import
-from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
-from .models import RespostaUsuario, Comentario
 import markdown
-from .models import FiltroSalvo # ADICIONE ESTE IMPORT
-# --- ADICIONE ESTES IMPORTS ---
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Count, Q
+from .models import Notificacao # Adicione a importação do novo modelo
+
+# Modelos
+from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
+from .models import RespostaUsuario, Comentario, FiltroSalvo
+
+# =======================================================================
+# IMPORTAÇÃO DA NOSSA NOVA FUNÇÃO CENTRALIZADA
+# =======================================================================
+from questoes.utils import filtrar_e_paginar_questoes
 
 
 @login_required
 def listar_questoes(request):
-    # Começa com todas as questões
+    # 1. Começa com o queryset base de todas as questões.
     lista_questoes = Questao.objects.all().order_by('-id')
 
-    # --- Lógica de Filtragem ---
-    palavra_chave = request.GET.get('palavra_chave', '').strip()
-    disciplinas_ids = request.GET.getlist('disciplina')
-    assuntos_ids = request.GET.getlist('assunto')
-    bancas_ids = request.GET.getlist('banca')
-    instituicoes_ids = request.GET.getlist('instituicao')
-    anos = request.GET.getlist('ano')
+    # 2. Aplica a lógica de filtro que é EXCLUSIVA da área de prática (status).
     status = request.GET.get('status')
-    
-    # Aplica os filtros de dropdown primeiro
-    if disciplinas_ids:
-        lista_questoes = lista_questoes.filter(disciplina_id__in=disciplinas_ids)
-    if assuntos_ids:
-        lista_questoes = lista_questoes.filter(assunto_id__in=assuntos_ids)
-    if bancas_ids:
-        lista_questoes = lista_questoes.filter(banca_id__in=bancas_ids)
-    if instituicoes_ids:
-        lista_questoes = lista_questoes.filter(instituicao_id__in=instituicoes_ids)
-    if anos:
-        lista_questoes = lista_questoes.filter(ano__in=anos)
-    
-    # Aplica o filtro de status
     user_profile = request.user.userprofile
     if status == 'favoritas':
         lista_questoes = lista_questoes.filter(pk__in=user_profile.questoes_favoritas.all())
@@ -59,72 +41,30 @@ def listar_questoes(request):
     elif status == 'acertei':
         acertos_ids = RespostaUsuario.objects.filter(usuario=request.user, foi_correta=True).values_list('questao_id', flat=True)
         lista_questoes = lista_questoes.filter(pk__in=acertos_ids)
-        
-    # Por último, aplica o filtro de palavra-chave/código ao resultado já filtrado
-    if palavra_chave:
-        if palavra_chave.upper().startswith('Q') and palavra_chave[1:].isdigit():
-            lista_questoes = lista_questoes.filter(codigo__iexact=palavra_chave)
-        else:
-            lista_questoes = lista_questoes.filter(enunciado__icontains=palavra_chave)
-            
-    # Flag para verificar se filtros foram aplicados (agora inclui palavra_chave)
-    filters_applied = any([palavra_chave, disciplinas_ids, assuntos_ids, bancas_ids, instituicoes_ids, anos, status])
 
-    # --- LÓGICA DE PAGINAÇÃO ---
-    paginator = Paginator(lista_questoes, 20)
+    # 3. Chama a função central com o queryset já pré-filtrado pelos status.
+    #    Toda a lógica de palavra-chave, disciplina, ano, etc., e a paginação acontecem aqui.
+    context = filtrar_e_paginar_questoes(request, lista_questoes, items_per_page=20)
     
-    if filters_applied:
-        page_number = 1
-    else:
-        page_number = request.GET.get('page', 1)
+    # 4. Adiciona ao contexto as variáveis que são específicas desta página.
+    context.update({
+        'favoritas_ids': user_profile.questoes_favoritas.values_list('id', flat=True),
+        'filtros_salvos': FiltroSalvo.objects.filter(usuario=request.user),
+        # Adiciona os dados para popular todos os dropdowns de filtro
+        'disciplinas': Disciplina.objects.all().order_by('nome'),
+        'bancas': Banca.objects.all().order_by('nome'),
+        'instituicoes': Instituicao.objects.all().order_by('nome'),
+        'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
+        # Passa o parâmetro de status para o include do formulário
+        'status_param': status,
+    })
 
-    try:
-        questoes_paginadas = paginator.page(page_number)
-    except (EmptyPage, PageNotAnInteger):
-        questoes_paginadas = paginator.page(paginator.num_pages) if paginator.num_pages > 0 else paginator.page(1)
-    
-    # --- LÓGICA DE CUSTOMIZAÇÃO DA PAGINAÇÃO ---
-    page_numbers = []
-    current_page = questoes_paginadas.number
-    total_pages = paginator.num_pages
-
-    if total_pages <= 7:
-        page_numbers = list(range(1, total_pages + 1))
-    else:
-        if current_page <= 4:
-            page_numbers = list(range(1, 6)) + ['...', total_pages]
-        elif current_page >= total_pages - 3:
-            page_numbers = [1, '...'] + list(range(total_pages - 4, total_pages + 1))
-        else:
-            page_numbers = [1, '...', current_page - 1, current_page, current_page + 1, '...', total_pages]
-    
-    favoritas_ids = user_profile.questoes_favoritas.values_list('id', flat=True)
-    filtros_salvos = FiltroSalvo.objects.filter(usuario=request.user)
-
-    disciplinas = Disciplina.objects.all().order_by('nome')
-    assuntos = Assunto.objects.all().order_by('nome')
-    bancas = Banca.objects.all().order_by('nome')
-    instituicoes = Instituicao.objects.all().order_by('nome')
-    todos_anos = Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano')
-
-    context = {
-        'questoes': questoes_paginadas,
-        'disciplinas': disciplinas,
-        'assuntos': assuntos,
-        'bancas': bancas,
-        'instituicoes': instituicoes,
-        'anos': todos_anos,
-        'favoritas_ids': favoritas_ids,
-        'selected_disciplinas': [int(i) for i in disciplinas_ids if i.isdigit()],
-        'selected_assuntos': [int(i) for i in assuntos_ids if i.isdigit()],
-        'selected_bancas': [int(i) for i in bancas_ids if i.isdigit()],
-        'selected_instituicoes': [int(i) for i in instituicoes_ids if i.isdigit()],
-        'selected_anos': [int(i) for i in anos if i.isdigit()],
-        'filtros_salvos': filtros_salvos,
-        'page_numbers': page_numbers,
-        'palavra_chave_buscada': palavra_chave, # Adicionado para exibir a tag
-    }
     return render(request, 'pratica/listar_questoes.html', context)
+
+# =======================================================================
+# AS OUTRAS VIEWS PERMANECEM EXATAMENTE IGUAIS, POIS SÃO ÚNICAS DESTE APP
+# A view 'get_assuntos_por_disciplina' foi removida, pois agora está em 'questoes/views.py'
+# =======================================================================
 
 @login_required
 @require_POST
@@ -140,20 +80,13 @@ def verificar_resposta(request):
             questao=questao,
             defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
         )
-        
-        # --- LINHA MODIFICADA ---
-        # Agora, convertemos o markdown para HTML aqui, antes de enviar.
         explicacao_html = markdown.markdown(questao.explicacao) if questao.explicacao else ""
-        
         return JsonResponse({
             'status': 'success',
             'correta': correta,
             'gabarito': questao.gabarito,
-            # Enviamos o HTML já processado
             'explicacao': explicacao_html 
         })
-        # --- FIM DA MODIFICAÇÃO ---
-
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
     
@@ -289,19 +222,7 @@ def toggle_like_comentario(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-@login_required
-def get_assuntos_por_disciplina(request):
-    # Pega a lista de IDs de disciplinas da requisição GET
-    disciplina_ids = request.GET.getlist('disciplina_ids[]')
-    
-    if not disciplina_ids:
-        return JsonResponse({'assuntos': []})
 
-    # Filtra os assuntos que pertencem a qualquer uma das disciplinas selecionadas
-    assuntos = Assunto.objects.filter(disciplina_id__in=disciplina_ids).values('id', 'nome').order_by('nome')
-    
-    # Converte o QuerySet para uma lista e retorna como JSON
-    return JsonResponse({'assuntos': list(assuntos)})
 
 @login_required
 @require_POST
@@ -406,3 +327,33 @@ def get_assuntos_por_disciplina(request):
     assuntos = Assunto.objects.filter(disciplina_id__in=disciplina_ids).values('id', 'nome', 'disciplina__nome').order_by('disciplina__nome', 'nome')
     
     return JsonResponse({'assuntos': list(assuntos)})
+
+@login_required
+@require_POST
+def notificar_erro(request):
+    try:
+        data = json.loads(request.body)
+        questao_id = data.get('questao_id')
+        tipo_erro = data.get('tipo_erro')
+        descricao = data.get('descricao')
+
+        if not all([questao_id, tipo_erro, descricao]):
+            return JsonResponse({'status': 'error', 'message': 'Todos os campos são obrigatórios.'}, status=400)
+
+        questao = get_object_or_404(Questao, id=questao_id)
+
+        # Cria a notificação no banco de dados
+        Notificacao.objects.create(
+            questao=questao,
+            usuario_reportou=request.user,
+            tipo_erro=tipo_erro,
+            descricao=descricao
+        )
+
+        return JsonResponse({'status': 'success', 'message': 'Obrigado! Sua notificação foi enviada e será analisada pela nossa equipe.'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+# =======================================================================
+# FIM: NOVA VIEW
+# =======================================================================

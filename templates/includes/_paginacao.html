@@ -1,0 +1,31 @@
+<!-- templates/includes/_paginacao.html -->
+{% load questoes_extras %}
+
+<!-- =================================================================== -->
+<!-- PAGINAÇÃO 
+<!-- =================================================================== -->
+<nav aria-label="Page navigation" class="nav-pagination my-5">
+    <div class="d-flex justify-content-center">
+        <ul class="pagination">
+            <li class="page-item {% if not paginated_object.has_previous %}disabled{% endif %}">
+                <a class="page-link" href="{% if paginated_object.has_previous %}?{{ request.GET.urlencode|remove_page_param }}&page={{ paginated_object.previous_page_number }}{% else %}#{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% for num in page_numbers %}
+                {% if num == "..." %}
+                    <li class="page-item disabled"><span class="page-link">…</span></li>
+                {% else %}
+                    <li class="page-item {% if paginated_object.number == num %}active{% endif %}">
+                        <a class="page-link" href="?{{ request.GET.urlencode|remove_page_param }}&page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not paginated_object.has_next %}disabled{% endif %}">
+                <a class="page-link" href="{% if paginated_object.has_next %}?{{ request.GET.urlencode|remove_page_param }}&page={{ paginated_object.next_page_number }}{% else %}#{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>

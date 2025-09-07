@@ -1,498 +1,455 @@
+<!-- pratica/listar_questoes.html novo-->
+
 {% extends 'base.html' %}
-{% load pratica_extras %}
+{% load static %}
+{% load questoes_extras %} <!-- ESTA LINHA É ESSENCIAL E CORRIGE O ERRO -->
+{% load pratica_extras %} 
 {% block title %}Praticar Questões{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+<!-- pratica/listar_questoes.html -->
+
 <style>
-/* ========================================================================= */
-/* ===================== INÍCIO: VARIÁVEIS DE DESIGN DO BASE.CSS ===================== */
-/* ========================================================================= */
-/* 
-:root {
-    --primary-color: #4A90E2; /* Um azul mais moderno e suave */
-   /* --primary-color-dark: #357ABD;
-   /* --secondary-color: #5A6978; /* Cinza azulado para texto secundário */
-   /* --dark-bg: #2c3e50; /* Um fundo escuro mais suave que o preto puro */
-   /* --light-bg: #FFFFFF;
-   /* --body-bg: #F8F9FC; /* Fundo do corpo da página, ligeiramente acinzentado */
-  /*  --border-color: #EAECEF; /* Cor de borda sutil */
-   /* --success-color: #28a745;
-  /*  --danger-color: #dc3545;
-    --text-dark: #343a40;
-    --text-light: #ffffff;
-    --font-family: 'Poppins', sans-serif;
-    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra mais suave */
-   /* --border-radius: 12px; /* Bordas mais arredondadas */
-/* } */ 
-
-/* ========================================================================= */
-/* ======================= INÍCIO: ESTILOS GERAIS DO BASE.CSS========================== */
-/* ========================================================================= */
-
-body {
-    background-color: var(--body-bg);
-    font-family: var(--font-family);
-}
-
-.container {
-    max-width: 960px; /* Limita a largura para melhor legibilidade em telas grandes */
-}
-
-.enunciado-imagem {
-    max-width: 100%;
-    max-height: 450px;
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-}
-
-/* Transições suaves para interações */
-a, .btn {
-    transition: all 0.2s ease-in-out;
-}
-
-/* ========================================================================= */
-/* ============= INÍCIO: ESTILOS PARA FILTROS E PAGINAÇÃO ================== */
-/* ========================================================================= */
-
-.filtros-card, .questoes-card {
-    background-color: var(--light-bg);
-    border: none;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    margin-bottom: 2rem;
-}
-
-.filter-dropdown .dropdown-menu {
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    padding: 1rem;
-    width: 350px;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.filter-dropdown-options {
-    list-style-type: none;
-    padding: 0;
-    margin: 0;
-}
-.filter-dropdown-options li {
-    padding: .25rem .5rem;
-}
-
-.btn-status-filter {
-    border-radius: 20px !important;
-    font-weight: 500;
-    padding: 0.5rem 1.25rem;
-    margin: 0.25rem;
-    border: 1px solid var(--border-color);
-    color: var(--secondary-color);
-}
-.btn-status-filter:hover {
-    background-color: #e9ecef;
-    border-color: #e0e4e9;
-}
-.btn-status-filter.active {
-    background-color: var(--primary-color);
-    color: var(--text-light);
-    border-color: var(--primary-color);
-    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
-}
-
-#active-filters-container .badge {
-    font-size: 0.85rem;
-    padding: 0.6em 1em;
-    border-radius: 20px;
-    background-color: #e9ecef !important; /* Usando !important para sobrescrever o Bootstrap */
-    color: var(--text-dark) !important;
-    font-weight: 500;
-}
-#active-filters-container .btn-close {
-    background-size: .75em;
-}
-
-/* Paginação */
-.nav-pagination .page-item .page-link {
-    border-radius: 50% !important;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 5px;
-    border: none;
-    color: var(--secondary-color);
-}
-.nav-pagination .page-item.active .page-link {
-    background-color: var(--primary-color);
-    color: var(--text-light);
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
-}
-.nav-pagination .page-item.disabled .page-link {
-    background-color: transparent;
-}
-.nav-pagination .page-item:not(.disabled) .page-link:hover {
-    background-color: #e9ecef;
-}
-
-/* ========================================================================= */
-/* ================= INÍCIO: ESTILOS PARA O EDITOR TIPTAP ================== */
-/* ========================================================================= */
-
-.tiptap-toolbar {
-    border: 1px solid var(--border-color);
-    border-bottom: none;
-    padding: .5rem;
-    border-top-left-radius: var(--border-radius);
-    border-top-right-radius: var(--border-radius);
-    background-color: #f8f9fa;
-}
-.tiptap-toolbar button {
-    border: none;
-    background-color: transparent;
-    border-radius: 4px;
-}
-.tiptap-toolbar button:hover {
-    background-color: #e9ecef;
-}
-.tiptap-toolbar button.active {
-    background-color: var(--primary-color);
-    color: var(--text-light);
-}
-
-.tiptap {
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: .75rem 1rem;
-    min-height: 150px;
-    background-color: var(--light-bg);
-}
-.tiptap:focus-within { /* Usar focus-within para aplicar ao container */
-    border-color: var(--primary-color);
-    outline: 0;
-    box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
-}
-
-.tiptap p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #adb5bd;
-  pointer-events: none;
-  height: 0;
-}
-
-.comment-edit-form .tiptap {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-}
-/* ========================================================================= */
-/* ================ INÍCIO: ESTILOS PARA A ÁREA DE COMENTÁRIOS ============= */
-/* ========================================================================= */
-
-
-.comentarios-section {
-    background-color: #f8f9fa;
-    border-radius: 0 0 var(--border-radius) var(--border-radius);
-}
-
-/* Container para posicionamento relativo do avatar e do card */
-.comment-wrapper {
-    position: relative;
-    padding-left: 60px; /* Espaço para o avatar (40px) + gap (20px) */
-    margin-bottom: 1.5rem;
-}
-
-.comment-card {
-    /* Remove o flex layout e transforma no balão de fala */
-    background-color: var(--light-bg);
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    padding: 1rem 1.5rem;
-    position: relative; /* Contexto para a seta */
-    box-shadow: none;
-}
-
-/* Seta do balão (borda) */
-.comment-card::before {
-    content: '';
-    position: absolute;
-    top: 14px;
-    left: -22px; /* Largura da borda da seta (11px * 2) */
-    width: 0;
-    height: 0;
-    border: 11px solid transparent;
-    border-right-color: var(--border-color);
-}
-/* Seta do balão (preenchimento) */
-.comment-card::after {
-    content: '';
-    position: absolute;
-    top: 15px; /* 1px para dentro da borda */
-    left: -19px; /* 1px para dentro da borda */
-    width: 0;
-    height: 0;
-    border: 10px solid transparent;
-    border-right-color: var(--light-bg);
-}
-
-
-/* 1. Torna a regra de posicionamento absoluto específica para avatares DENTRO de um .comment-wrapper */
-.comment-wrapper .comment-avatar {
-    /* Posiciona o avatar absolutamente à esquerda do wrapper */
-    position: absolute;
-    left: 0;
-    top: 0;
-}
-
-/* 2. Adiciona um layout flex para o container do formulário de novo comentário */
-.new-comment-form-container {
-    display: flex;
-    gap: 1rem;
-    align-items: flex-start; /* Alinha o avatar no topo do formulário */
-}
-
-
-
-
-.comment-avatar .avatar-icon {
-    width: 40px;
-    height: 40px;
-    background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-    color: var(--text-light);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    font-weight: bold;
-    font-size: 1.1rem;
-}
-
-.comment-header {
-    margin-bottom: 0.5rem;
-}
-.comment-user-info .comment-user {
-    font-weight: 600;
-    color: var(--text-dark);
-}
-.comment-user-info .comment-date {
-    font-size: 0.8rem;
-    color: var(--secondary-color);
-}
-.comment-actions .btn {
-    background-color: transparent;
-    color: var(--secondary-color);
-}
-.comment-actions .btn:hover {
-    background-color: var(--border-color);
-}
-.dropdown-menu {
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-}
-
-.comment-footer {
-    margin-top: 1rem;
-    display: flex;
-    gap: 1.5rem;
-    align-items: center;
-}
-.comment-footer a {
-    text-decoration: none;
-    color: var(--secondary-color);
-    font-weight: 500;
-    font-size: 0.85rem;
-}
-.comment-footer a:hover {
-    color: var(--primary-color);
-}
-.comment-footer .fas, .comment-footer .far {
-    margin-right: 0.35rem;
-}
-
-.btn-like.liked {
-    color: var(--primary-color);
-    font-weight: bold;
-}
-
-/* Estilos para as respostas aninhadas */
-.comment-replies {
-    margin-left: 4.5rem; /* Ajustado para alinhar com o balão */
-    padding-left: 1rem;
-    border-left: 2px solid var(--border-color);
-    margin-top: 1.5rem;
-}
-
-/* ========================================================================= */
-/* ======== INÍCIO: ESTILOS UNIFICADOS PARA CONTEÚDO (MARKDOWN) ============ */
-/* ========================================================================= */
-.enunciado-formatado,
-.explicacao,
-.tiptap,
-.comment-body {
-    font-size: 1rem;
-    line-height: 1.7;
-    color: var(--text-dark);
-}
-
-.enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1,
-.enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2,
-.enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 {
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
-    font-weight: 600;
-    line-height: 1.4;
-}
-.enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
-.enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
-.enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
-
-.enunciado-formatado p, .explicacao p, .tiptap p, .comment-body p {
-    margin-bottom: 1rem;
-}
-.enunciado-formatado p:last-child, .explicacao p:last-child, .tiptap p:last-child, .comment-body p:last-child {
-    margin-bottom: 0;
-}
-
-.enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul,
-.enunciado-formatado ol, .explicacao ol, .tiptap ol, .comment-body ol {
-    padding-left: 1.5rem;
-    margin-bottom: 1rem;
-}
-.enunciado-formatado li, .explicacao li, .tiptap li, .comment-body li {
-    margin-bottom: 0.5rem;
-}
-
-.enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
-    font-style: italic;
-    color: var(--secondary-color);
-    padding-left: 1.5rem;
-    border-left: 4px solid var(--border-color);
-    margin: 1rem 0;
-}
-
-.enunciado-formatado code, .explicacao code, .tiptap code, .comment-body code {
-    background-color: #e9ecef;
-    color: #c7254e;
-    padding: .2rem .4rem;
-    border-radius: .25rem;
-    font-size: 90%;
-}
-
-.enunciado-formatado hr, .explicacao hr, .tiptap hr, .comment-body hr {
-    border: none;
-    border-top: 1px solid var(--border-color);
-    margin: 2rem 0;
-}
-
-/* ========================================================================= */
-/* =================== ESTILOS ESPECÍFICOS DA QUESTÃO ====================== */
-/* ========================================================================= */
-
-.card-questao {
-    background-color: var(--light-bg);
-    border: none;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    margin-bottom: 2rem;
-    overflow: hidden; /* Garante que os cantos arredondados sejam aplicados */
-}
-
-.card-questao .card-header {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid var(--border-color);
-    font-weight: 500;
-}
-
-.card-questao .fa-star {
-    font-size: 1.25rem;
-    cursor: pointer;
-    color: #ced4da; /* Cor padrão da estrela vazia */
-}
-.card-questao .fa-star.fas.text-warning {
-    color: #FFC107 !important; /* Cor da estrela cheia */
-}
-
-.card-questao .alternativas .form-check {
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    margin-bottom: 0.5rem;
-    border: 1px solid transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-.card-questao .alternativas .form-check:hover {
-    background-color: #f8f9fa;
-}
-.card-questao .alternativas .form-check-input {
-    margin-top: 0.4em;
-}
-
-/* Estilos para feedback de resposta */
-.alternativas .form-check-label.text-success {
-    color: var(--success-color) !important;
-    font-weight: bold;
-}
-.alternativas .form-check-label.text-danger {
-    color: var(--danger-color) !important;
-}
-.alternativas .form-check-label.text-danger::after {
-    content: " (Sua resposta)";
-    font-style: italic;
-    font-weight: normal;
-}
-
-
-.explicacao {
-    background-color: #f8f9fa;
-    border-radius: var(--border-radius);
-    border-left: 4px solid var(--primary-color);
-}
-
-.card-questao .card-footer {
-    background-color: var(--light-bg);
-    border-top: 1px solid var(--border-color);
-}
-
-
-@media only screen and (max-width: 768px) {
     
-    /* ======================================================= */
-    /* ======== INÍCIO: AJUSTES NO CABEÇALHO DA QUESTÃO (MOBILE) ====== */
-    /* ======================================================= */
-
-    .card-questao .card-header {
-        /* Alinha o ícone da estrela no topo, o que fica melhor com texto empilhado */
-        align-items: flex-start !important;
-        gap: 0.5rem; /* Adiciona um pequeno espaço entre o texto e a estrela */
+    body {
+        background-color: var(--body-bg);
+        font-family: var(--font-family);
+    }
+    
+    .container {
+        max-width: 960px; /* Limita a largura para melhor legibilidade em telas grandes */
+    }
+    
+    .enunciado-imagem {
+        max-width: 100%;
+        max-height: 450px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+    }
+    
+    /* Transições suaves para interações */
+    a, .btn {
+        transition: all 0.2s ease-in-out;
     }
 
-    /* Estilizando o título (Disciplina - Assunto) para dar mais destaque */
-    .card-questao .card-header div strong {
-        font-size: 1rem;
-        line-height: 1.4;
-        color: var(--text-dark);
-        margin-top: 0.15rem; /* Pequeno ajuste de espaçamento */
-    }
-
-    /* Estilizando a origem (Banca - Ano) */
-    .card-questao .card-header div .text-muted {
-        font-size: 0.85rem;
+    /* Estilos específicos para os botões de STATUS desta página */
+    .btn-status-filter {
+        border-radius: 20px !important;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        margin: 0.25rem;
+        border: 1px solid var(--border-color);
         color: var(--secondary-color);
+    }
+    .btn-status-filter:hover {
+        background-color: #e9ecef;
+        border-color: #e9e7e0;
+    }
+    .btn-status-filter.active {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        border-color: var(--primary-color);
+        box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
+    }
+    
+    /* ========================================================================= */
+    /* ================= INÍCIO: ESTILOS PARA O EDITOR TIPTAP ================== */
+    /* ========================================================================= */
+    
+    .tiptap-toolbar {
+        border: 1px solid var(--border-color);
+        border-bottom: none;
+        padding: .5rem;
+        border-top-left-radius: var(--border-radius);
+        border-top-right-radius: var(--border-radius);
+        background-color: #f8f9fa;
+    }
+    .tiptap-toolbar button {
+        border: none;
+        background-color: transparent;
+        border-radius: 4px;
+    }
+    .tiptap-toolbar button:hover {
+        background-color: var(--text-dark);
+    }
+    .tiptap-toolbar button.active {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .tiptap {
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: .75rem 1rem;
+        min-height: 150px;
+        background-color: var(--light-bg);
+    }
+    .tiptap:focus-within { /* Usar focus-within para aplicar ao container */
+        border-color: var(--primary-color);
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
+    }
+    
+    .tiptap p.is-editor-empty:first-child::before {
+      content: attr(data-placeholder);
+      float: left;
+      color: #adb5bd;
+      pointer-events: none;
+      height: 0;
+    }
+    
+    .comment-edit-form .tiptap {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
+    /* ========================================================================= */
+    /* ================ INÍCIO: ESTILOS PARA A ÁREA DE COMENTÁRIOS ============= */
+    /* ========================================================================= */
+    
+    
+    .comentarios-section {
+        background-color: #f8f9fa;
+        border-radius: 0 0 var(--border-radius) var(--border-radius);
+    }
+    
+    /* Container para posicionamento relativo do avatar e do card */
+    .comment-wrapper {
+        position: relative;
+        padding-left: 60px; /* Espaço para o avatar (40px) + gap (20px) */
+        margin-bottom: 1.5rem;
+    }
+    
+    .comment-card {
+        /* Remove o flex layout e transforma no balão de fala */
+        background-color: var(--light-bg);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        padding: 1rem 1.5rem;
+        position: relative; /* Contexto para a seta */
+        box-shadow: none;
+    }
+    
+    /* Seta do balão (borda) */
+    .comment-card::before {
+        content: '';
+        position: absolute;
+        top: 14px;
+        left: -22px; /* Largura da borda da seta (11px * 2) */
+        width: 0;
+        height: 0;
+        border: 11px solid transparent;
+        border-right-color: var(--border-color);
+    }
+    /* Seta do balão (preenchimento) */
+    .comment-card::after {
+        content: '';
+        position: absolute;
+        top: 15px; /* 1px para dentro da borda */
+        left: -19px; /* 1px para dentro da borda */
+        width: 0;
+        height: 0;
+        border: 10px solid transparent;
+        border-right-color: var(--light-bg);
+    }
+    
+    
+    /* 1. Torna a regra de posicionamento absoluto específica para avatares DENTRO de um .comment-wrapper */
+    .comment-wrapper .comment-avatar {
+        /* Posiciona o avatar absolutamente à esquerda do wrapper */
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+    
+    /* 2. Adiciona um layout flex para o container do formulário de novo comentário */
+    .new-comment-form-container {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start; /* Alinha o avatar no topo do formulário */
+    }
+    
+    .comment-avatar .avatar-icon {
+        width: 40px;
+        height: 40px;
+        background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 1.1rem;
+    }
+    
+    .comment-header {
+        margin-bottom: 0.5rem;
+    }
+    .comment-user-info .comment-user {
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+    .comment-user-info .comment-date {
+        font-size: 0.8rem;
+        color: var(--secondary-color);
+    }
+    .comment-actions .btn {
+        background-color: transparent;
+        color: var(--secondary-color);
+    }
+    .comment-actions .btn:hover {
+        background-color: var(--border-color);
+    }
+    .dropdown-menu {
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+    }
+    
+    .comment-footer {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+    }
+    .comment-footer a {
+        text-decoration: none;
+        color: var(--secondary-color);
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+    .comment-footer a:hover {
+        color: var(--primary-color);
+    }
+    .comment-footer .fas, .comment-footer .far {
+        margin-right: 0.35rem;
+    }
+    
+    .btn-like.liked {
+        color: var(--primary-color);
+        font-weight: bold;
+    }
+    
+    /* Estilos para as respostas aninhadas */
+    .comment-replies {
+        margin-left: 4.5rem; /* Ajustado para alinhar com o balão */
+        padding-left: 1rem;
+        border-left: 2px solid var(--border-color);
+        margin-top: 1.5rem;
+    }
+    
+    /* ========================================================================= */
+    /* ======== INÍCIO: ESTILOS UNIFICADOS PARA CONTEÚDO (MARKDOWN) ============ */
+    /* ========================================================================= */
+    .enunciado-formatado,
+    .explicacao,
+    .tiptap,
+    .comment-body {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: var(--text-dark);
+    }
+    
+    .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1,
+    .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2,
+    .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 {
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+    .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
+    .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
+    .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
+    
+    .enunciado-formatado p, .explicacao p, .tiptap p, .comment-body p {
+        margin-bottom: 1rem;
+    }
+    .enunciado-formatado p:last-child, .explicacao p:last-child, .tiptap p:last-child, .comment-body p:last-child {
+        margin-bottom: 0;
+    }
+    
+    .enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul,
+    .enunciado-formatado ol, .explicacao ol, .tiptap ol, .comment-body ol {
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .enunciado-formatado li, .explicacao li, .tiptap li, .comment-body li {
+        margin-bottom: 0.5rem;
+    }
+    
+    .enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
+        font-style: italic;
+        color: var(--secondary-color);
+        padding-left: 1.5rem;
+        border-left: 4px solid var(--border-color);
+        margin: 1rem 0;
+    }
+    
+    .enunciado-formatado code, .explicacao code, .tiptap code, .comment-body code {
+        background-color: #e9ecef;
+        color: #c7254e;
+        padding: .2rem .4rem;
+        border-radius: .25rem;
+        font-size: 90%;
+    }
+    
+    .enunciado-formatado hr, .explicacao hr, .tiptap hr, .comment-body hr {
+        border: none;
+        border-top: 1px solid var(--border-color);
+        margin: 2rem 0;
+    }
+    
+    /* ========================================================================= */
+    /* =================== ESTILOS ESPECÍFICOS DA QUESTÃO ====================== */
+    /* ========================================================================= */
+    
+    .card-questao {
+        background-color: var(--light-bg);
+        border: none;
+        border-radius: var(--border-radius);
+        box-shadow: var(--box-shadow);
+        margin-bottom: 2rem;
+        overflow: hidden; /* Garante que os cantos arredondados sejam aplicados */
+    }
+    
+    .card-questao .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid var(--border-color);
+        font-weight: 500;
     }
     
     .card-questao .fa-star {
-        font-size: 1.5rem; /* Aumenta o ícone para facilitar o toque */
-        margin-top: 4px; /* Alinha melhor com a primeira linha de badges */
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: #ced4da; /* Cor padrão da estrela vazia */
+    }
+    .card-questao .fa-star.fas.text-warning {
+        color: #FFC107 !important; /* Cor da estrela cheia */
+    }
+    
+    .card-questao .alternativas .form-check {
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        border: 1px solid transparent;
+        transition: background-color 0.2s ease, border-color 0.2s ease;
+    }
+    .card-questao .alternativas .form-check:hover {
+        background-color: #f8f9fa;
+    }
+    .card-questao .alternativas .form-check-input {
+        margin-top: 0.4em;
+    }
+    
+    /* Estilos para feedback de resposta */
+    .alternativas .form-check-label.text-success {
+        color: var(--success-color) !important;
+        font-weight: bold;
+    }
+    .alternativas .form-check-label.text-danger {
+        color: var(--danger-color) !important;
+    }
+    .alternativas .form-check-label.text-danger::after {
+        content: " (Sua resposta)";
+        font-style: italic;
+        font-weight: normal;
+    }
+    
+    
+    .explicacao {
+        background-color: #f8f9fa;
+        border-radius: var(--border-radius);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .card-questao .card-footer {
+        background-color: var(--light-bg);
+        border-top: 1px solid var(--border-color);
     }
 
-}
+    /* ========================================================================= */
+    /* ============= INÍCIO: AJUSTES PARA TELAS MOBILE (ATÉ 768px) ============= */
+    /* ========================================================================= */
+    @media (max-width: 768px) {
 
+        /* 1. Remove a largura máxima do container para que o conteúdo ocupe 100% da tela */
+        .container {
+            max-width: 100%;
+            padding-left: 0;
+            padding-right: 0;
+        }
 
+        /* 2. Remove sombras, bordas e arredondamentos dos cards para dar a sensação de "fundo expandido" */
+        .filtros-card,
+        .card-questao {
+            border-radius: 0;
+            margin-left: 0;
+            margin-right: 0;
+            box-shadow: none;
+            border-bottom: 1px solid var(--border-color); /* Adiciona um separador entre as questões */
+        }
+        
+        /* 3. Adiciona padding interno aos cards para o conteúdo não colar nas bordas da tela */
+        .filtros-card,
+        .card-questao .card-body,
+        .card-questao .card-header,
+        .card-questao .card-footer,
+        .comentarios-section {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
 
+        /* 4. Aumenta o ícone de estrela para facilitar o toque */
+        .card-questao .fa-star {
+            font-size: 1.5rem;
+        }
+        
+        /* ======================================================= */
+        /* ======== AJUSTES NA ÁREA DE COMENTÁRIOS (MOBILE) ====== */
+        /* ======================================================= */
+
+        /* 5. Reduz o espaço à esquerda para o avatar, ganhando mais espaço para o conteúdo do comentário */
+        .comment-wrapper {
+            padding-left: 50px;
+        }
+
+        .comment-avatar .avatar-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 1rem;
+        }
+        
+        /* 6. Ajusta a "seta" do balão de comentário para a nova posição do avatar */
+        .comment-card::before {
+            left: -18px; 
+            border-width: 9px;
+            border-right-color: var(--border-color);
+        }
+        .comment-card::after {
+            top: 15px;
+            left: -15px; 
+            border-width: 8px;
+            border-right-color: var(--light-bg);
+        }
+
+        /* 7. Otimiza o rodapé do comentário (botões de 'Gostei' e 'Respostas') */
+        .comment-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+        
+        /* 8. Ajusta o recuo das respostas aninhadas */
+        .comment-replies {
+            margin-left: 1rem;
+            padding-left: 0.75rem;
+        }
+    }
+    
 </style>
 {% endblock %}
 
@@ -501,7 +458,7 @@ a, .btn {
 <div class="container mt-5">
 
     <!-- =================================================================== -->
-    <!-- ================= INÍCIO: CABEÇALHO E FILTROS ===================== -->
+    <!-- CABEÇALHO E FILTROS -->
     <!-- =================================================================== -->
     <div class="filtros-card p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -513,139 +470,20 @@ a, .btn {
             </div>
         </div>
 
-        <!-- INÍCIO: BOTÕES DE FILTRO RÁPIDO POR STATUS -->
+        <!-- Filtros rápidos por STATUS (funcionalidade exclusiva da área de prática) -->
         <div class="mb-4 text-center">
             <div class="btn-group flex-wrap" role="group" aria-label="Filtros de status">
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=" class="btn btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=respondidas" class="btn btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=nao_respondidas" class="btn btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=acertei" class="btn btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=errei" class="btn btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
-                <a href="{{ request.path }}?{{ request.GET.urlencode }}&status=favoritas" class="btn btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=" class="btn btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=respondidas" class="btn btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=nao_respondidas" class="btn btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=acertei" class="btn btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=errei" class="btn btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
+                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=favoritas" class="btn btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
             </div>
         </div>
-        <!-- FIM: BOTÕES DE FILTRO RÁPIDO POR STATUS -->
 
-        <!-- INÍCIO: FORMULÁRIO DE FILTROS AVANÇADOS -->
-        <form id="form-filtros" method="GET" action="{% url 'listar_questoes' %}" class="mb-3">
-            <input type="hidden" name="status" value="{{ request.GET.status|default:'' }}">
-            <div class="row g-3">
-                <!-- Campo Palavra-Chave -->
-                <div class="col-12 mb-3">
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0"><i class="fas fa-search"></i></span>
-                        <input type="text" class="form-control border-start-0" name="palavra_chave" id="palavra_chave" value="{{ request.GET.palavra_chave_buscada }}" placeholder="Buscar por palavra-chave ou código (ex: Q123)">
-                    </div>
-                </div>
-
-                <!-- Filtros em Dropdown -->
-                <div class="col-md-3">
-                    <div class="dropdown filter-dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownDisciplina" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                            Disciplina <span class="badge bg-primary rounded-pill" id="count-disciplina" style="display: none;">0</span>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownDisciplina">
-                            <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
-                            <ul class="filter-dropdown-options">
-                                {% for d in disciplinas %}
-                                <li>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="disciplina" value="{{ d.id }}" id="disciplina-{{ d.id }}" {% if d.id in selected_disciplinas %}checked{% endif %}>
-                                        <label class="form-check-label" for="disciplina-{{ d.id }}">{{ d.nome }}</label>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="dropdown filter-dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownAssunto" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                            Assunto <span class="badge bg-primary rounded-pill" id="count-assunto" style="display: none;">0</span>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownAssunto">
-                            <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
-                            <ul class="filter-dropdown-options" id="options-assunto"></ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="dropdown filter-dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownBanca" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                            Banca <span class="badge bg-primary rounded-pill" id="count-banca" style="display: none;">0</span>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownBanca">
-                            <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
-                            <ul class="filter-dropdown-options">
-                                {% for b in bancas %}
-                                <li>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="banca" value="{{ b.id }}" id="banca-{{ b.id }}" {% if b.id in selected_bancas %}checked{% endif %}>
-                                        <label class="form-check-label" for="banca-{{ b.id }}">{{ b.nome }}</label>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="dropdown filter-dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownInstituicao" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                            Instituição <span class="badge bg-primary rounded-pill" id="count-instituicao" style="display: none;">0</span>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownInstituicao">
-                            <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
-                            <ul class="filter-dropdown-options">
-                                {% for i in instituicoes %}
-                                <li>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="instituicao" value="{{ i.id }}" id="instituicao-{{ i.id }}" {% if i.id in selected_instituicoes %}checked{% endif %}>
-                                        <label class="form-check-label" for="instituicao-{{ i.id }}">{{ i.nome }}</label>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-md-3">
-                    <div class="dropdown filter-dropdown">
-                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownAno" data-bs-toggle="dropdown" aria-expanded="false" data-bs-auto-close="outside">
-                            Ano <span class="badge bg-primary rounded-pill" id="count-ano" style="display: none;">0</span>
-                        </button>
-                        <div class="dropdown-menu" aria-labelledby="dropdownAno">
-                            <input type="text" class="form-control mb-2" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
-                            <ul class="filter-dropdown-options">
-                                {% for a in anos %}
-                                <li>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" name="ano" value="{{ a }}" id="ano-{{ a }}" {% if a in selected_anos %}checked{% endif %}>
-                                        <label class="form-check-label" for="ano-{{ a }}">{{ a }}</label>
-                                    </div>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="d-flex justify-content-center align-items-center mt-4 pt-3 border-top">
-                <button type="submit" class="btn btn-primary px-4 me-2">Aplicar Filtros</button>
-                <button type="button" id="btn-limpar-filtros" class="btn btn-outline-secondary px-4">Limpar</button>
-            </div>
-        </form>
-        <!-- FIM: FORMULÁRIO DE FILTROS AVANÇADOS -->
-        
-        <!-- Container para mostrar "tags" dos filtros ativos -->
-        <div class="mt-4 pt-3 border-top" id="active-filters-container" style="display: none;">
-            <strong class="me-2">Filtros Ativos:</strong>
-        </div>
+        <!-- INCLUSÃO DO COMPONENTE DE FILTROS REUTILIZÁVEL -->
+        {% include 'includes/_filtros_questoes.html' with form_action_url=request.path status_param=status_param %}
         
         <!-- Botão para salvar a combinação de filtros atual -->
         <div class="text-center mt-3">
@@ -654,13 +492,13 @@ a, .btn {
             </button>
         </div>
     </div>
-    <!-- ================== FIM: CABEÇALHO E FILTROS ======================= -->
+    <!-- FIM DO CABEÇALHO E FILTROS -->
 
 
     <!-- =================================================================== -->
-    <!-- ================= INÍCIO: LISTAGEM DE QUESTÕES ==================== -->
+    <!-- LISTAGEM DE QUESTÕES -->
     <!-- =================================================================== -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex justify-content-between align-items-center mb-3 px-3 px-md-0">
         <h3 class="h5 mb-0">Resultados da Busca</h3>
         <span class="text-muted">{{ questoes.paginator.count }} questões encontradas</span>
     </div>
@@ -668,7 +506,7 @@ a, .btn {
     {% for questao in questoes %}
     <div class="card card-questao mb-4" id="questao-{{ questao.id }}">
         
-        <!-- INÍCIO: CABEÇALHO DA QUESTÃO -->
+        <!-- ADIÇÃO: Cabeçalho do Card da Questão REVERTIDO para o layout original -->
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <span class="badge bg-dark me-2">{{ forloop.counter0|add:questoes.start_index }}.</span>
@@ -685,9 +523,8 @@ a, .btn {
                data-questao-id="{{ questao.id }}"
                title="Marcar como favorita"></i>
         </div>
-        <!-- FIM: CABEÇALHO DA QUESTÃO -->
 
-        <!-- INÍCIO: CORPO DA QUESTÃO -->
+        <!-- Corpo do Card da Questão -->
         <div class="card-body p-4">
             {% if questao.imagem_enunciado %}
                 <img src="{{ questao.imagem_enunciado.url }}" class="enunciado-imagem mb-4" alt="Imagem da questão">
@@ -699,7 +536,6 @@ a, .btn {
             
             <hr>
 
-            <!-- Alternativas da questão -->
             <div class="alternativas mt-4" data-questao-id="{{ questao.id }}">
                 {% for key, value in questao.get_alternativas_dict.items %}
                 <div class="form-check">
@@ -713,7 +549,6 @@ a, .btn {
             
             <button type="button" class="btn btn-success mt-4 w-100 btn-responder" data-questao-id="{{ questao.id }}">Responder</button>
 
-            <!-- Feedback (certo/errado) e explicação -->
             <div class="feedback mt-4" style="display: none;">
                 <div class="alert"></div>
                 <div class="explicacao p-3 mt-3" style="display: none;">
@@ -722,32 +557,22 @@ a, .btn {
                 </div>
             </div>
         </div>
-        <!-- FIM: CORPO DA QUESTÃO -->
 
-        
+        <!-- Rodapé do Card da Questão -->
         <div class="card-footer bg-white d-flex justify-content-center gap-2">
-            <!-- Este é o novo botão, iniciando oculto -->
-            <button
-                type="button"
-                class="btn btn-outline-secondary btn-sm btn-toggle-explicacao d-none" 
-                data-questao-id="{{ questao.id }}"
-            >
-                <i class="fas fa-graduation-cap me-1"></i> Gabarito Comentado (1)
+            <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-explicacao d-none" data-questao-id="{{ questao.id }}">
+                <i class="fas fa-graduation-cap me-1"></i> Gabarito Comentado
             </button>
-        
-            <!-- Botão de comentários já existente -->
-            <button
-                type="button"
-                class="btn btn-outline-primary btn-sm btn-toggle-comentarios"
-                data-questao-id="{{ questao.id }}"
-            >
+            <button type="button" class="btn btn-outline-primary btn-sm btn-toggle-comentarios" data-questao-id="{{ questao.id }}">
                 <i class="far fa-comment me-1"></i> Comentários
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalNotificarErro" data-questao-id="{{ questao.id }}">
+                <i class="fas fa-flag me-1"></i> Notificar Erro
             </button>
         </div>
 
-        <!-- INÍCIO: SEÇÃO DE COMENTÁRIOS (OCULTA INICIALMENTE) -->
+        <!-- Seção de Comentários (Oculta) -->
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
-            
             <div class="d-flex justify-content-between align-items-center mb-4 px-3">
                 <h4 class="h6 mb-0">Comentários</h4>
                 <div class="dropdown">
@@ -760,9 +585,7 @@ a, .btn {
                     </ul>
                 </div>
             </div>
-
             <div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}"></div>
-            
             <div class="p-3">
                 <hr>
                 <h5 class="h6 mb-3 text-center">Deixe seu comentário</h5>
@@ -787,7 +610,6 @@ a, .btn {
                 </div>
             </div>
         </div>
-        <!-- FIM: SEÇÃO DE COMENTÁRIOS -->
     </div>
     {% empty %}
     <div class="card card-body text-center py-5">
@@ -796,44 +618,14 @@ a, .btn {
         <p class="text-muted">Tente ajustar seus filtros ou buscar por outros termos.</p>
     </div>
     {% endfor %}
-    <!-- ================== FIM: LISTAGEM DE QUESTÕES ====================== -->
+    <!-- FIM DA LISTAGEM DE QUESTÕES -->
 
 </div>
 
-<!-- ======================= INÍCIO: PAGINAÇÃO ========================= -->
-<nav aria-label="Page navigation" class="nav-pagination my-5">
-    <div class="d-flex justify-content-center">
-    
- 
-    <ul class="pagination">
-        <li class="page-item {% if not questoes.has_previous %}disabled{% endif %}">
-            <a class="page-link" href="{% if questoes.has_previous %}?{{ request.GET.urlencode | remove_page_param }}&page={{ questoes.previous_page_number }}{% else %}#{% endif %}" aria-label="Previous">
-                <span aria-hidden="true">«</span>
-            </a>
-        </li>
-        {% for num in page_numbers %}
-            {% if num == "..." %}
-                <li class="page-item disabled"><span class="page-link">…</span></li>
-            {% else %}
-                <li class="page-item {% if questoes.number == num %}active{% endif %}">
-                    <a class="page-link" href="?{{ request.GET.urlencode | remove_page_param }}&page={{ num }}">{{ num }}</a>
-                </li>
-            {% endif %}
-        {% endfor %}
-        <li class="page-item {% if not questoes.has_next %}disabled{% endif %}">
-            <a class="page-link" href="{% if questoes.has_next %}?{{ request.GET.urlencode | remove_page_param }}&page={{ questoes.next_page_number }}{% else %}#{% endif %}" aria-label="Next">
-                <span aria-hidden="true">»</span>
-            </a>
-        </li>
-    </ul>
-</div>
-</nav>
-<!-- ======================== FIM: PAGINAÇÃO =========================== -->
+<!-- INCLUSÃO DO COMPONENTE DE PAGINAÇÃO REUTILIZÁVEL -->
+{% include 'includes/_paginacao.html' with paginated_object=questoes %} 
 
-
-<!-- ===================== INÍCIO: MODAIS BOOTSTRAP ==================== -->
-<!-- Todos os modais permanecem os mesmos, pois sua lógica não foi alterada -->
-<!-- Modal para Salvar Filtro -->
+<!-- MODAIS (com código completo) -->
 <div class="modal fade" id="salvarFiltroModal" tabindex="-1" aria-labelledby="salvarFiltroModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -854,7 +646,6 @@ a, .btn {
     </div>
 </div>
   
-<!-- Modal para Listar Filtros Salvos -->
 <div class="modal fade" id="filtrosSalvosModal" tabindex="-1" aria-labelledby="filtrosSalvosModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
@@ -878,7 +669,6 @@ a, .btn {
     </div>
 </div>
   
-<!-- Modal Genérico de Confirmação de Exclusão -->
 <div class="modal fade" id="confirmarExclusaoModal" tabindex="-1" aria-labelledby="confirmarExclusaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -896,18 +686,69 @@ a, .btn {
       </div>
     </div>
 </div>
-<!-- ====================== FIM: MODAIS BOOTSTRAP ====================== -->
+
+<!-- =================================================================== -->
+<!-- NOVO: MODAL DE NOTIFICAÇÃO GENÉRICO -->
+<!-- =================================================================== -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header text-white" id="notificationModalHeader">
+                <h5 class="modal-title" id="notificationModalLabel">Aviso</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="notificationModalBody">
+                <!-- O conteúdo da mensagem será inserido aqui via JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- =================================================================== -->
+<!-- MODAL PARA NOTIFICAR ERRO -->
+<!-- =================================================================== -->
+<div class="modal fade" id="modalNotificarErro" tabindex="-1" aria-labelledby="modalNotificarErroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalNotificarErroLabel">Qual o tipo do erro encontrado?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="form-notificar-erro">
+              {% csrf_token %}
+              <input type="hidden" name="questao_id" id="notificar-erro-questao-id">
+              
+              <div class.mb-4 id="botoes-tipo-erro">
+                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="ENUNCIADO_ALTERNATIVA">Enunciado/alternativa errada</button>
+                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="DISCIPLINA_ASSUNTO">Disciplina ou assunto errado</button>
+                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_ANULADA">Questão anulada</button>
+                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DESATUALIZADA">Questão desatualizada</button>
+                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DUPLICADA">Questão duplicada</button>
+              </div>
+              
+              <div class="mb-3">
+                  <textarea class="form-control" name="descricao" rows="4" placeholder="Comente sobre o erro encontrado (Obrigatório)" required></textarea>
+              </div>
+              
+              <div class="d-grid">
+                   <button type="submit" class="btn btn-primary">Enviar Notificação</button>
+              </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
 {% endblock %}
-
-
 
 {% block scripts %}
 
-<!-- ======================================================================= -->
-<!-- ================= INÍCIO: SCRIPTS E LÓGICA DA PÁGINA ================== -->
-<!-- ======================================================================= -->
-
-<!-- SCRIPT 1: Importação dos Módulos do Tiptap -->
+<!-- Importação dos Módulos do Tiptap -->
 <script type="module">
     import { Editor } from 'https://esm.sh/@tiptap/core';
     import StarterKit from 'https://esm.sh/@tiptap/starter-kit';
@@ -918,167 +759,23 @@ a, .btn {
     window.TipTap = { Editor, StarterKit, Markdown, Underline, Placeholder };
 </script>
 
-<!-- SCRIPT 2: Lógica Principal da Página (SEM ALTERAÇÕES) -->
+<!-- ======================================================= -->
+<!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
+<!-- ======================================================= -->
+<script src="{% static 'js/filtros-questoes.js' %}"></script>
+
+<!-- Lógica JS específica da página (Tiptap, comentários, modais) -->
 <script>
-// =======================================================================
-// INÍCIO: LÓGICA DOS FILTROS AVANÇADOS (AJAX PARA ASSUNTOS)
-// =======================================================================
 
-function filterDropdownOptions(input) {
-    const filter = input.value.toUpperCase();
-    const ul = input.nextElementSibling;
-    const items = ul.getElementsByTagName('li');
-    for (let i = 0; i < items.length; i++) {
-        const label = items[i].querySelector("label");
-        if (label) {
-            const txtValue = label.textContent || label.innerText;
-            items[i].style.display = txtValue.toUpperCase().indexOf(filter) > -1 ? "" : "none";
-        }
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function () {
-    const formFiltros = document.getElementById('form-filtros');
-    if (!formFiltros) return;
-
-    const activeFiltersContainer = document.getElementById('active-filters-container');
-    const disciplinaCheckboxes = formFiltros.querySelectorAll('input[name="disciplina"]');
-    const assuntoOptionsContainer = document.getElementById('options-assunto');
-    const assuntoDropdownButton = document.getElementById('dropdownAssunto');
-    const btnLimparFiltros = document.getElementById('btn-limpar-filtros');
-
-    function loadAssuntos() {
-        const selectedDisciplinaIds = Array.from(
-            formFiltros.querySelectorAll('input[name="disciplina"]:checked')
-        ).map(cb => cb.value);
-
-        assuntoOptionsContainer.innerHTML = '';
-        assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
-
-        if (selectedDisciplinaIds.length === 0) {
-            updateUIFiltros();
-            return;
-        }
-
-        $.ajax({
-            url: "{% url 'get_assuntos_por_disciplina' %}",
-            data: { 'disciplina_ids': selectedDisciplinaIds },
-            dataType: 'json',
-            success: function (data) {
-                const assuntosAgrupados = data.assuntos.reduce((acc, assunto) => {
-                    const disciplinaNome = assunto.disciplina__nome;
-                    if (!acc[disciplinaNome]) acc[disciplinaNome] = [];
-                    acc[disciplinaNome].push(assunto);
-                    return acc;
-                }, {});
-
-                const urlParams = new URLSearchParams(window.location.search);
-                const assuntosMarcados = urlParams.getAll('assunto');
-
-                for (const disciplinaNome in assuntosAgrupados) {
-                    const grupoHeader = document.createElement('li');
-                    grupoHeader.className = 'dropdown-header';
-                    grupoHeader.textContent = disciplinaNome;
-                    assuntoOptionsContainer.appendChild(grupoHeader);
-
-                    assuntosAgrupados[disciplinaNome].forEach(assunto => {
-                        const isChecked = assuntosMarcados.includes(String(assunto.id));
-                        const li = document.createElement('li');
-                        li.innerHTML = `
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" name="assunto" value="${assunto.id}" id="assunto-${assunto.id}" ${isChecked ? 'checked' : ''}>
-                                <label class="form-check-label" for="assunto-${assunto.id}">${assunto.nome}</label>
-                            </div>
-                        `;
-                        assuntoOptionsContainer.appendChild(li);
-                    });
-                }
-                updateUIFiltros();
-            }
-        });
-    }
-
-    function updateUIFiltros() {
-        activeFiltersContainer.innerHTML = '<strong class="me-2">Filtros Ativos:</strong>';
-        let hasFilters = false;
-
-        const palavraChaveInput = document.querySelector('input[name="palavra_chave"]');
-        if (palavraChaveInput && palavraChaveInput.value) {
-            hasFilters = true;
-            const tag = document.createElement('span');
-            tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
-            tag.innerHTML = `
-                Palavra Chave: ${palavraChaveInput.value}
-                <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="palavra_chave" data-value=""></button>
-            `;
-            activeFiltersContainer.appendChild(tag);
-        }
-
-        ['disciplina', 'assunto', 'banca', 'instituicao', 'ano'].forEach(name => {
-            const checkboxes = formFiltros.querySelectorAll(`input[name="${name}"]:checked`);
-            const countSpan = document.getElementById(`count-${name}`);
-            if (countSpan) {
-                countSpan.textContent = checkboxes.length;
-                countSpan.style.display = checkboxes.length > 0 ? 'inline-block' : 'none';
-            }
-            checkboxes.forEach(cb => {
-                hasFilters = true;
-                const label = cb.closest('.form-check').querySelector('label').textContent;
-                const tag = document.createElement('span');
-                tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
-                tag.innerHTML = `
-                   ${label}
-                    <button type="button" class="btn-close ms-2" style="font-size: .65em;" aria-label="Close" data-name="${name}" data-value="${cb.value}"></button>
-                `;
-                activeFiltersContainer.appendChild(tag);
-            });
-        });
-        activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
-    }
-
-    disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', loadAssuntos));
-    
-    btnLimparFiltros.addEventListener('click', function () {
-        formFiltros.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-        formFiltros.querySelector('input[name="palavra_chave"]').value = '';
-        formFiltros.submit();
-    });
-
-    activeFiltersContainer.addEventListener('click', function (e) {
-        if (e.target.classList.contains('btn-close')) {
-            const name = e.target.dataset.name;
-            const value = e.target.dataset.value;
-
-            if (name === 'palavra_chave') {
-                const input = formFiltros.querySelector('input[name="palavra_chave"]');
-                if (input) input.value = '';
-            } else {
-                const checkboxToUncheck = formFiltros.querySelector(`input[name="${name}"][value="${value}"]`);
-                if (checkboxToUncheck) {
-                    checkboxToUncheck.checked = false;
-                }
-            }
-            formFiltros.submit();
-        }
-    });
-
-    formFiltros.addEventListener('change', (e) => {
-        if (e.target.name !== 'disciplina') {
-            updateUIFiltros();
-        }
-    });
-
-    loadAssuntos();
-});
-// =======================================================================
-// FIM: LÓGICA DOS FILTROS AVANÇADOS
-// =======================================================================
-
-
-// =======================================================================
-// INÍCIO: LÓGICA PRINCIPAL DA PÁGINA (EVENTOS, TIPTAP, COMENTÁRIOS)
-// =======================================================================
+window.MANUAL_FILTER_INIT = true; 
 document.addEventListener('DOMContentLoaded', function() {
+
+    if (typeof FiltrosQuestoes !== 'undefined') {
+            new FiltrosQuestoes().init();
+        } else {
+            console.error("Módulo FiltrosQuestoes não foi encontrado.");
+        }
+        
     
     const salvarFiltroModalEl = document.getElementById('salvarFiltroModal');
     const salvarFiltroModal = salvarFiltroModalEl ? new bootstrap.Modal(salvarFiltroModalEl) : null;
@@ -1086,8 +783,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmarExclusaoModalEl = document.getElementById('confirmarExclusaoModal');
     const confirmarExclusaoModal = confirmarExclusaoModalEl ? new bootstrap.Modal(confirmarExclusaoModalEl) : null;
 
+    const notificationModalEl = document.getElementById('notificationModal');
+    const notificationModal = notificationModalEl ? new bootstrap.Modal(notificationModalEl) : null;
+
+    /**
+     * Exibe um modal de notificação genérico.
+     * @param {string} title - O título do modal.
+     * @param {string} message - A mensagem a ser exibida no corpo do modal.
+     * @param {string} type - O tipo de notificação ('success', 'error', ou 'info').
+     */
+     function showNotificationModal(title, message, type = 'info') {
+        if (!notificationModal) return;
+
+        const modalTitle = document.getElementById('notificationModalLabel');
+        const modalBody = document.getElementById('notificationModalBody');
+        const modalHeader = document.getElementById('notificationModalHeader');
+
+        modalTitle.textContent = title;
+        modalBody.innerHTML = message; // innerHTML para permitir tags como <br> se necessário
+
+        // Reseta as classes de cor do cabeçalho
+        modalHeader.classList.remove('bg-success', 'bg-danger', 'bg-primary');
+
+        // Aplica a classe de cor correta com base no tipo
+        if (type === 'success') {
+            modalHeader.classList.add('bg-success');
+        } else if (type === 'error') {
+            modalHeader.classList.add('bg-danger');
+        } else {
+            modalHeader.classList.add('bg-primary'); // Cor padrão para 'info'
+        }
+
+        notificationModal.show();
+    }
+
     const tiptapEditors = {};
     let editTiptapEditor = null;
+
+        // =======================================================================
+    // INÍCIO DO CÓDIGO FALTANTE
+    // =======================================================================
 
     const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
     if (Editor) {
@@ -1223,7 +958,7 @@ document.addEventListener('DOMContentLoaded', function() {
         inputNome.classList.remove('is-invalid');
         const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
         
-        fetch("{% url 'salvar_filtro' %}", {
+        fetch("{% url 'pratica:salvar_filtro' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ nome: nomeFiltro, parametros: params })
@@ -1249,7 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function handleDeletarFiltro(filtroId) {
-        fetch("{% url 'deletar_filtro' %}", {
+        fetch("{% url 'pratica:deletar_filtro' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ filtro_id: filtroId })
@@ -1273,92 +1008,76 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleResponder(button) {
-    const questaoId = button.dataset.questaoId;
-    const questaoCard = document.getElementById(`questao-${questaoId}`);
-    const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
-    if (!alternativaSelecionada) { 
-        alert('Por favor, selecione uma alternativa.'); 
-        return; 
-    }
-    
-    const data = { questao_id: questaoId, alternativa: alternativaSelecionada.value };
-
-    fetch("{% url 'verificar_resposta' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(result => {
-        const feedbackDiv = questaoCard.querySelector('.feedback');
-        const alertDiv = feedbackDiv.querySelector('.alert');
-        const explicacaoDiv = feedbackDiv.querySelector('.explicacao');
-        const explicacaoContent = explicacaoDiv.querySelector('.explicacao-conteudo');
-        
-        // Desabilita as alternativas e esconde o botão de responder
-        questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
-        button.style.display = 'none';
-
-        // Define a mensagem de feedback (correto/incorreto)
-        if (result.correta) {
-            alertDiv.className = 'alert alert-success';
-            alertDiv.textContent = `Correto! O gabarito é ${result.gabarito}.`;
-        } else {
-            alertDiv.className = 'alert alert-danger';
-            alertDiv.textContent = `Incorreto. A resposta correta era ${result.gabarito}.`;
+        const questaoId = button.dataset.questaoId;
+        const questaoCard = document.getElementById(`questao-${questaoId}`);
+        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+        if (!alternativaSelecionada) { 
+            alert('Por favor, selecione uma alternativa.'); 
+            return; 
         }
         
-        // Destaca a alternativa correta em verde e a incorreta (se marcada) em vermelho
-        const labels = questaoCard.querySelectorAll('.form-check-label');
-        labels.forEach(label => {
-            const key = label.getAttribute('for').split('-')[1];
-            if (key === result.gabarito) {
-                label.classList.add('text-success');
-            }
-            if (!result.correta && key === alternativaSelecionada.value){
-                label.classList.add('text-danger');
-            }
-        });
+        const data = { questao_id: questaoId, alternativa: alternativaSelecionada.value };
 
-        // ===================================================================
-        // ======================= INÍCIO DA MUDANÇA =========================
-        // ===================================================================
-
-        // Carrega a explicação, se houver, mas a mantém oculta
-        if (result.explicacao) {
-            explicacaoContent.innerHTML = result.explicacao;
+        fetch("{% url 'pratica:verificar_resposta' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            const feedbackDiv = questaoCard.querySelector('.feedback');
+            const alertDiv = feedbackDiv.querySelector('.alert');
+            const explicacaoDiv = feedbackDiv.querySelector('.explicacao');
+            const explicacaoContent = explicacaoDiv.querySelector('.explicacao-conteudo');
             
-            // Procura pelo botão "Gabarito Comentado" que está oculto
-            const btnExplicacao = questaoCard.querySelector('.btn-toggle-explicacao');
-            if (btnExplicacao) {
-                // Remove a classe 'd-none' para tornar o botão visível
-                btnExplicacao.classList.remove('d-none');
-            }
-        }
-        
-        // Exibe a área de feedback (que contém o alerta e a explicação AINDA oculta)
-        feedbackDiv.style.display = 'block';
+            questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+            button.style.display = 'none';
 
-        // ===================================================================
-        // ======================== FIM DA MUDANÇA ===========================
-        // ===================================================================
-    });
-}
+            if (result.correta) {
+                alertDiv.className = 'alert alert-success';
+                alertDiv.textContent = `Correto! O gabarito é ${result.gabarito}.`;
+            } else {
+                alertDiv.className = 'alert alert-danger';
+                alertDiv.textContent = `Incorreto. A resposta correta era ${result.gabarito}.`;
+            }
+            
+            const labels = questaoCard.querySelectorAll('.form-check-label');
+            labels.forEach(label => {
+                const key = label.getAttribute('for').split('-')[1];
+                if (key === result.gabarito) {
+                    label.classList.add('text-success');
+                }
+                if (!result.correta && key === alternativaSelecionada.value){
+                    label.classList.add('text-danger');
+                }
+            });
+
+            if (result.explicacao) {
+                explicacaoContent.innerHTML = result.explicacao;
+                const btnExplicacao = questaoCard.querySelector('.btn-toggle-explicacao');
+                if (btnExplicacao) {
+                    btnExplicacao.classList.remove('d-none');
+                }
+            }
+            
+            feedbackDiv.style.display = 'block';
+        });
+    }
 
     function handleToggleExplicacao(button) {
-            const questaoId = button.dataset.questaoId;
-            const questaoCard = document.getElementById(`questao-${questaoId}`);
-            const explicacaoDiv = questaoCard.querySelector('.explicacao');
+        const questaoId = button.dataset.questaoId;
+        const questaoCard = document.getElementById(`questao-${questaoId}`);
+        const explicacaoDiv = questaoCard.querySelector('.explicacao');
 
-            if (explicacaoDiv) {
-                const isHidden = explicacaoDiv.style.display === 'none' || explicacaoDiv.style.display === '';
-                explicacaoDiv.style.display = isHidden ? 'block' : 'none';
-            }
+        if (explicacaoDiv) {
+            const isHidden = explicacaoDiv.style.display === 'none' || explicacaoDiv.style.display === '';
+            explicacaoDiv.style.display = isHidden ? 'block' : 'none';
         }
+    }
 
     function handleFavoritar(icon) {
         const questaoId = icon.dataset.questaoId;
-        fetch("{% url 'favoritar_questao' %}", {
+        fetch("{% url 'pratica:favoritar_questao' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ questao_id: questaoId })
@@ -1413,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const postData = { questao_id: questaoId, conteudo: conteudo };
         if (parentId) postData.parent_id = parentId;
 
-        fetch("{% url 'adicionar_comentario' %}", {
+        fetch("{% url 'pratica:adicionar_comentario' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify(postData)
@@ -1439,7 +1158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!questaoCard) return;
         const questaoId = questaoCard.id.replace('questao-', '');
 
-        fetch("{% url 'excluir_comentario' %}", {
+        fetch("{% url 'pratica:excluir_comentario' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ comentario_id: comentarioId })
@@ -1457,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function handleLikeComentario(link) {
         const comentarioId = link.dataset.comentarioId;
-        fetch("{% url 'toggle_like_comentario' %}", {
+        fetch("{% url 'pratica:toggle_like_comentario' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ comentario_id: comentarioId })
@@ -1555,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const comentarioId = button.dataset.comentarioId;
         const novoConteudo = editTiptapEditor.storage.markdown.getMarkdown();
 
-        fetch("{% url 'editar_comentario' %}", {
+        fetch("{% url 'pratica:editar_comentario' %}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
             body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
@@ -1640,7 +1359,6 @@ document.addEventListener('DOMContentLoaded', function() {
         wrapper.className = 'comment-wrapper';
         wrapper.id = `comment-wrapper-${comentario.id}`;
 
-        // A estrutura HTML interna do comentário foi alterada para se adequar ao novo CSS
         wrapper.innerHTML = `
             <div class="comment-avatar">
                 <div class="avatar-icon" title="${comentario.usuario}">${userInitial}</div>
@@ -1688,8 +1406,79 @@ document.addEventListener('DOMContentLoaded', function() {
         return wrapper;
     }
 
+    
+
+    const modalNotificarErroEl = document.getElementById('modalNotificarErro');
+    if (modalNotificarErroEl) {
+        const modalNotificarErro = new bootstrap.Modal(modalNotificarErroEl);
+        const formNotificarErro = document.getElementById('form-notificar-erro');
+        let tipoErroSelecionado = null;
+
+        modalNotificarErroEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const questaoId = button.dataset.questaoId;
+            formNotificarErro.querySelector('#notificar-erro-questao-id').value = questaoId;
+        });
+
+        const botoesTipoErro = formNotificarErro.querySelectorAll('#botoes-tipo-erro button');
+        botoesTipoErro.forEach(btn => {
+            btn.addEventListener('click', function() {
+                botoesTipoErro.forEach(b => b.classList.remove('active', 'btn-dark'));
+                this.classList.add('active', 'btn-dark');
+                tipoErroSelecionado = this.dataset.tipo;
+            });
+        });
+
+        // Lógica de envio do formulário ATUALIZADA
+        formNotificarErro.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const questaoId = this.querySelector('#notificar-erro-questao-id').value;
+            const descricao = this.querySelector('textarea[name="descricao"]').value;
+
+            if (!tipoErroSelecionado) {
+                // SUBSTITUÍDO: alert() por nosso novo modal
+                showNotificationModal('Atenção', 'Por favor, selecione o tipo do erro antes de enviar.', 'error');
+                return;
+            }
+
+            const data = {
+                questao_id: questaoId,
+                tipo_erro: tipoErroSelecionado,
+                descricao: descricao
+            };
+
+            fetch("{% url 'pratica:notificar_erro' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                // Primeiro, esconde o modal de notificação de erro
+                modalNotificarErro.hide();
+
+                if (result.status === 'success') {
+                    // SUBSTITUÍDO: alert() por modal de sucesso
+                    showNotificationModal('Notificação Enviada!', result.message, 'success');
+                    
+                    // Limpa o formulário para o próximo uso
+                    formNotificarErro.reset();
+                    botoesTipoErro.forEach(b => b.classList.remove('active', 'btn-dark'));
+                    tipoErroSelecionado = null;
+                } else {
+                    // SUBSTITUÍDO: alert() por modal de erro
+                    showNotificationModal('Erro no Envio', result.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error("Fetch Error:", error);
+                modalNotificarErro.hide();
+                showNotificationModal('Erro de Conexão', 'Não foi possível se comunicar com o servidor. Por favor, tente novamente mais tarde.', 'error');
+            });
+        });
+    }
+    
 });
 </script>
-<!-- =================== FIM: SCRIPTS E LÓGICA DA PÁGINA =================== -->
 
 {% endblock %}

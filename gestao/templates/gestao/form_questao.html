@@ -1,0 +1,494 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+    <!-- Font Awesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tom Select CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #4A90E2;
+            --primary-hover-color: #357ABD;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --light-bg: #f8f9fa;
+            --white-bg: #FFFFFF;
+            --border-color: #dee2e6;
+            --text-color: #495057;
+            --dark-text-color: #212529;
+            --font-family: 'Poppins', sans-serif; /* Certifique-se de importar esta fonte no seu base.html */
+            --card-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+            --card-border-radius: 0.75rem;
+            --input-border-radius: 0.375rem;
+        }
+
+        body {
+            background-color: var(--light-bg);
+            font-family: var(--font-family);
+        }
+
+        /* --- CARD PRINCIPAL E LAYOUT --- */
+        .main-card {
+            background-color: var(--white-bg);
+            border: none;
+            border-radius: var(--card-border-radius);
+            box-shadow: var(--card-shadow);
+            overflow: hidden; /* Garante que os cantos arredondados sejam aplicados aos filhos */
+        }
+
+        .page-header {
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sub-card {
+            background-color: var(--white-bg);
+            border: 1px solid #e9ecef;
+            border-radius: var(--card-border-radius);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .form-section-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--dark-text-color);
+            margin-bottom: 1.5rem;
+        }
+
+        /* --- ESTILOS DOS CAMPOS DO FORMULÁRIO --- */
+        .form-label {
+            font-weight: 500;
+            color: var(--text-color);
+            margin-bottom: 0.5rem;
+        }
+        .form-control, .form-select, .ts-control {
+            border-radius: var(--input-border-radius);
+            border-color: var(--border-color);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .form-control:focus, .form-select:focus, .ts-control.focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25) !important;
+        }
+
+        /* --- COMPONENTE DE UPLOAD DE IMAGEM --- */
+        .image-uploader {
+            border: 2px dashed var(--border-color);
+            border-radius: var(--input-border-radius);
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+            position: relative;
+            background-color: #fafafa;
+        }
+        .image-uploader:hover, .image-uploader.dragover {
+            border-color: var(--primary-color);
+            background-color: #f0f6ff;
+        }
+        .image-uploader-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
+        .image-uploader-text { color: var(--text-color); font-weight: 500; }
+        .image-uploader-hint { font-size: 0.875rem; color: #6c757d; }
+        .image-uploader input[type="file"] { display: none; }
+        .image-preview-container {
+            display: none; /* Começa escondido */
+            position: relative;
+            margin-top: 1rem;
+        }
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: var(--input-border-radius);
+            border: 1px solid var(--border-color);
+        }
+        .remove-image-btn {
+            position: absolute; top: -10px; right: -10px;
+            background-color: #dc3545; color: white;
+            border: none; border-radius: 50%;
+            width: 28px; height: 28px;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            cursor: pointer;
+        }
+
+        /* --- LÓGICA DE "QUESTÃO INÉDITA" --- */
+        .field-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        /* --- EDITOR TIPTAP MELHORADO --- */
+        .tiptap-editor-wrapper { position: relative; }
+        .tiptap-toolbar {
+            display: flex; flex-wrap: wrap; gap: .25rem;
+            padding: .5rem;
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            border-top-left-radius: var(--input-border-radius);
+            border-top-right-radius: var(--input-border-radius);
+            background-color: var(--white-bg);
+            position: sticky; top: 0; z-index: 10;
+        }
+        .tiptap-toolbar button {
+            background: none; border: none; padding: 0.375rem 0.6rem;
+            border-radius: 0.25rem; cursor: pointer; color: var(--text-color);
+            transition: background-color 0.2s ease, color 0.2s ease;
+        }
+        .tiptap-toolbar button:hover { background-color: #e9ecef; }
+        .tiptap-toolbar button.active { background-color: var(--primary-color); color: white; }
+        
+        .ProseMirror.tiptap {
+            border: 1px solid var(--border-color);
+            border-bottom-left-radius: var(--input-border-radius);
+            border-bottom-right-radius: var(--input-border-radius);
+            padding: .75rem 1rem;
+            min-height: 200px;
+            background-color: var(--white-bg);
+        }
+        .ProseMirror:focus { outline: none; }
+        .ProseMirror p.is-editor-empty:first-child::before {
+            color: #adb5bd; content: attr(data-placeholder);
+            float: left; height: 0; pointer-events: none;
+        }
+
+        /* --- ALTERNATIVAS --- */
+        .alternativa-item { display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem; border-radius: 0.5rem; transition: background-color 0.2s ease; }
+        .alternativa-item:hover { background-color: #f8f9fa; }
+        .alternativa-letra {
+            font-weight: 700; background-color: #e9ecef; color: #495057;
+            width: 38px; height: 38px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%; flex-shrink: 0; margin-top: 0.25rem;
+        }
+        .alternativa-campo { flex-grow: 1; }
+        .alternativa-campo .form-control { min-height: 42px; }
+
+        /* --- AJUSTES PARA DISPOSITIVOS MÓVEIS --- */
+        @media (max-width: 767px) {
+            .container.my-5 {
+                padding-left: 0; padding-right: 0; margin-top: 0 !important; margin-bottom: 0 !important;
+            }
+            .main-card {
+                border-radius: 0; box-shadow: none;
+                border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+            }
+            .main-card .card-body { padding: 1.5rem 1rem; }
+            .page-header { padding-left: 1rem; padding-right: 1rem; margin-bottom: 1.5rem !important; }
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-11 col-xl-10">
+            <div class="page-header d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3 mb-0">{{ titulo }}</h2>
+                <a href="{% url 'gestao:listar_questoes' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                </a>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" novalidate>
+                {% csrf_token %}
+                <div class="main-card">
+                    <div class="card-body p-4 p-md-5">
+                        
+                        <!-- SEÇÃO 1: DETALHES DA QUESTÃO -->
+                        <div class="sub-card">
+                            <h5 class="form-section-title">Detalhes da Questão</h5>
+                            <div class="row g-4">
+                                <div class="col-md-6">{{ form.disciplina.label_tag }}{{ form.disciplina }}{{ form.disciplina.errors }}</div>
+                                <div class="col-md-6">{{ form.assunto.label_tag }}{{ form.assunto }}{{ form.assunto.errors }}</div>
+                                
+                                <div class="col-12">
+                                    <div class="form-check form-switch mb-2">
+                                        {{ form.is_inedita }}
+                                        <label class="form-check-label ms-2" for="{{ form.is_inedita.id_for_label }}">Questão Inédita (elaboração própria)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-12">
+                                    <div class="row g-4">
+                                        <!-- O campo 'banca' agora tem um ID para ser alvo do JS -->
+                                        <div class="col-md-4" id="banca-field-wrapper">{{ form.banca.label_tag }}{{ form.banca }}{{ form.banca.errors }}</div>
+                                        <div class="col-md-4">{{ form.instituicao.label_tag }}{{ form.instituicao }}{{ form.instituicao.errors }}</div>
+                                        <div class="col-md-4">{{ form.ano.label_tag }}{{ form.ano }}{{ form.ano.errors }}</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">{{ form.gabarito.label_tag }}{{ form.gabarito }}{{ form.gabarito.errors }}</div>
+                            </div>
+                        </div>
+
+                        <!-- SEÇÃO 2: CONTEÚDO DA QUESTÃO -->
+                        <div class="sub-card">
+                             <h5 class="form-section-title">Enunciado e Conteúdo de Apoio</h5>
+                             <div class="row g-4">
+                                <div class="col-12">
+                                    <label for="{{ form.imagem_enunciado.id_for_label }}" class="form-label">{{ form.imagem_enunciado.label }}</label>
+                                    <div id="image-uploader" class="image-uploader">
+                                        <div class="image-uploader-content">
+                                            <i class="fas fa-cloud-upload-alt image-uploader-icon"></i>
+                                            <div class="image-uploader-text">Arraste e solte uma imagem aqui ou clique para selecionar</div>
+                                            <div class="image-uploader-hint">PNG, JPG ou GIF (MAX. 5MB)</div>
+                                        </div>
+                                        {{ form.imagem_enunciado }}
+                                    </div>
+                                    <div id="image-preview-container" class="image-preview-container">
+                                        <img id="image-preview" src="#" alt="Pré-visualização da Imagem" class="image-preview"/>
+                                        <button type="button" id="remove-image-btn" class="remove-image-btn" title="Remover Imagem">&times;</button>
+                                    </div>
+                                    {{ form.imagem_enunciado.errors }}
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label">{{ form.enunciado.label }}</label>
+                                    {{ form.enunciado }}{{ form.enunciado.errors }}
+                                </div>
+                             </div>
+                        </div>
+
+                        <!-- SEÇÃO 3: ALTERNATIVAS E EXPLICAÇÃO -->
+                        <div class="sub-card">
+                            <h5 class="form-section-title">Alternativas</h5>
+                            <div class="d-flex flex-column">
+                                <div class="alternativa-item"><div class="alternativa-letra">A</div><div class="alternativa-campo">{{ form.alternativa_a }}{{ form.alternativa_a.errors }}</div></div>
+                                <div class="alternativa-item"><div class="alternativa-letra">B</div><div class="alternativa-campo">{{ form.alternativa_b }}{{ form.alternativa_b.errors }}</div></div>
+                                <div class="alternativa-item"><div class="alternativa-letra">C</div><div class="alternativa-campo">{{ form.alternativa_c }}{{ form.alternativa_c.errors }}</div></div>
+                                <div class="alternativa-item"><div class="alternativa-letra">D</div><div class="alternativa-campo">{{ form.alternativa_d }}{{ form.alternativa_d.errors }}</div></div>
+                                <div class="alternativa-item"><div class="alternativa-letra">E</div><div class="alternativa-campo">{{ form.alternativa_e }}{{ form.alternativa_e.errors }}</div></div>
+                            </div>
+                            <hr class="my-4">
+                            <h5 class="form-section-title">Justificativa do Gabarito</h5>
+                            <div>
+                                <label class="form-label">{{ form.explicacao.label }}</label>
+                                {{ form.explicacao }}{{ form.explicacao.errors }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-footer bg-light p-3 text-center border-0">
+                        <a href="{% url 'gestao:listar_questoes' %}" class="btn btn-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-primary px-5 ms-2">
+                            <i class="fas fa-save me-2"></i>Salvar Questão
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- ======================================================================= -->
+<!-- SCRIPT 0: Importação de Módulos (Tiptap e Tom-Select)                   -->
+<!-- ======================================================================= -->
+<script type="module">
+    import { Editor } from 'https://esm.sh/@tiptap/core';
+    import StarterKit from 'https://esm.sh/@tiptap/starter-kit';
+    import { Markdown } from 'https://esm.sh/tiptap-markdown';
+    import Underline from 'https://esm.sh/@tiptap/extension-underline';
+    import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder';
+    import Blockquote from 'https://esm.sh/@tiptap/extension-blockquote';
+    window.TipTap = { Editor, StarterKit, Markdown, Underline, Placeholder, Blockquote };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // =======================================================================
+    // 1. INICIALIZAÇÃO DOS DROPDOWNS COM TOM SELECT
+    // =======================================================================
+    let tomSelectInstances = {};
+    function initTomSelects() {
+        const tomSelectConfig = { create: false, sortField: { field: "text", direction: "asc" } };
+        document.querySelectorAll('form select').forEach(select => {
+            const name = select.getAttribute('name');
+            if (name) {
+                tomSelectInstances[name] = new TomSelect(select, tomSelectConfig);
+            }
+        });
+    }
+
+    // =======================================================================
+    // 2. LÓGICA PARA "QUESTÃO INÉDITA"
+    // =======================================================================
+    function handleIneditaToggle() {
+        const ineditaCheckbox = document.querySelector('input[name="is_inedita"]');
+        const bancaFieldWrapper = document.getElementById('banca-field-wrapper');
+        
+        if (!ineditaCheckbox || !bancaFieldWrapper) return;
+
+        const toggleField = () => {
+            const isChecked = ineditaCheckbox.checked;
+            bancaFieldWrapper.classList.toggle('field-disabled', isChecked);
+            
+            const tomSelectBanca = tomSelectInstances['banca'];
+            if (tomSelectBanca) {
+                if (isChecked) {
+                    tomSelectBanca.clear();
+                    tomSelectBanca.disable();
+                } else {
+                    tomSelectBanca.enable();
+                }
+            }
+        };
+
+        ineditaCheckbox.addEventListener('change', toggleField);
+        toggleField(); // Chama a função no carregamento da página para definir o estado inicial
+    }
+
+    // =======================================================================
+    // 3. COMPONENTE PERSONALIZADO DE UPLOAD DE IMAGEM
+    // =======================================================================
+    function handleCustomFileInput() {
+        const uploader = document.getElementById('image-uploader');
+        const fileInput = document.querySelector('input[name="imagem_enunciado"]');
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImage = document.getElementById('image-preview');
+        const removeBtn = document.getElementById('remove-image-btn');
+        const uploaderContent = uploader.querySelector('.image-uploader-content');
+
+        if (!uploader || !fileInput) return;
+
+        uploader.addEventListener('click', () => fileInput.click());
+
+        // Drag & Drop events
+        uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('dragover'); });
+        uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
+        uploader.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploader.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                fileInput.files = e.dataTransfer.files;
+                const changeEvent = new Event('change');
+                fileInput.dispatchEvent(changeEvent);
+            }
+        });
+
+        fileInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    previewImage.src = e.target.result;
+                    previewContainer.style.display = 'block';
+                    uploaderContent.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        removeBtn.addEventListener('click', () => {
+            fileInput.value = ''; // Limpa o input
+            previewImage.src = '#';
+            previewContainer.style.display = 'none';
+            uploaderContent.style.display = 'block';
+        });
+    }
+
+    // =======================================================================
+    // 4. INICIALIZAÇÃO DOS EDITORES TIPTAP
+    // =======================================================================
+    function initTiptapEditors() {
+        if (!window.TipTap || !window.TipTap.Editor) {
+            console.error("Tiptap não foi carregado.");
+            return;
+        }
+
+        const { Editor, StarterKit, Markdown, Underline, Placeholder, Blockquote } = window.TipTap;
+
+        const createEditor = (fieldName, placeholderText) => {
+            const textarea = document.querySelector(`textarea[name="${fieldName}"]`);
+            if (!textarea) return null;
+
+            const editorWrapper = document.createElement('div');
+            editorWrapper.className = 'tiptap-editor-wrapper';
+            
+            const toolbar = document.createElement('div');
+            toolbar.className = 'tiptap-toolbar';
+            toolbar.innerHTML = `
+                <button type="button" data-command="toggleHeading" data-level="2" title="Título"><i class="fas fa-heading"></i></button>
+                <button type="button" data-command="toggleBold" title="Negrito"><i class="fas fa-bold"></i></button>
+                <button type="button" data-command="toggleItalic" title="Itálico"><i class="fas fa-italic"></i></button>
+                <button type="button" data-command="toggleUnderline" title="Sublinhado"><i class="fas fa-underline"></i></button>
+                <button type="button" data-command="toggleBlockquote" title="Citação"><i class="fas fa-quote-right"></i></button>
+                <button type="button" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
+                <button type="button" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+            `;
+            
+            const editorElement = document.createElement('div');
+            editorElement.className = 'ProseMirror tiptap';
+
+            editorWrapper.appendChild(toolbar);
+            editorWrapper.appendChild(editorElement);
+
+            textarea.style.display = 'none';
+            textarea.parentNode.insertBefore(editorWrapper, textarea);
+
+            const editor = new Editor({
+                element: editorElement,
+                extensions: [
+                    StarterKit, Markdown.configure({ html: false }),
+                    Underline, Blockquote,
+                    Placeholder.configure({ placeholder: placeholderText }),
+                ],
+                content: textarea.value,
+                onUpdate: ({ editor }) => {
+                    textarea.value = editor.storage.markdown.getMarkdown();
+                },
+            });
+
+            toolbar.querySelectorAll('button[data-command]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const command = button.dataset.command;
+                    const level = button.dataset.level;
+                    const commands = {
+                        toggleHeading: () => editor.chain().focus().toggleHeading({ level: parseInt(level) }).run(),
+                        toggleBold: () => editor.chain().focus().toggleBold().run(),
+                        toggleItalic: () => editor.chain().focus().toggleItalic().run(),
+                        toggleUnderline: () => editor.chain().focus().toggleUnderline().run(),
+                        toggleBlockquote: () => editor.chain().focus().toggleBlockquote().run(),
+                        toggleBulletList: () => editor.chain().focus().toggleBulletList().run(),
+                        toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(),
+                    };
+                    if (commands[command]) commands[command]();
+                });
+
+                editor.on('transaction', () => {
+                    const command = button.dataset.command;
+                    const level = button.dataset.level;
+                    let isActive = false;
+                    if (command === 'toggleHeading') {
+                        isActive = editor.isActive('heading', { level: parseInt(level) });
+                    } else {
+                        isActive = editor.isActive(command.replace('toggle', '').toLowerCase());
+                    }
+                    button.classList.toggle('active', isActive);
+                });
+            });
+            return editor;
+        };
+
+        createEditor('enunciado', 'Digite o enunciado da questão...');
+        createEditor('explicacao', 'Digite a explicação detalhada da alternativa correta...');
+    }
+
+    // =======================================================================
+    // CHAMADAS DE INICIALIZAÇÃO
+    // =======================================================================
+    initTomSelects();
+    handleIneditaToggle();
+    handleCustomFileInput();
+    initTiptapEditors();
+});
+</script>
+{% endblock %}

@@ -43,7 +43,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: 700;
 }
 
-/* 3. Estilos da Navbar Customizada (Agora usa as novas variáveis) */
+/* 3. Estilos da Navbar Customizada */
 .navbar-custom {
     background-color: var(--dark-bg);
     transition: background-color 0.3s ease;
@@ -74,9 +74,9 @@ h1, h2, h3, h4, h5, h6 {
     width: 20px;
 }
 
-/* 4. Estilos de Componentes Comuns (Botões, Cards, etc.) */
+/* 4. Estilos de Componentes Comuns */
 .btn {
-    border-radius: 8px; /* Arredondamento padrão para botões */
+    border-radius: 8px;
 }
 
 .btn-primary {
@@ -94,20 +94,19 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Estilo padrão para cards - pode ser sobrescrito por estilos mais específicos */
 .card {
     border: 1px solid var(--border-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
     border-radius: var(--border-radius);
 }
 
-/* 5. Estilos do Rodapé Customizado (Agora usa as novas variáveis) */
+/* 5. Estilos do Rodapé Customizado */
 .footer-custom {
     background-color: var(--dark-bg);
 }
 
 .footer-link {
-    color: rgba(255, 255, 255, 0.7); /* Aumentei um pouco a opacidade para melhor leitura */
+    color: rgba(255, 255, 255, 0.7);
     text-decoration: none;
     transition: color 0.2s ease-in-out;
 }
@@ -116,25 +115,85 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-light);
 }
 
-/* ========================================================================= */
-/* ======================== INÍCIO: CORREÇÃO APLICADA ====================== */
-/* ========================================================================= */
-/*
-  Esta nova regra sobrescreve a cor da classe .text-muted do Bootstrap
-  APENAS quando ela está dentro do .footer-custom.
-*/
 .footer-custom .text-muted {
     color: rgba(255, 255, 255, 0.7) !important;
 }
 
 .footer-custom .border-secondary {
-    border-color: rgba(255, 255, 255, 0.15) !important; /* Deixa a linha divisória mais sutil */
+    border-color: rgba(255, 255, 255, 0.15) !important;
 }
-/* ========================================================================= */
-/* ========================= FIM: CORREÇÃO APLICADA ======================== */
-/* ========================================================================= */
-
 
 .footer-social a {
     font-size: 1.5rem;
+}
+
+
+/* ========================================================================= */
+/* ========================================================================= */
+/* ======================== 6. ESTILOS RESPONSIVOS E MELHORIAS PARA MOBILE ====================== */
+/* ========================================================================= */
+/* ========================================================================= */
+
+/* As regras abaixo serão aplicadas apenas em telas com largura máxima de 991.98px (tablets e celulares) */
+@media (max-width: 991.98px) {
+
+    /* ======== MELHORIAS NA NAVBAR MOBILE ======== */
+    
+    /* Adiciona padding interno ao menu expandido para não colar nas bordas */
+    .navbar-collapse {
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    /* Estiliza cada item de link no menu */
+    .navbar-custom .navbar-nav .nav-item {
+        /* Adiciona uma linha sutil para separar os itens */
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .navbar-custom .navbar-nav .nav-item:last-child {
+        border-bottom: none; /* Remove a borda do último item */
+    }
+
+    /* Estiliza os links do menu */
+    .navbar-custom .navbar-nav .nav-link {
+        /* Centraliza os links e adiciona espaçamento vertical generoso */
+        text-align: center;
+        padding: 0.8rem 1rem;
+        font-size: 1.1rem; /* Aumenta a fonte para melhor legibilidade */
+        font-weight: 500;
+    }
+    
+    /* Dá um destaque especial para o dropdown do usuário */
+    .navbar-custom .navbar-nav .nav-item.dropdown {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: var(--border-radius);
+        margin-top: 1rem;
+        border-bottom: none; /* Remove a linha de separação para este item */
+    }
+
+    /* Garante que o menu dropdown ocupe toda a largura disponível */
+    .navbar-custom .navbar-nav .dropdown-menu {
+        width: 100%;
+        text-align: center;
+    }
+
+
+    /* ======== MELHORIAS NO RODAPÉ MOBILE ======== */
+    
+    /* Centraliza todo o conteúdo das colunas do rodapé no mobile */
+    .footer-custom .row > div {
+        text-align: center;
+    }
+
+    /* Ajusta a lista de navegação para o alinhamento central */
+    .footer-custom .list-unstyled {
+        padding-left: 0;
+    }
+    
+    /* Garante que os ícones de redes sociais fiquem centralizados */
+    .footer-social {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+    }
 }
