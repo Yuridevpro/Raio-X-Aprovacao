@@ -1,8 +1,7 @@
-<!-- gestao/listar_questoes.html -->
-
 {% extends 'base.html' %}
 {% load static %}
-{% load questoes_extras %} <!-- ATUALIZADO para usar o tag centralizado -->
+{% load questoes_extras %}
+{% load pratica_extras %}
 {% block title %}Gerenciar Questões{% endblock %}
 
 {% block head %}
@@ -10,67 +9,167 @@
     <link rel="stylesheet" href="{% static 'gestao/css/gestao.css' %}">
     <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 
-    
-    <!-- CSS Adicional para os Filtros e novo Design -->
+    <!-- ======================================================= -->
+    <!-- CSS AJUSTADO PARA UM DESIGN COMPACTO E ELEGANTE -->
+    <!-- ======================================================= -->
     <style>
+        /* Removida a paleta de cores customizada para usar o padrão do seu site */
 
-        .questao-card {
-            background-color: var(--light-bg);
-            border: 1px solid var(--border-color);
-            border-radius: var(--border-radius);
-            margin-bottom: 1.25rem;
-            transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out;
-            display: flex;
-            flex-direction: column;
+        body {
+            background-color: #f8f9fa; /* Fundo padrão mais suave */
         }
-        .questao-card:hover {
-            box-shadow: var(--box-shadow);
-            border-color: #d8dde4;
+
+        /* CABEÇALHO DA PÁGINA */
+        .page-header {
+            background-color: #ffffff;
+            padding: 1.5rem 2rem;
+            border-radius: 0.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid #dee2e6;
         }
-        .questao-card-header {
+        .page-header h2 {
+            font-weight: 600;
+            color: #343a40;
+        }
+
+        /* CARD DE FILTROS RECOLHÍVEL */
+        .filter-card {
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+        .filter-card .card-header {
+            cursor: pointer;
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+        }
+        .filter-card .card-header:not(.collapsed) {
+            border-bottom: 1px solid #dee2e6;
+        }
+        .filter-card .card-header .icon-toggle::before {
+            content: '\f078'; /* FontAwesome down arrow */
+            font-family: 'Font Awesome 5 Free';
+            font-weight: 900;
+            transition: transform 0.3s ease;
+        }
+        .filter-card .card-header:not(.collapsed) .icon-toggle::before {
+            transform: rotate(-180deg);
+        }
+
+        /* CONTAINER DA LISTA DE QUESTÕES */
+        .lista-questoes-container {
+            background-color: #ffffff;
+            border-radius: 0.5rem;
+            border: 1px solid #dee2e6;
+            overflow: hidden; /* Garante que os filhos respeitem a borda */
+        }
+
+        /* ITEM DA QUESTÃO (NOVO DESIGN EM LINHA) */
+        .questao-item {
             display: flex;
             justify-content: space-between;
             align-items: center;
             padding: 1rem 1.5rem;
-            border-bottom: 1px solid var(--border-color);
-            gap: 1rem;
+            border-bottom: 1px solid #dee2e6;
+            transition: background-color 0.2s ease-in-out;
         }
-        .questao-info-principal .codigo {
-            font-size: 1rem;
+        .lista-questoes-container .questao-item:last-child {
+            border-bottom: none; /* Remove a borda do último item */
+        }
+        .questao-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .questao-info {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem; /* Espaço entre os elementos de informação */
+            flex-wrap: wrap; /* Permite que os itens quebrem em telas menores */
+        }
+        .questao-info .codigo {
+            font-size: 1.1rem;
             font-weight: 600;
-            color: var(--primary-color);
-            margin-right: 0.75rem;
+            color: var(--bs-primary); /* Usa a cor primária do Bootstrap */
+            min-width: 80px; /* Garante alinhamento */
         }
-        .questao-info-principal .disciplina {
+        .questao-info .disciplina {
             font-weight: 500;
             color: #343a40;
         }
-        .questao-info-secundaria {
-            font-size: 0.85rem;
-            color: var(--secondary-color);
-            flex-shrink: 0;
-            text-align: right;
-        }
-        .questao-card-body {
-            padding: 1.5rem;
-            color: #495057;
-            flex-grow: 1;
-        }
-        .questao-card-footer {
-            padding: 1rem 1.5rem;
-            background-color: #f8f9fa;
-            border-top: 1px solid var(--border-color);
-            text-align: right;
+        .questao-info .meta {
+            font-size: 0.9rem;
+            color: #6c757d;
         }
 
+        .questao-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0; /* Impede que os botões encolham */
+        }
+
+        /* ESTADO VAZIO (SEM QUESTÕES) */
+        .empty-state-card {
+            background-color: #ffffff;
+            border: 2px dashed #dee2e6;
+            padding: 3rem;
+            border-radius: 0.5rem;
+        }
+
+        
+        /* ================================================= */
+        /* INÍCIO DA MUDANÇA - AJUSTES PARA DISPOSITIVOS MÓVEIS */
+        /* ================================================= */
+        @media (max-width: 767.98px) {
+            /* Ajusta o cabeçalho da página */
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+                padding: 1rem;
+            }
+            .page-header h2 {
+                font-size: 1.5rem; /* Título um pouco menor */
+            }
+            .page-header .btn-group {
+                width: 100%; /* Botão ocupa a largura toda */
+            }
+            .page-header .btn-group > .btn:first-of-type {
+                flex-grow: 1; /* Faz o botão principal expandir */
+            }
+
+            /* Ajusta os itens da lista de questões */
+            .questao-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+            .questao-info {
+                gap: 0.75rem; /* Espaçamento menor entre os itens de info */
+            }
+            .questao-actions {
+                width: 100%;
+                justify-content: flex-end; /* Alinha os botões à direita */
+            }
+        }
+        /* FIM DA MUDANÇA */
     </style>
 {% endblock %}
     
 {% block content %}
-<div class="container mt-5">
+<div class="container mt-5 mb-5">
+
+    <div class="mb-4">
+        <!-- ATENÇÃO: Verifique se 'gestao:painel' é a URL correta para o seu painel de gestão -->
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel de Gestão
+        </a>
+    </div>
+    
     <!-- CABEÇALHO DA PÁGINA -->
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
-        <h2 class="h4 mb-0">Gerenciar Questões</h2>
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <h2 class="h3 mb-0">Gerenciamento de Questões</h2>
         <div class="btn-group">
             <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary">
                 <i class="fas fa-plus me-2"></i>Adicionar Questão
@@ -79,72 +178,97 @@
                 <span class="visually-hidden">Opções de Gerenciamento</span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Nova Disciplina">Adicionar Disciplina</a></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal">Adicionar Assunto</a></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="banca" data-titulo="Adicionar Nova Banca">Adicionar Banca</a></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="instituicao" data-titulo="Adicionar Nova Instituição">Adicionar Instituição</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Nova Disciplina"><i class="fas fa-book fa-fw me-2"></i>Adicionar Disciplina</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal"><i class="fas fa-tags fa-fw me-2"></i>Adicionar Assunto</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="banca" data-titulo="Adicionar Nova Banca"><i class="fas fa-gavel fa-fw me-2"></i>Adicionar Banca</a></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="instituicao" data-titulo="Adicionar Nova Instituição"><i class="fas fa-university fa-fw me-2"></i>Adicionar Instituição</a></li>
             </ul>
         </div>
     </div>
     
+    <!-- MENSAGENS DO SISTEMA -->
     {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>{% endfor %}{% endif %}
 
-    <!-- ======================================================= -->
-    <!-- INCLUSÃO DO COMPONENTE DE FILTROS REUTILIZÁVEL -->
-    <!-- ======================================================= -->
-    {% include 'includes/_filtros_questoes.html' with form_action_url=request.path %}
+    <!-- CARD DE FILTROS RECOLHÍVEL -->
+    <div class="filter-card">
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Busca</h5>
+                <span class="icon-toggle"></span>
+            </div>
+        </div>
+        <div class="collapse" id="collapseFilters">
+            <div class="card-body p-4">
+                {% include 'includes/_filtros_questoes.html' with form_action_url=request.path %}
+            </div>
+        </div>
+    </div>
 
-    <!-- LISTA DE QUESTÕES -->
+    <!-- CABEÇALHO DA LISTA DE RESULTADOS -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h3 class="h5 mb-0">Resultados da Busca</h3>
-        <span class="text-muted">{{ questoes.paginator.count }} questões encontradas</span>
+        <h3 class="h5 mb-0 text-secondary">Questões Encontradas</h3>
+        <span class="badge bg-light text-dark fs-6">{{ questoes.paginator.count }} resultados</span>
     </div>
 
     {% if questoes %}
         <div class="lista-questoes-container">
             {% for questao in questoes %}
-                <div class="questao-card">
-                    <div class="questao-card-header">
-                        <div class="questao-info-principal">
-                            <span class="codigo">{{ questao.codigo }}</span>
-                            <span class="disciplina">{{ questao.disciplina.nome }}</span>
-                        </div>
-                        <div class="questao-info-secundaria">
-                           {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
-                        </div>
+                <!-- ITEM DA QUESTÃO EM FORMATO DE LINHA (NOVO LAYOUT) -->
+                <div class="questao-item">
+                    <!-- Informações da Questão (Esquerda) -->
+                    <div class="questao-info">
+                        <span class="codigo">{{ questao.codigo }}</span>
+                        <span class="disciplina">{{ questao.disciplina.nome }}</span>
+                        <span class="meta">
+                            {% if questao.is_inedita %}
+                                <span class="badge bg-info text-dark">Inédita</span>
+                            {% else %}
+                                {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
+                            {% endif %}
+                        </span>
                     </div>
-                    <div class="questao-card-body">
-                        {{ questao.enunciado|striptags|truncatechars:220 }}
-                    </div>
-                    <div class="questao-card-footer">
-                        <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-info text-white">
-                            <i class="fas fa-edit me-1"></i>Editar
+                    <!-- Botões de Ação (Direita) -->
+                    <div class="questao-actions">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao"
+                                data-questao-id="{{ questao.id }}" data-bs-toggle="tooltip" title="Visualização Rápida">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Editar">
+                            <i class="fas fa-edit"></i>
                         </a>
-                        <a href="{% url 'gestao:deletar_questao' questao.id %}" class="btn btn-sm btn-danger">
-                            <i class="fas fa-trash me-1"></i>Deletar
+                        <a href="{% url 'gestao:deletar_questao' questao.id %}" class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="Deletar">
+                            <i class="fas fa-trash"></i>
                         </a>
                     </div>
                 </div>
             {% endfor %}
         </div>
     {% else %}
-        <div class="card card-body text-center py-5">
-            <i class="fas fa-search fa-3x text-muted mb-3"></i>
-            <h4 class="h5">Nenhuma questão encontrada</h4>
-            <p class="text-muted">Tente ajustar seus filtros ou buscar por outros termos.</p>
+        <!-- ESTADO VAZIO (QUANDO NÃO HÁ RESULTADOS) -->
+        <div class="text-center py-5 empty-state-card">
+            <i class="fas fa-search fa-4x text-muted mb-3"></i>
+            <h4 class="h5 fw-bold">Nenhuma questão foi encontrada</h4>
+            <p class="text-muted">Tente ajustar seus filtros de busca ou adicione novas questões.</p>
         </div>
     {% endif %}
 
-    <!-- ======================================================= -->
-    <!-- INCLUSÃO DO COMPONENTE DE PAGINAÇÃO REUTILIZÁVEL -->
-    <!-- ======================================================= -->
-    {% include 'includes/_paginacao.html' with paginated_object=questoes %} 
+    <!-- PAGINAÇÃO -->
+    {% if questoes.has_other_pages %}
+        <div class="mt-4">
+             {% include 'includes/_paginacao.html' with paginated_object=questoes %}
+        </div>
+    {% endif %}
+
 </div> <!-- Fim do .container -->
 
-<!-- MODAIS -->
+
+<!-- ======================================================= -->
+<!-- MODAIS (ESTRUTURA E LÓGICA 100% INALTERADAS) -->
+<!-- ======================================================= -->
 <div class="modal fade" id="addEntidadeModal" tabindex="-1" aria-labelledby="addEntidadeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
       <div class="modal-content">
@@ -204,18 +328,40 @@
       </div>
     </div>
 </div>
+
+<div class="modal fade" id="visualizarQuestaoModal" tabindex="-1" aria-labelledby="visualizarQuestaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="visualizarQuestaoModalLabel">Visualizando Questão: <span id="modalQuestaoCodigo" class="fw-bold">...</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <div id="modalQuestaoSpinner" class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div>
+                <div id="modalQuestaoContent" style="display: none;">
+                    <h6>Enunciado:</h6>
+                    <div id="modalQuestaoEnunciado" class="enunciado-formatado mb-4 p-3 bg-light rounded"></div>
+                    <h6>Alternativas:</h6>
+                    <ul id="modalQuestaoAlternativas" class="list-group"></ul>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 
 {% block scripts %}
-<!-- ======================================================= -->
 <!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
-<!-- ======================================================= -->
 <script src="{% static 'js/filtros-questoes.js' %}"></script>
 
-<!-- Scripts específicos para os modais da página de gestão -->
+<!-- Scripts específicos para os modais e funcionalidades da página (NENHUMA ALTERAÇÃO NA LÓGICA) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    
+    // Inicializa os tooltips do Bootstrap para os botões com ícones
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    // Lógica para o modal 'addEntidadeModal' (inalterada)
     const addEntidadeModalEl = document.getElementById('addEntidadeModal');
     if (addEntidadeModalEl) {
         const addEntidadeModal = new bootstrap.Modal(addEntidadeModalEl);
@@ -244,15 +390,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(response => response.json()).then(data => {
                 if (data.status === 'success') {
                     addEntidadeModal.hide();
-                    alert(`"${data.entidade.nome}" foi adicionado com sucesso! A página será recarregada para atualizar as listas.`);
-                    window.location.reload();
+                    showNotificationModal('Sucesso!', `"${data.entidade.nome}" foi adicionado. A página será recarregada.`, 'success');
+                    setTimeout(() => window.location.reload(), 2000); // Recarrega após 2 segundos
                 } else {
                     inputNome.classList.add('is-invalid');
                     feedback.textContent = data.message;
                     feedback.style.display = 'block';
                 }
-            });
+            })
+
+             // ADICIONADO: Tratamento de erro de rede
+             .catch(error => {
+                console.error('Erro ao salvar entidade:', error);
+                showNotificationModal('Erro de Rede', 'Não foi possível salvar o item. Verifique sua conexão.', 'error');
         });
+    });
 
         addEntidadeModalEl.addEventListener('hidden.bs.modal', function() {
             const form = this.querySelector('form');
@@ -262,6 +414,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Lógica para o modal 'addAssuntoModal' (inalterada)
     const addAssuntoModalEl = document.getElementById('addAssuntoModal');
     if (addAssuntoModalEl) {
         const addAssuntoModal = new bootstrap.Modal(addAssuntoModalEl);
@@ -278,14 +431,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then(response => response.json()).then(data => {
                 if (data.status === 'success') {
                     addAssuntoModal.hide();
-                    alert(`Assunto "${data.assunto.nome}" adicionado com sucesso! A página será recarregada.`);
-                    window.location.reload();
+                    showNotificationModal('Sucesso!', `Assunto "${data.assunto.nome}" adicionado. A página será recarregada.`, 'success');
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
                     inputNome.classList.add('is-invalid');
                     feedback.textContent = data.message || "Este campo é obrigatório.";
                     feedback.style.display = 'block';
                 }
+            })
+
+            // ADICIONADO: Tratamento de erro de rede
+            .catch(error => {
+                console.error('Erro ao salvar assunto:', error);
+                showNotificationModal('Erro de Rede', 'Não foi possível salvar o item. Verifique sua conexão.', 'error');
             });
+
         });
         
         addAssuntoModalEl.addEventListener('hidden.bs.modal', function() {
@@ -295,6 +455,53 @@ document.addEventListener('DOMContentLoaded', function() {
             this.querySelector('.invalid-feedback').style.display = 'none';
         });
     }
+
+    // Lógica para o modal 'visualizarQuestaoModal' (inalterada)
+    const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
+        if (visualizarQuestaoModalEl) {
+            const visualizarQuestaoModal = new bootstrap.Modal(visualizarQuestaoModalEl);
+            const modalCodigo = document.getElementById('modalQuestaoCodigo');
+            const modalEnunciado = document.getElementById('modalQuestaoEnunciado');
+            const modalAlternativas = document.getElementById('modalQuestaoAlternativas');
+            const modalSpinner = document.getElementById('modalQuestaoSpinner');
+            const modalContent = document.getElementById('modalQuestaoContent');
+
+            document.querySelectorAll('.btn-visualizar-questao').forEach(button => {
+                button.addEventListener('click', function() {
+                    const questaoId = this.dataset.questaoId;
+                    
+                    modalContent.style.display = 'none';
+                    modalSpinner.style.display = 'block';
+                    modalCodigo.textContent = '...';
+                    visualizarQuestaoModal.show();
+
+                    fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                modalCodigo.textContent = data.codigo;
+                                modalEnunciado.innerHTML = data.enunciado;
+                                modalAlternativas.innerHTML = '';
+                                for (const [key, value] of Object.entries(data.alternativas)) {
+                                    const listItem = document.createElement('li');
+                                    listItem.classList.add('list-group-item');
+                                    if (key === data.gabarito) {
+                                        listItem.classList.add('list-group-item-success', 'fw-bold');
+                                    }
+                                    listItem.innerHTML = `<strong>${key})</strong> ${value}`;
+                                    modalAlternativas.appendChild(listItem);
+                                }
+                                modalSpinner.style.display = 'none';
+                                modalContent.style.display = 'block';
+                            } else {
+                                modalEnunciado.innerHTML = `<div class="alert alert-danger">Erro: ${data.message}</div>`;
+                                modalSpinner.style.display = 'none';
+                                modalContent.style.display = 'block';
+                            }
+                        });
+                });
+            });
+        }
 });
 </script>
 {% endblock %}

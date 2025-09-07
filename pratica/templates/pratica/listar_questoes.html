@@ -952,52 +952,68 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function handleSalvarFiltro() {
-        const inputNome = document.getElementById('input-nome-filtro');
-        const nomeFiltro = inputNome.value;
-        if (!nomeFiltro.trim()) { inputNome.classList.add('is-invalid'); return; }
-        inputNome.classList.remove('is-invalid');
-        const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
-        
-        fetch("{% url 'pratica:salvar_filtro' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ nome: nomeFiltro, parametros: params })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                if(salvarFiltroModal) salvarFiltroModal.hide();
-                const lista = document.getElementById('lista-modal-filtros-salvos');
-                const itemExistente = document.getElementById(`filtro-salvo-item-${result.filtro.id}`);
-                if(itemExistente) itemExistente.remove();
-
-                const filtroHtml = `
-                    <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
-                        <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
-                        <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
-                    </li>`;
-                const msgVazio = document.getElementById('sem-filtros-salvos-msg');
-                if(msgVazio) msgVazio.remove();
-                lista.insertAdjacentHTML('beforeend', filtroHtml);
-            } else { alert('Erro: ' + result.message); }
-        });
-    }
+    const inputNome = document.getElementById('input-nome-filtro');
+    const nomeFiltro = inputNome.value;
+    if (!nomeFiltro.trim()) { inputNome.classList.add('is-invalid'); return; }
+    inputNome.classList.remove('is-invalid');
+    const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
     
-    function handleDeletarFiltro(filtroId) {
-        fetch("{% url 'pratica:deletar_filtro' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ filtro_id: filtroId })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
-                if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
-            } else { alert('Erro: ' + result.message); }
-        });
-    }
+    fetch("{% url 'pratica:salvar_filtro' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ nome: nomeFiltro, parametros: params })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'success') {
+            if(salvarFiltroModal) salvarFiltroModal.hide();
+            const lista = document.getElementById('lista-modal-filtros-salvos');
+            const itemExistente = document.getElementById(`filtro-salvo-item-${result.filtro.id}`);
+            if(itemExistente) itemExistente.remove();
 
+            const filtroHtml = `
+                <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
+                    <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
+                    <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
+                </li>`;
+            const msgVazio = document.getElementById('sem-filtros-salvos-msg');
+            if(msgVazio) msgVazio.remove();
+            lista.insertAdjacentHTML('beforeend', filtroHtml);
+            showNotificationModal('Sucesso!', 'Filtro salvo com sucesso.', 'success'); // <-- Feedback positivo
+        } else {
+            // SUBSTITUÍDO
+            showNotificationModal('Erro ao Salvar', result.message, 'error');
+        }
+    })
+    // ADICIONADO
+    .catch(error => {
+        console.error('Erro de rede ao salvar filtro:', error);
+        showNotificationModal('Erro de Conexão', 'Não foi possível salvar o filtro. Tente novamente.', 'error');
+    });
+}
+    
+function handleDeletarFiltro(filtroId) {
+    fetch("{% url 'pratica:deletar_filtro' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ filtro_id: filtroId })
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.status === 'success') {
+            document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
+            if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
+        } else {
+            // SUBSTITUÍDO
+            showNotificationModal('Erro ao Deletar', result.message, 'error');
+        }
+    })
+    // ADICIONADO
+    .catch(error => {
+        console.error('Erro de rede ao deletar filtro:', error);
+        showNotificationModal('Erro de Conexão', 'Não foi possível deletar o filtro. Tente novamente.', 'error');
+    });
+}
     function abrirModalConfirmacao(mensagem, callback) {
         document.getElementById('corpo-modal-exclusao').textContent = mensagem;
         const btnConfirmar = document.getElementById('btn-confirmar-exclusao');
@@ -1012,7 +1028,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const questaoCard = document.getElementById(`questao-${questaoId}`);
         const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
         if (!alternativaSelecionada) { 
-            alert('Por favor, selecione uma alternativa.'); 
+            showNotificationModal('Atenção', 'Por favor, selecione uma alternativa antes de responder.', 'info'); 
             return; 
         }
         
@@ -1061,8 +1077,13 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             feedbackDiv.style.display = 'block';
-        });
-    }
+        })
+
+        .catch(error => {
+        console.error('Erro de rede ao verificar resposta:', error);
+        showNotificationModal('Erro de Conexão', 'Não foi possível verificar sua resposta. Tente novamente.', 'error');
+    });
+}
 
     function handleToggleExplicacao(button) {
         const questaoId = button.dataset.questaoId;
@@ -1074,24 +1095,40 @@ document.addEventListener('DOMContentLoaded', function() {
             explicacaoDiv.style.display = isHidden ? 'block' : 'none';
         }
     }
+// Em pratica/listar_questoes.html, dentro do <script> principal
 
     function handleFavoritar(icon) {
-        const questaoId = icon.dataset.questaoId;
-        fetch("{% url 'pratica:favoritar_questao' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ questao_id: questaoId })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                icon.classList.toggle('far');
-                icon.classList.toggle('fas');
-                icon.classList.toggle('text-warning');
-            }
-        });
-    }
+    const questaoId = icon.dataset.questaoId;
     
+    fetch("{% url 'pratica:favoritar_questao' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ questao_id: questaoId })
+    })
+    .then(response => {
+        // Adicionamos uma verificação aqui: se a resposta não for OK (ex: erro 500),
+        // nós forçamos a entrada no .catch()
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            icon.classList.toggle('far');
+            icon.classList.toggle('fas');
+            icon.classList.toggle('text-warning');
+        } else {
+            // Se a API retornar um erro conhecido, mostramos no modal
+            showNotificationModal('Erro ao Favoritar', result.message || 'Não foi possível completar a ação.', 'error');
+        }
+    })
+    // ADICIONADO: Tratamento de erro de rede
+    .catch(error => {
+        console.error('Erro de rede ao favoritar questão:', error);
+        showNotificationModal('Erro de Conexão', 'Não foi possível favoritar a questão. Tente novamente.', 'error');
+    });
+}
     function handleToggleComentarios(button) {
         const questaoId = button.dataset.questaoId;
         const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
@@ -1118,14 +1155,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    function handleAdicionarComentario(form) {
+        function handleAdicionarComentario(form) {
         const questaoId = form.dataset.questaoId;
         const parentId = form.dataset.parentId;
         const textarea = form.querySelector('textarea[name="conteudo"]');
         const conteudo = textarea.value;
 
         if (!conteudo.trim()) {
-            alert('O comentário não pode estar vazio.');
+            // SUBSTITUÍDO
+            showNotificationModal('Atenção', 'O comentário não pode estar vazio.', 'info');
             return;
         }
 
@@ -1145,18 +1183,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     tiptapEditors[questaoId].commands.clearContent();
                 }
             } else {
-                alert('Erro ao enviar comentário: ' + result.message);
+                // SUBSTITUÍDO
+                showNotificationModal('Erro ao Comentar', result.message, 'error');
             }
+        })
+        // ADICIONADO
+        .catch(error => {
+            console.error('Erro de rede ao adicionar comentário:', error);
+            showNotificationModal('Erro de Conexão', 'Não foi possível enviar seu comentário. Tente novamente.', 'error');
         });
     }
-
     function handleExcluirComentario(comentarioId) {
         const commentWrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
         if (!commentWrapper) return;
-        
-        const questaoCard = commentWrapper.closest('.card-questao');
-        if (!questaoCard) return;
-        const questaoId = questaoCard.id.replace('questao-', '');
+        const questaoId = commentWrapper.closest('.card-questao').id.replace('questao-', '');
 
         fetch("{% url 'pratica:excluir_comentario' %}", {
             method: 'POST',
@@ -1169,27 +1209,44 @@ document.addEventListener('DOMContentLoaded', function() {
                 carregarComentarios(questaoId);
                 if (confirmarExclusaoModal) confirmarExclusaoModal.hide();
             } else {
-                alert('Erro ao excluir comentário: ' + res.message);
+                // SUBSTITUÍDO
+                showNotificationModal('Erro ao Excluir', res.message, 'error');
             }
+        })
+        // ADICIONADO
+        .catch(error => {
+            console.error('Erro de rede ao excluir comentário:', error);
+            if (confirmarExclusaoModal) confirmarExclusaoModal.hide();
+            showNotificationModal('Erro de Conexão', 'Não foi possível excluir o comentário. Tente novamente.', 'error');
         });
     }
 
     function handleLikeComentario(link) {
-        const comentarioId = link.dataset.comentarioId;
-        fetch("{% url 'pratica:toggle_like_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ comentario_id: comentarioId })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                const countSpan = link.querySelector('.like-count');
-                if (countSpan) countSpan.textContent = result.likes_count;
-                link.classList.toggle('liked', result.liked);
-            }
-        });
-    }
+    const comentarioId = link.dataset.comentarioId;
+    fetch("{% url 'pratica:toggle_like_comentario' %}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+        body: JSON.stringify({ comentario_id: comentarioId })
+    })
+    .then(response => {
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        return response.json();
+    })
+    .then(result => {
+        if (result.status === 'success') {
+            const countSpan = link.querySelector('.like-count');
+            if (countSpan) countSpan.textContent = result.likes_count;
+            link.classList.toggle('liked', result.liked);
+        } else {
+            showNotificationModal('Erro', result.message || 'Não foi possível registrar o like.', 'error');
+        }
+    })
+    // ADICIONADO: Tratamento de erro de rede
+    .catch(error => {
+        console.error('Erro de rede ao dar like:', error);
+        showNotificationModal('Erro de Conexão', 'Não foi possível registrar o like. Tente novamente.', 'error');
+    });
+}
 
     function handleToggleReplies(link) {
         const comentarioId = link.dataset.comentarioId;
@@ -1284,17 +1341,20 @@ document.addEventListener('DOMContentLoaded', function() {
             if(result.status === 'success') {
                 const commentCard = document.getElementById(`comentario-${comentarioId}`);
                 const contentDiv = commentCard.querySelector('.comment-content');
-                
                 contentDiv.innerHTML = result.conteudo_html;
                 contentDiv.dataset.rawContent = novoConteudo;
-                
                 cancelarEdicao(button.closest('.comment-edit-form'));
             } else { 
-                alert('Erro ao salvar: ' + result.message); 
+                // SUBSTITUÍDO
+                showNotificationModal('Erro ao Salvar', result.message, 'error'); 
             }
+        })
+        // ADICIONADO
+        .catch(error => {
+            console.error('Erro de rede ao salvar edição:', error);
+            showNotificationModal('Erro de Conexão', 'Não foi possível salvar a edição. Tente novamente.', 'error');
         });
     }
-
     function cancelarEdicao(editFormDiv) {
         if (!editFormDiv) return;
         const commentCard = editFormDiv.closest('.comment-card');
@@ -1306,23 +1366,33 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function carregarComentarios(questaoId, sortBy = 'recent') {
-        const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
-        comentariosList.innerHTML = '<p class="text-center text-muted py-4">Carregando comentários...</p>';
-        
-        fetch(`/pratica/carregar-comentarios/${questaoId}/?sort_by=${sortBy}`)
-            .then(response => response.json())
-            .then(data => {
-                comentariosList.innerHTML = '';
-                if (data.comentarios.length > 0) {
-                    data.comentarios.forEach(c => {
-                        comentariosList.appendChild(criarHtmlComentario(c));
-                    });
-                } else {
-                    comentariosList.innerHTML = '<p class="text-center text-muted py-4">Nenhum comentário ainda. Seja o primeiro a comentar!</p>';
-                }
-                document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
-            });
-    }
+    const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+    comentariosList.innerHTML = '<p class="text-center text-muted py-4">Carregando comentários...</p>';
+    
+    fetch(`/pratica/carregar-comentarios/${questaoId}/?sort_by=${sortBy}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            comentariosList.innerHTML = '';
+            if (data.comentarios.length > 0) {
+                data.comentarios.forEach(c => {
+                    comentariosList.appendChild(criarHtmlComentario(c));
+                });
+            } else {
+                comentariosList.innerHTML = '<p class="text-center text-muted py-4">Nenhum comentário ainda. Seja o primeiro a comentar!</p>';
+            }
+            document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
+        })
+        // ADICIONADO: Tratamento de erro de rede
+        .catch(error => {
+            console.error('Erro ao carregar comentários:', error);
+            comentariosList.innerHTML = '<p class="text-center text-danger py-4">Não foi possível carregar os comentários. Tente novamente mais tarde.</p>';
+        });
+}
 
     function criarHtmlComentario(comentario) {
         let buttons = '';

@@ -8,6 +8,8 @@ import json
 import markdown
 from django.db.models import Count, Q
 from .models import Notificacao # Adicione a importação do novo modelo
+from django.utils import formats # <-- 1. ADICIONE ESTA IMPORTAÇÃO
+from django.utils.timezone import localtime # <-- 1. ADICIONE ESTA IMPORTAÇÃO
 
 # Modelos
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
@@ -124,19 +126,27 @@ def carregar_comentarios(request, questao_id):
         respostas = comentario.respostas.all().order_by('data_criacao')
         respostas_formatadas = [formatar_arvore_comentarios(r) for r in respostas]
 
+        # ===================================================================
+        # INÍCIO DA CORREÇÃO
+        # 1. Converte a data/hora do banco (UTC) para o fuso horário local.
+        # ===================================================================
+        data_local = localtime(comentario.data_criacao)
+        # ===================================================================
+        # FIM DA CORREÇÃO
+        # ===================================================================
+
         return {
             'id': comentario.id,
             'usuario': comentario.usuario.userprofile.nome,
             'conteudo': markdown.markdown(comentario.conteudo),
             'conteudo_raw': comentario.conteudo,
-            'data_criacao': comentario.data_criacao.strftime('%d de %B de %Y às %H:%M'),
+            # 2. Usa a data/hora já convertida para formatar o texto em português.
+            'data_criacao': formats.date_format(data_local, "d \\d\\e F \\d\\e Y \\à\\s H:i"),
             'pode_editar': comentario.usuario == request.user,
             'likes_count': comentario.likes.count(),
             'user_liked': request.user in comentario.likes.all(),
             'respostas': respostas_formatadas,
             'respostas_count': len(respostas_formatadas),
-            # --- ADIÇÃO NECESSÁRIA ---
-            # Informa ao frontend o ID do pai (será None para comentários principais)
             'parent_id': comentario.parent_id
         }
 
