@@ -178,7 +178,7 @@ body {
                         <select name="disciplina" id="disciplina" class="form-select">
                             <option value="">Todas as Disciplinas</option>
                             {% for d in disciplinas_para_filtro %}
-                                <option value="{{ d.id }}" {% if disciplina_selecionada == d.id|stringformat:"s" %}selected{% endif %}>
+                            <option value="{{ d.id }}" {% if disciplina_selecionada == d.id %}selected{% endif %}>
                                     {{ d.nome }}
                                 </option>
                             {% endfor %}
