@@ -1,26 +1,20 @@
 # gestao/views.py
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from pratica.models import Notificacao # Importe o modelo de notificação
+from pratica.models import Notificacao
 from django.utils import timezone
-from usuarios.views import enviar_email_com_template # Importe a função de e-mail
-
-# Modelos e Forms
+from usuarios.views import enviar_email_com_template
 from questoes.models import Questao, Disciplina, Banca, Instituicao, Assunto
 from questoes.forms import GestaoQuestaoForm, EntidadeSimplesForm, AssuntoForm
-from django.urls import reverse # <-- IMPORTAÇÃO NECESSÁRIA PARA A CORREÇÃO
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from questoes.utils import paginar_itens # Importe a NOVA função genérica
-from django.db.models import Q, Count, OuterRef, Subquery # <-- LINHA CHAVE
-from datetime import timedelta
-import markdown # <--- ADICIONE ESTA LINHA
-import json # <--- ADICIONE ESTA LINHA
-
-
+from django.urls import reverse
+from questoes.utils import paginar_itens, filtrar_e_paginar_questoes
+from django.db.models import Q, Count, Max, Prefetch, Exists, OuterRef
+import json
+from django.core.exceptions import ValidationError
+import markdown
 
 
 
@@ -50,12 +44,13 @@ def listar_questoes_gestao(request):
     Agora utiliza a função centralizada para filtros e paginação.
     """
     # 1. Define o queryset base de questões para esta view.
-    base_queryset = Questao.objects.select_related(
-        'disciplina', 'assunto', 'banca'
-    ).all().order_by('-id')
+    lista_questoes = Questao.objects.all().order_by('-id')
+
 
     # 2. Chama a função central para fazer todo o trabalho pesado de filtrar e paginar.
-    context = filtrar_e_paginar_questoes(request, base_queryset, items_per_page=20)
+    context = filtrar_e_paginar_questoes(request, lista_questoes, items_per_page=20)
+
+    
 
     # 3. Adiciona ao contexto apenas as variáveis que são específicas desta página de gestão
     #    (como os dados para popular os modais e os dropdowns de filtro).
@@ -178,145 +173,181 @@ def dashboard_gestao(request):
     return render(request, 'gestao/dashboard.html', context)
 
 
-@require_POST
-@user_passes_test(is_staff_member)
-def notificacoes_acoes_em_massa(request):
-    try:
-        data = json.loads(request.body)
-        notification_ids = data.get('ids', [])
-        action = data.get('action')
 
-        if not notification_ids or not action:
-            return JsonResponse({'status': 'error', 'message': 'IDs ou ação ausentes.'}, status=400)
-
-        # Usamos o modelo Notificacao importado de 'pratica'
-        queryset = Notificacao.objects.filter(id__in=notification_ids)
-
-        if action == 'resolver':
-            queryset.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
-        elif action == 'arquivar':
-            queryset.update(status=Notificacao.Status.ARQUIVADO, data_arquivamento=timezone.now())
-        elif action == 'excluir':
-            # Ação para a limpeza manual de itens arquivados
-            queryset.filter(status=Notificacao.Status.ARQUIVADO).delete()
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Ação inválida.'}, status=400)
-
-        return JsonResponse({'status': 'success', 'message': 'Ação aplicada com sucesso!'})
-
-    except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-    
-    
 
 # =======================================================================
 # INÍCIO: NOVAS VIEWS PARA GERENCIAR NOTIFICAÇÕES
 # =======================================================================
+from questoes.utils import paginar_itens
+
+
 
 
 @user_passes_test(is_staff_member)
 @login_required
 def listar_notificacoes(request):
-    # ===================================================================
-    # MODIFICAÇÃO 1: Captura do novo filtro 'q' para a pesquisa global
-    # ===================================================================
+    """
+    Exibe a página de gerenciamento de notificações, com os reports agrupados por questão.
+    """
     status_filtro = request.GET.get('status', 'PENDENTE')
-    tipo_erro_filtro = request.GET.get('tipo_erro', '')
-    data_inicio = request.GET.get('data_inicio')
-    data_fim = request.GET.get('data_fim')
-    questao_codigo_filtro = request.GET.get('questao_codigo', '')
-    termo_busca = request.GET.get('q', '') # Novo filtro para o termo de busca
-
-    # Queryset inicial com anotação (sem alterações)
-    report_count_subquery = Notificacao.objects.filter(
-        questao_id=OuterRef('questao_id')
-    ).values('questao_id').annotate(count=Count('id')).values('count')
-
-    notificacoes_list = Notificacao.objects.select_related(
-        'questao', 'usuario_reportou__userprofile', 'resolvido_por'
-    ).annotate(
-        questao_report_count=Subquery(report_count_subquery)
-    ).order_by('-data_criacao')
     
-    # ===================================================================
-    # MODIFICAÇÃO 2: Aplicação do filtro de pesquisa global com Q objects
-    # ===================================================================
-    if termo_busca:
-        notificacoes_list = notificacoes_list.filter(
-            Q(questao__codigo__icontains=termo_busca) |
-            Q(descricao__icontains=termo_busca) |
-            Q(usuario_reportou__userprofile__nome__icontains=termo_busca) |
-            Q(usuario_reportou__email__icontains=termo_busca)
-        )
-
-    # Aplicação dos outros filtros (sem alterações)
-    if status_filtro and status_filtro != 'TODAS':
-        notificacoes_list = notificacoes_list.filter(status=status_filtro)
-    if tipo_erro_filtro:
-        notificacoes_list = notificacoes_list.filter(tipo_erro=tipo_erro_filtro)
-    if questao_codigo_filtro:
-        notificacoes_list = notificacoes_list.filter(questao__codigo__iexact=questao_codigo_filtro)
+    # --- LÓGICA DA CONSULTA ---
+    # 1. Começamos com questões que têm pelo menos uma notificação.
+    #    Isso evita que questões com reports já deletados apareçam na aba "Todos".
+    base_queryset = Questao.objects.annotate(
+        num_notificacoes=Count('notificacoes')
+    ).filter(num_notificacoes__gt=0)
     
-    try:
-        if data_inicio:
-            notificacoes_list = notificacoes_list.filter(data_criacao__date__gte=data_inicio)
-        if data_fim:
-            notificacoes_list = notificacoes_list.filter(data_criacao__date__lte=data_fim)
-    except ValidationError:
-        messages.error(request, 'Formato de data inválido. Por favor, utilize o formato AAAA-MM-DD.')
+    # 2. Nas abas específicas (Pendente, Corrigido, etc.), garantimos que a questão
+    #    tenha pelo menos um report com aquele status.
+    if status_filtro != 'TODAS':
+        reports_na_aba_atual = Notificacao.objects.filter(questao_id=OuterRef('pk'), status=status_filtro)
+        base_queryset = base_queryset.filter(Exists(reports_na_aba_atual))
+
+    # 3. Anotamos os dados para cada card:
+    #    - num_reports: A contagem de reports, respeitando o filtro da aba.
+    #    - ultima_notificacao: A data do report mais recente, para ordenação.
+    filtro_anotacao = Q(notificacoes__status=status_filtro) if status_filtro != 'TODAS' else Q()
+    
+    questoes_reportadas = base_queryset.annotate(
+        num_reports=Count('notificacoes', filter=filtro_anotacao),
+        ultima_notificacao=Max('notificacoes__data_criacao', filter=filtro_anotacao)
+    ).order_by('-ultima_notificacao')
+
+    # 4. Usamos Prefetch para carregar os detalhes dos reports de forma otimizada.
+    prefetch_queryset = Notificacao.objects.select_related('usuario_reportou__userprofile')
+    if status_filtro != 'TODAS':
+        prefetch_queryset = prefetch_queryset.filter(status=status_filtro)
         
-    # Cálculo das estatísticas e questões mais reportadas (sem alterações)
-    uma_semana_atras = timezone.now() - timedelta(days=7)
+    questoes_reportadas = questoes_reportadas.prefetch_related(
+        Prefetch('notificacoes', queryset=prefetch_queryset.order_by('-data_criacao'), to_attr='reports_filtrados')
+    )
+
+    # 5. Paginação
+    page_obj, page_numbers = paginar_itens(request, questoes_reportadas, 10)
+
+    # 6. Estatísticas para os cards do topo
     stats = {
         'pendentes_total': Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count(),
-        'resolvidas_7_dias': Notificacao.objects.filter(status=Notificacao.Status.RESOLVIDO, data_resolucao__gte=uma_semana_atras).count(),
-        'arquivadas_7_dias': Notificacao.objects.filter(status=Notificacao.Status.ARQUIVADO, data_arquivamento__gte=uma_semana_atras).count(),
-        'total_notificacoes': Notificacao.objects.count()
+        'resolvidas_total': Notificacao.objects.filter(status=Notificacao.Status.RESOLVIDO).count(),
+        'rejeitadas_total': Notificacao.objects.filter(status=Notificacao.Status.REJEITADO).count(),
     }
-    stats['questoes_mais_reportadas'] = Notificacao.objects.values(
-        'questao_id', 'questao__codigo'
-    ).annotate(num_reports=Count('id')).order_by('-num_reports')[:5]
 
-    # ===================================================================
-    # MODIFICAÇÃO 3: Adiciona 'termo_busca' à lógica de reset da paginação
-    # ===================================================================
-    filters_applied = any([tipo_erro_filtro, data_inicio, data_fim, questao_codigo_filtro, termo_busca])
-    paginator = Paginator(notificacoes_list, 10)
-    page_number = 1 if filters_applied else request.GET.get('page', 1)
-    
-    try:
-        notificacoes_paginadas = paginator.page(page_number)
-    except (EmptyPage, PageNotAnInteger):
-        notificacoes_paginadas = paginator.page(paginator.num_pages if paginator.num_pages > 0 else 1)
-
-    # Lógica de customização dos números de página (sem alterações)
-    page_numbers = []
-    # ... (o resto da sua lógica de paginação) ...
-    current_page = notificacoes_paginadas.number; total_pages = paginator.num_pages
-    if total_pages <= 7: page_numbers = list(range(1, total_pages + 1))
-    else:
-        if current_page <= 4: page_numbers = list(range(1, 6)) + ['...', total_pages]
-        elif current_page >= total_pages - 3: page_numbers = [1, '...'] + list(range(total_pages - 4, total_pages + 1))
-        else: page_numbers = [1, '...', current_page - 1, current_page, current_page + 1, '...', total_pages]
-
-    # ===================================================================
-    # MODIFICAÇÃO 4: Adiciona 'termo_busca_ativo' ao contexto final
-    # ===================================================================
     context = {
-        'notificacoes': notificacoes_paginadas,
-        'page_numbers': page_numbers, 
+        'questoes_agrupadas': page_obj,
+        'page_numbers': page_numbers,
         'status_ativo': status_filtro,
-        'tipos_de_erro': Notificacao.TipoErro.choices,
-        'tipo_erro_ativo': tipo_erro_filtro,
-        'data_inicio_buscada': data_inicio,
-        'data_fim_buscada': data_fim,
         'stats': stats,
-        'questao_codigo_ativo': questao_codigo_filtro,
-        'termo_busca_ativo': termo_busca,
     }
-    return render(request, 'gestao/listar_notificacoes.html', context)
+    
+    return render(request, 'gestao/listar_notificacoes_agrupadas.html', context)
 
 
+@require_POST
+@user_passes_test(is_staff_member)
+@login_required
+def notificacao_acao_agrupada(request, questao_id):
+    """ Aplica uma ação em massa a todos os reports de um status para uma questão. """
+    questao = get_object_or_404(Questao, id=questao_id)
+    action = request.POST.get('action')
+    status_original = request.POST.get('status_original', 'PENDENTE')
+    notificacoes = Notificacao.objects.filter(questao=questao, status=status_original)
+    
+    if action == 'resolver':
+        # --- INÍCIO DA LÓGICA DE E-MAIL ---
+        # 1. Pega a lista de e-mails *antes* de atualizar o status
+        emails_para_notificar = list(
+            notificacoes.exclude(usuario_reportou__email__isnull=True)
+                        .exclude(usuario_reportou__email__exact='')
+                        .values_list('usuario_reportou__email', flat=True)
+                        .distinct()
+        )
+        # --- FIM DA LÓGICA DE E-MAIL ---
+
+        count = notificacoes.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
+        
+        # --- INÍCIO DA LÓGICA DE E-MAIL ---
+        # 2. Envia os e-mails
+        if emails_para_notificar:
+            try:
+                enviar_email_com_template(
+                    request,
+                    subject=f'Sua notificação sobre a questão {questao.codigo} foi resolvida!',
+                    template_name='gestao/email_notificacao_resolvida.html',
+                    # O contexto é genérico, pois o e-mail é o mesmo para todos
+                    context={'user': None, 'questao': questao},
+                    # Envia para múltiplos destinatários de uma vez
+                    recipient_list=emails_para_notificar
+                )
+                messages.success(request, f'{count} report(s) marcados como "Corrigido". E-mails de notificação enviados para {len(emails_para_notificar)} usuário(s).')
+            except Exception as e:
+                messages.warning(request, f'{count} report(s) marcados como "Corrigido", mas falhou ao enviar e-mails de notificação: {e}')
+        else:
+            messages.success(request, f'{count} report(s) da questão {questao.codigo} marcados como "Corrigido".')
+        # --- FIM DA LÓGICA DE E-MAIL ---
+            
+    elif action == 'rejeitar':
+        count = notificacoes.update(status=Notificacao.Status.REJEITADO)
+        messages.warning(request, f'{count} report(s) da questão {questao.codigo} foram rejeitados.')
+    elif action == 'excluir':
+        if status_original in ['RESOLVIDO', 'REJEITADO']:
+            count, _ = notificacoes.delete()
+            messages.error(request, f'{count} report(s) da questão {questao.codigo} foram excluídos permanentemente.')
+        else:
+            messages.error(request, 'A exclusão só é permitida para reports Corrigidos ou Rejeitados.')
+    else:
+        messages.error(request, 'Ação inválida.')
+    return redirect(request.META.get('HTTP_REFERER', reverse('gestao:listar_notificacoes')))
+
+
+@require_POST
+@user_passes_test(is_staff_member)
+def notificacoes_acoes_em_massa(request):
+    """ View para as ações da barra superior (com checkboxes) """
+    try:
+        data = json.loads(request.body)
+        questao_ids = data.get('ids', [])
+        action = data.get('action')
+        status_original = data.get('status_original', 'PENDENTE')
+
+        if not questao_ids or not action:
+            return JsonResponse({'status': 'error', 'message': 'IDs ou ação ausentes.'}, status=400)
+
+        queryset = Notificacao.objects.filter(questao_id__in=questao_ids, status=status_original)
+
+        if action == 'resolver':
+            # Lógica de e-mail para ações em massa
+            emails_para_notificar = list(queryset.exclude(usuario_reportou__email__isnull=True).exclude(usuario_reportou__email__exact='').values_list('usuario_reportou__email', flat=True).distinct())
+            
+            queryset.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
+            
+            if emails_para_notificar:
+                # O ideal aqui seria usar uma task assíncrona (Celery), mas para um volume baixo, isso funciona.
+                for questao_id in questao_ids:
+                    questao = Questao.objects.get(id=questao_id)
+                    enviar_email_com_template(
+                        request, subject=f'Sua notificação sobre a questão {questao.codigo} foi resolvida!',
+                        template_name='gestao/email_notificacao_resolvida.html',
+                        context={'user': None, 'questao': questao},
+                        recipient_list=emails_para_notificar # Envia para todos de uma vez (idealmente seria por questão)
+                    )
+        
+        elif action == 'rejeitar':
+            queryset.update(status=Notificacao.Status.REJEITADO)
+        
+        elif action == 'excluir':
+            if status_original in ['RESOLVIDO', 'REJEITADO']:
+                queryset.delete()
+            else:
+                return JsonResponse({'status': 'error', 'message': 'A exclusão só é permitida para itens Corrigidos ou Rejeitados.'}, status=400)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Ação inválida.'}, status=400)
+
+        return JsonResponse({'status': 'success', 'message': 'Ação aplicada com sucesso!'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    
 @user_passes_test(is_staff_member)
 @login_required
 @require_POST
@@ -420,3 +451,5 @@ def visualizar_questao_ajax(request, questao_id):
         return JsonResponse(data)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+

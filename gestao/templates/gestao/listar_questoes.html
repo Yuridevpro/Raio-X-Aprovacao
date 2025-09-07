@@ -1,3 +1,5 @@
+<!-- gestao/listar_questoes -->
+
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
@@ -256,12 +258,11 @@
         </div>
     {% endif %}
 
-    <!-- PAGINAÇÃO -->
-    {% if questoes.has_other_pages %}
+
         <div class="mt-4">
-             {% include 'includes/_paginacao.html' with paginated_object=questoes %}
+            {% include 'includes/_paginacao.html' with paginated_object=questoes %} 
         </div>
-    {% endif %}
+
 
 </div> <!-- Fim do .container -->
 
@@ -342,7 +343,7 @@
                     <ul id="modalQuestaoAlternativas" class="list-group"></ul>
                 </div>
             </div>
-            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
+            <div class="modal-footer d-flex justify-content-center" ><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
         </div>
     </div>
 </div>

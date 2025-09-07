@@ -6,7 +6,7 @@
    =========================================================================
 */
 
-/* Variáveis de Design (se ainda não estiverem no seu base.css) */
+/* Variáveis de Design */
 :root {
     --primary-color: #4A90E2;
     --secondary-color: #5A6978;
@@ -22,8 +22,9 @@
 }
 
 /* ========================================================================= */
-/* FILTROS E PAGINAÇÃO */
+/* FILTROS E COMPONENTES RELACIONADOS */
 /* ========================================================================= */
+
 .filtros-card {
     background-color: var(--light-bg);
     border: none;
@@ -32,8 +33,6 @@
     margin-bottom: 2rem;
 }
 
-/* static/css/listagem-comum.css */
-
 .filter-dropdown .dropdown-menu {
     border-radius: var(--border-radius);
     border: 1px solid var(--border-color);
@@ -41,10 +40,8 @@
     padding: 1rem;
     max-height: 400px;
     overflow-y: auto;
-    width: 100%; /* Esta regra agora funcionará corretamente */
+    width: 100%;
 }
-
-
 
 .filter-dropdown-options { 
     list-style-type: none; 
@@ -57,30 +54,6 @@
     color: var(--primary-color); 
     padding-top: 10px; 
 }
-
-.nav-pagination .page-item .page-link {
-    border-radius: 50% !important;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 0 5px;
-    border: none;
-    color: var(--secondary-color);
-}
-
-.nav-pagination .page-item.active .page-link {
-    background-color: var(--primary-color);
-    color: #fff;
-    font-weight: bold;
-    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
-}
-
-
-/* ========================================================================= */
-/* ADIÇÃO: ESTILOS COMUNS DE FILTRO MOVIDOS DO TEMPLATE
-/* ========================================================================= */
 
 /* Estilos para os badges de filtros ativos (ex: "Disciplina: Português [x]") */
 #active-filters-container .badge {
@@ -98,14 +71,67 @@
 
 /* Estilos para o painel de filtros "Offcanvas" (Mobile) */
 .filter-offcanvas {
-    /* Define uma altura máxima para não ocupar a tela toda */
     height: 75vh !important;
-    /* Adiciona cantos arredondados no topo para um visual mais suave */
     border-top-left-radius: 1.5rem;
     border-top-right-radius: 1.5rem;
 }
 
 .filter-offcanvas .offcanvas-body {
-    /* Remove o padding padrão do topo para colar o campo de busca no header */
     padding-top: 0;
+}
+
+
+/* =================================================================== */
+/* PAGINAÇÃO (VERSÃO CORRIGIDA E COMPLETA) */
+/* =================================================================== */
+
+/* Define variáveis para fácil customização e escopo */
+.nav-pagination .pagination {
+    --pagination-size: 40px;
+    --pagination-margin: 5px;
+    --pagination-active-bg: var(--primary-color, #4A90E2); /* Usa sua cor primária */
+    --pagination-active-shadow: 0 4px 10px rgba(74, 144, 226, 0.35);
+}
+
+/* Estilo base para todos os links da paginação */
+.nav-pagination .page-item .page-link {
+    border-radius: 50% !important; /* Força o formato circular */
+    width: var(--pagination-size);
+    height: var(--pagination-size);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 var(--pagination-margin);
+    border: none;
+    background-color: #f0f1f3; /* Fundo cinza claro para itens não ativos */
+    color: var(--secondary-color, #5A6978);
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+}
+
+/* Efeito ao passar o mouse (apenas em itens que não estão ativos ou desabilitados) */
+.nav-pagination .page-item:not(.active):not(.disabled) .page-link:hover {
+    background-color: #dfe3e7;
+    color: var(--text-dark, #343a40);
+    transform: translateY(-2px);
+}
+
+/* Estilo para o item que está ATIVO (Regra mais específica para garantir a prioridade) */
+.nav-pagination .page-item.active .page-link {
+    background-color: var(--pagination-active-bg);
+    color: white;
+    font-weight: bold;
+    box-shadow: var(--pagination-active-shadow);
+    transform: translateY(-2px);
+}
+
+/* Estilo para os itens desabilitados ("..." e setas nas pontas) */
+.nav-pagination .page-item.disabled .page-link {
+    background-color: transparent;
+    color: #adb5bd;
+}
+
+/* Remove foco visual desnecessário do Bootstrap */
+.nav-pagination .page-link:focus {
+    box-shadow: none;
 }

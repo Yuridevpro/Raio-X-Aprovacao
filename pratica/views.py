@@ -338,6 +338,11 @@ def get_assuntos_por_disciplina(request):
     
     return JsonResponse({'assuntos': list(assuntos)})
 
+# pratica/views.py
+
+from django.db import IntegrityError # Adicione esta importação
+# ... (outras importações)
+
 @login_required
 @require_POST
 def notificar_erro(request):
@@ -352,18 +357,24 @@ def notificar_erro(request):
 
         questao = get_object_or_404(Questao, id=questao_id)
 
-        # Cria a notificação no banco de dados
-        Notificacao.objects.create(
-            questao=questao,
-            usuario_reportou=request.user,
-            tipo_erro=tipo_erro,
-            descricao=descricao
-        )
-
-        return JsonResponse({'status': 'success', 'message': 'Obrigado! Sua notificação foi enviada e será analisada pela nossa equipe.'})
+        # --- INÍCIO DA NOVA LÓGICA ---
+        # A constraint do modelo já previne a criação, mas aqui tratamos o erro de forma amigável
+        try:
+            Notificacao.objects.create(
+                questao=questao,
+                usuario_reportou=request.user,
+                tipo_erro=tipo_erro,
+                descricao=descricao
+            )
+            return JsonResponse({'status': 'success', 'message': 'Obrigado! Sua notificação foi enviada e será analisada pela nossa equipe.'})
+        
+        except IntegrityError:
+            # Este erro será disparado pela constraint que criamos no modelo
+            return JsonResponse({
+                'status': 'error', 
+                'message': 'Você já possui uma notificação ativa para esta questão. Nossa equipe já está ciente e analisará em breve.'
+            }, status=409) # 409 Conflict é um bom status para este caso
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-# =======================================================================
-# FIM: NOVA VIEW
-# =======================================================================
+# --- FIM DA NOVA LÓGICA ---

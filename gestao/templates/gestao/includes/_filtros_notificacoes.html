@@ -1,0 +1,12 @@
+<!-- gestao/templates/gestao/includes/_filtros_notificacoes.html -->
+
+<form method="GET" class="filters-card mb-4">
+    <input type="hidden" name="status" value="{{ status_ativo }}">
+    <div class="row g-3 align-items-end">
+        <div class="col-12 col-lg-4"><label for="q" class="form-label fw-bold small">Pesquisar</label><div class="input-group"><span class="input-group-text"><i class="fas fa-search"></i></span><input type="text" class="form-control" id="q" name="q" value="{{ termo_busca_ativo|default:'' }}" placeholder="Código, descrição, usuário..."></div></div>
+        <div class="col-12 col-md-6 col-lg-2"><label for="tipo_erro" class="form-label fw-bold small">Tipo</label><select name="tipo_erro" id="tipo_erro" class="form-select"><option value="">Todos</option>{% for value, display in tipos_de_erro %}<option value="{{ value }}" {% if tipo_erro_ativo == value %}selected{% endif %}>{{ display }}</option>{% endfor %}</select></div>
+        <div class="col-12 col-md-6 col-lg-2"><label for="data_inicio" class="form-label fw-bold small">De</label><input type="text" class="form-control datepicker" name="data_inicio" value="{{ data_inicio_buscada|default:'' }}" placeholder="DD/MM/AAAA"></div>
+        <div class="col-12 col-md-6 col-lg-2"><label for="data_fim" class="form-label fw-bold small">Até</label><input type="text" class="form-control datepicker" name="data_fim" value="{{ data_fim_buscada|default:'' }}" placeholder="DD/MM/AAAA"></div>
+        <div class="col-12 col-md-6 col-lg-2"><div class="d-grid d-md-flex gap-2"><button type="submit" class="btn btn-dark w-100"><i class="fas fa-filter me-2"></i>Filtrar</button><a href="?status={{ status_ativo }}" class="btn btn-outline-secondary w-100" title="Limpar Filtros"><i class="fas fa-times"></i></a></div></div>
+    </div>
+</form>

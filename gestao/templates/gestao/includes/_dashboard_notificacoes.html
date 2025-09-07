@@ -1,0 +1,12 @@
+<!-- gestao/templates/gestao/includes/_dashboard_notificacoes.html -->
+
+<div class="row g-4 mb-5">
+    <div class="col-md-3 col-6"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-danger">{{ stats.pendentes_total }}</h5><p class="card-text text-muted mb-0">Pendentes</p></div></div></div>
+    <div class="col-md-3 col-6"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-info">{{ stats.em_analise_total }}</h5><p class="card-text text-muted mb-0">Em Análise</p></div></div></div>
+    <div class="col-md-3 col-6"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-success">{{ stats.resolvidas_7_dias }}</h5><p class="card-text text-muted mb-0">Resolvidas (7d)</p></div></div></div>
+    <div class="col-md-3 col-6"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title">{{ stats.total_notificacoes }}</h5><p class="card-text text-muted mb-0">Total</p></div></div></div>
+</div>
+<div class="card mb-4 summary-card">
+    <div class="card-header bg-transparent border-bottom-0 pt-3 pb-0"><h6 class="mb-0 fw-bold text-center text-md-start"><i class="fas fa-exclamation-triangle me-2 text-danger"></i>Questões Mais Reportadas (Ativas)</h6></div>
+    {% if stats.questoes_mais_reportadas %}<div class="card-body pt-2"><ul class="list-group list-group-flush">{% for q in stats.questoes_mais_reportadas %}<li class="list-group-item d-flex justify-content-between align-items-center px-0"><a href="{% url 'gestao:listar_notificacoes' %}?status=TODAS&q={{ q.questao__codigo }}" class="text-decoration-none fw-bold text-dark">{{ q.questao__codigo }}</a><span class="badge bg-danger rounded-pill">{{ q.num_reports }} report{{ q.num_reports|pluralize:"s" }}</span></li>{% endfor %}</ul></div>{% else %}<div class="card-body text-center text-muted"><p class="mb-0">Não há dados de questões mais reportadas.</p></div>{% endif %}
+</div>

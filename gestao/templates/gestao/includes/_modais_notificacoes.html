@@ -1,0 +1,62 @@
+<!-- gestao/templates/gestao/includes/_modais_notificacoes.html -->
+
+<!-- MODAL DE CONFIRMAÇÃO (VOCÊ JÁ TEM ESTE) -->
+<div class="modal fade" id="confirmationModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="confirmationModalLabel">Confirmar Ação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="confirmationModalBody"></div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-dark" id="btn-confirm-action">Sim, Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE VISUALIZAÇÃO (VOCÊ JÁ TEM ESTE) -->
+<div class="modal fade" id="visualizarQuestaoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-center">
+                <h5 class="modal-title">Visualizando Questão: <span id="modalQuestaoCodigo" class="fw-bold">...</span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalQuestaoSpinner" class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>
+                <div id="modalQuestaoContent" style="display: none;">
+                    <h6>Enunciado:</h6>
+                    <div id="modalQuestaoEnunciado" class="enunciado-formatado mb-4 p-3 bg-light rounded"></div>
+                    <h6>Alternativas:</h6>
+                    <ul id="modalQuestaoAlternativas" class="list-group"></ul>
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =================================================================== -->
+<!-- ADIÇÃO: MODAL DE NOTIFICAÇÃO GENÉRICO (PARA SUBSTITUIR OS ALERTS) -->
+<!-- =================================================================== -->
+<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header text-white" id="notificationModalHeader modal-footer d-flex justify-content-center">
+                <h5 class="modal-title" id="notificationModalLabel">Aviso</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body modal-footer d-flex justify-content-center" id="notificationModalBody">
+                <!-- O conteúdo da mensagem será inserido aqui via JS -->
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
+            </div>
+        </div>
+    </div>
+</div>

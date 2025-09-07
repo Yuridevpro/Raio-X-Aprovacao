@@ -371,84 +371,106 @@
         border-top: 1px solid var(--border-color);
     }
 
-    /* ========================================================================= */
-    /* ============= INÍCIO: AJUSTES PARA TELAS MOBILE (ATÉ 768px) ============= */
-    /* ========================================================================= */
-    @media (max-width: 768px) {
+/* ========================================================================= */
+/* ============= AJUSTES PARA TELAS MOBILE (ATÉ 768px) ===================== */
+/* ========================================================================= */
+@media (max-width: 768px) {
 
-        /* 1. Remove a largura máxima do container para que o conteúdo ocupe 100% da tela */
-        .container {
-            max-width: 100%;
-            padding-left: 0;
-            padding-right: 0;
-        }
+/* 1. Container ocupa 100% e com espaçamento confortável */
+.container {
+    max-width: 100%;
+    padding: 0 1rem; /* espaço lateral padrão */
+}
 
-        /* 2. Remove sombras, bordas e arredondamentos dos cards para dar a sensação de "fundo expandido" */
-        .filtros-card,
-        .card-questao {
-            border-radius: 0;
-            margin-left: 0;
-            margin-right: 0;
-            box-shadow: none;
-            border-bottom: 1px solid var(--border-color); /* Adiciona um separador entre as questões */
-        }
-        
-        /* 3. Adiciona padding interno aos cards para o conteúdo não colar nas bordas da tela */
-        .filtros-card,
-        .card-questao .card-body,
-        .card-questao .card-header,
-        .card-questao .card-footer,
-        .comentarios-section {
-            padding-left: 1rem;
-            padding-right: 1rem;
-        }
+/* 2. Cards com layout mais clean */
+.filtros-card,
+.card-questao {
+    border-radius: 0;
+    margin: 0 0 1rem 0; /* separa os cards entre si */
+    box-shadow: none;
+    border: 1px solid var(--border-color);
+    background: var(--light-bg);
+}
 
-        /* 4. Aumenta o ícone de estrela para facilitar o toque */
-        .card-questao .fa-star {
-            font-size: 1.5rem;
-        }
-        
-        /* ======================================================= */
-        /* ======== AJUSTES NA ÁREA DE COMENTÁRIOS (MOBILE) ====== */
-        /* ======================================================= */
+/* 3. Espaçamento interno mais amplo para melhor leitura */
+.filtros-card,
+.card-questao .card-body,
+.card-questao .card-header,
+.card-questao .card-footer,
+.comentarios-section {
+    padding: 1.25rem;
+}
 
-        /* 5. Reduz o espaço à esquerda para o avatar, ganhando mais espaço para o conteúdo do comentário */
-        .comment-wrapper {
-            padding-left: 50px;
-        }
+/* 4. Títulos e textos com mais respiro */
+.card-questao h4,
+.card-questao h5 {
+    margin-bottom: 0.75rem;
+    line-height: 1.4;
+}
 
-        .comment-avatar .avatar-icon {
-            width: 35px;
-            height: 35px;
-            font-size: 1rem;
-        }
-        
-        /* 6. Ajusta a "seta" do balão de comentário para a nova posição do avatar */
-        .comment-card::before {
-            left: -18px; 
-            border-width: 9px;
-            border-right-color: var(--border-color);
-        }
-        .comment-card::after {
-            top: 15px;
-            left: -15px; 
-            border-width: 8px;
-            border-right-color: var(--light-bg);
-        }
+.card-questao p {
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+}
 
-        /* 7. Otimiza o rodapé do comentário (botões de 'Gostei' e 'Respostas') */
-        .comment-footer {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.75rem;
-        }
-        
-        /* 8. Ajusta o recuo das respostas aninhadas */
-        .comment-replies {
-            margin-left: 1rem;
-            padding-left: 0.75rem;
-        }
-    }
+/* 5. Ícone de estrela maior para toque fácil */
+.card-questao .fa-star {
+    font-size: 1.6rem;
+    margin-left: 0.5rem;
+}
+
+/* ======================================================= */
+/* ======== AJUSTES NA ÁREA DE COMENTÁRIOS (MOBILE) ====== */
+/* ======================================================= */
+
+/* 6. Avatar com mais respiro */
+.comment-wrapper {
+    padding-left: 55px;
+    margin-bottom: 1rem;
+}
+
+.comment-avatar .avatar-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.1rem;
+}
+
+/* 7. Balão de comentário mais clean */
+.comment-card {
+    padding: 1rem;
+    border-radius: 0.75rem;
+    line-height: 1.5;
+}
+
+.comment-card::before {
+    left: -20px; 
+    border-width: 10px;
+    border-right-color: var(--border-color);
+}
+
+.comment-card::after {
+    top: 15px;
+    left: -17px; 
+    border-width: 9px;
+    border-right-color: var(--light-bg);
+}
+
+/* 8. Rodapé dos comentários melhor organizado */
+.comment-footer {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+}
+
+/* 9. Recuo das respostas aninhadas mais discreto */
+.comment-replies {
+    margin-left: 1.25rem;
+    padding-left: 1rem;
+    border-left: 2px solid var(--border-color);
+}
+}
+
     
 </style>
 {% endblock %}
