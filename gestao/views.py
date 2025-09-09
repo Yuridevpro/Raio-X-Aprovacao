@@ -15,7 +15,11 @@ from django.db.models import Q, Count, Max, Prefetch, Exists, OuterRef
 import json
 from django.core.exceptions import ValidationError
 import markdown
-
+from django.contrib.auth.models import User
+from .forms import StaffUserForm 
+ # Certifique-se que JsonResponse está importado
+from .models import SolicitacaoExclusao
+from .forms import ExclusaoUsuarioForm # Importe o novo formulário
 
 
 # =======================================================================
@@ -27,12 +31,38 @@ from questoes.utils import filtrar_e_paginar_questoes
 def is_staff_member(user):
     return user.is_staff
 
+# gestao/views.py
+
+# Adicione o novo modelo aos seus imports
+from .models import SolicitacaoExclusao
+# ... outros imports
+
+# gestao/views.py
+
 @user_passes_test(is_staff_member)
 @login_required
 def dashboard_gestao(request):
     total_questoes = Questao.objects.count()
+    notificacoes_pendentes = Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count()
+    
+    # ESTA PARTE FAZ A CONTAGEM CORRETA
+    solicitacoes_pendentes_count = 0
+    if request.user.is_superuser:
+        solicitacoes_pendentes_count = SolicitacaoExclusao.objects.filter(
+            status=SolicitacaoExclusao.Status.PENDENTE
+        ).count()
+    
     context = {
-        'total_questoes': total_questoes
+        'total_questoes': total_questoes,
+        'notificacoes_pendentes': notificacoes_pendentes,
+        'solicitacoes_pendentes_count': solicitacoes_pendentes_count, # A variável é enviada para o template
+    }
+    return render(request, 'gestao/dashboard.html', context)
+    
+    context = {
+        'total_questoes': total_questoes,
+        'notificacoes_pendentes': notificacoes_pendentes,
+        'solicitacoes_pendentes_count': solicitacoes_pendentes_count, # Adicionado ao contexto
     }
     return render(request, 'gestao/dashboard.html', context)
 
@@ -102,16 +132,29 @@ def editar_questao(request, questao_id):
     context = { 'form': form, 'titulo': f'Editar Questão ({questao.codigo})' }
     return render(request, 'gestao/form_questao.html', context)
 
-@user_passes_test(is_staff_member)
 @login_required
+@user_passes_test(is_staff_member)
+@require_POST # A exclusão deve ser sempre via POST
 def deletar_questao(request, questao_id):
+    """
+    Deleta uma questão e retorna uma resposta JSON para a requisição AJAX.
+    """
     questao = get_object_or_404(Questao, id=questao_id)
-    if request.method == 'POST':
+    
+    try:
+        questao_codigo = questao.codigo
         questao.delete()
-        messages.success(request, 'Questão deletada com sucesso.')
-        return redirect('gestao:listar_questoes')
-
-    return render(request, 'gestao/confirmar_delete.html', {'questao': questao})
+        return JsonResponse({
+            'status': 'success',
+            'message': f'A questão "{questao_codigo}" foi excluída com sucesso.',
+            'deleted_questao_id': questao_id
+        })
+    except Exception as e:
+        # Captura erros, como erros de PROTECT do banco de dados
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Não foi possível excluir a questão. Erro: {str(e)}'
+        }, status=500)
 
 @user_passes_test(is_staff_member)
 @login_required
@@ -157,20 +200,6 @@ def adicionar_assunto(request):
     
     return JsonResponse({'status': 'error', 'errors': form.errors.as_json()}, status=400)
 
-@user_passes_test(is_staff_member)
-@login_required
-def dashboard_gestao(request):
-    total_questoes = Questao.objects.count()
-    # =======================================================================
-    # ADIÇÃO: Contagem de notificações pendentes
-    # =======================================================================
-    notificacoes_pendentes = Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count()
-    
-    context = {
-        'total_questoes': total_questoes,
-        'notificacoes_pendentes': notificacoes_pendentes
-    }
-    return render(request, 'gestao/dashboard.html', context)
 
 
 
@@ -243,61 +272,65 @@ def listar_notificacoes(request):
     return render(request, 'gestao/listar_notificacoes_agrupadas.html', context)
 
 
+# gestao/views.py
+# ... (outros imports)
+
 @require_POST
 @user_passes_test(is_staff_member)
 @login_required
 def notificacao_acao_agrupada(request, questao_id):
-    """ Aplica uma ação em massa a todos os reports de um status para uma questão. """
+    """
+    Aplica uma ação em massa a todos os reports de um status para uma questão.
+    AGORA RETORNA JSON para funcionar com AJAX.
+    """
     questao = get_object_or_404(Questao, id=questao_id)
     action = request.POST.get('action')
     status_original = request.POST.get('status_original', 'PENDENTE')
     notificacoes = Notificacao.objects.filter(questao=questao, status=status_original)
     
+    count = notificacoes.count()
+    message = ""
+
     if action == 'resolver':
-        # --- INÍCIO DA LÓGICA DE E-MAIL ---
-        # 1. Pega a lista de e-mails *antes* de atualizar o status
         emails_para_notificar = list(
             notificacoes.exclude(usuario_reportou__email__isnull=True)
                         .exclude(usuario_reportou__email__exact='')
-                        .values_list('usuario_reportou__email', flat=True)
-                        .distinct()
+                        .values_list('usuario_reportou__email', flat=True).distinct()
         )
-        # --- FIM DA LÓGICA DE E-MAIL ---
-
-        count = notificacoes.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
+        notificacoes.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
         
-        # --- INÍCIO DA LÓGICA DE E-MAIL ---
-        # 2. Envia os e-mails
+        # Lógica de e-mail (não bloqueante)
         if emails_para_notificar:
             try:
                 enviar_email_com_template(
                     request,
                     subject=f'Sua notificação sobre a questão {questao.codigo} foi resolvida!',
                     template_name='gestao/email_notificacao_resolvida.html',
-                    # O contexto é genérico, pois o e-mail é o mesmo para todos
                     context={'user': None, 'questao': questao},
-                    # Envia para múltiplos destinatários de uma vez
                     recipient_list=emails_para_notificar
                 )
-                messages.success(request, f'{count} report(s) marcados como "Corrigido". E-mails de notificação enviados para {len(emails_para_notificar)} usuário(s).')
-            except Exception as e:
-                messages.warning(request, f'{count} report(s) marcados como "Corrigido", mas falhou ao enviar e-mails de notificação: {e}')
+                message = f'{count} report(s) da questão {questao.codigo} marcados como "Corrigido". E-mails de notificação enviados.'
+            except Exception:
+                message = f'{count} report(s) marcados como "Corrigido", mas falhou ao enviar e-mails de notificação.'
         else:
-            messages.success(request, f'{count} report(s) da questão {questao.codigo} marcados como "Corrigido".')
-        # --- FIM DA LÓGICA DE E-MAIL ---
-            
+            message = f'{count} report(s) da questão {questao.codigo} marcados como "Corrigido".'
+        
+        return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
+
     elif action == 'rejeitar':
-        count = notificacoes.update(status=Notificacao.Status.REJEITADO)
-        messages.warning(request, f'{count} report(s) da questão {questao.codigo} foram rejeitados.')
+        notificacoes.update(status=Notificacao.Status.REJEITADO)
+        message = f'{count} report(s) da questão {questao.codigo} foram rejeitados.'
+        return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
+
     elif action == 'excluir':
         if status_original in ['RESOLVIDO', 'REJEITADO']:
             count, _ = notificacoes.delete()
-            messages.error(request, f'{count} report(s) da questão {questao.codigo} foram excluídos permanentemente.')
+            message = f'{count} report(s) da questão {questao.codigo} foram excluídos permanentemente.'
+            return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
         else:
-            messages.error(request, 'A exclusão só é permitida para reports Corrigidos ou Rejeitados.')
-    else:
-        messages.error(request, 'Ação inválida.')
-    return redirect(request.META.get('HTTP_REFERER', reverse('gestao:listar_notificacoes')))
+            return JsonResponse({'status': 'error', 'message': 'A exclusão só é permitida para reports Corrigidos ou Rejeitados.'}, status=403)
+    
+    return JsonResponse({'status': 'error', 'message': 'Ação inválida.'}, status=400)
 
 
 @require_POST
@@ -389,46 +422,7 @@ def resolver_notificacao(request, notificacao_id):
     return redirect(redirect_url)
 
 
-@user_passes_test(is_staff_member)
-@login_required
-@require_POST
-def arquivar_notificacao(request, notificacao_id):
-    notificacao = get_object_or_404(Notificacao, id=notificacao_id, status=Notificacao.Status.RESOLVIDO)
-    
-    # ===================================================================
-    # ADIÇÃO: Captura a URL exata de retorno para manter a paginação correta
-    # ===================================================================
-    redirect_url = request.META.get('HTTP_REFERER', f"{reverse('gestao:listar_notificacoes')}?status=RESOLVIDO")
-    
-    notificacao.status = Notificacao.Status.ARQUIVADO
-    notificacao.data_arquivamento = timezone.now()
-    notificacao.save()
-    
-    messages.success(request, f'Notificação para a questão {notificacao.questao.codigo} foi arquivada.')
-    
-    # Redireciona de volta para a mesma página de onde o usuário veio
-    return redirect(redirect_url)
 
-
-@user_passes_test(is_staff_member)
-@login_required
-@require_POST
-def desarquivar_notificacao(request, notificacao_id):
-    notificacao = get_object_or_404(Notificacao, id=notificacao_id, status=Notificacao.Status.ARQUIVADO)
-    
-    # ===================================================================
-    # ADIÇÃO: Captura a URL exata de retorno para manter a paginação correta
-    # ===================================================================
-    redirect_url = request.META.get('HTTP_REFERER', f"{reverse('gestao:listar_notificacoes')}?status=ARQUIVADO")
-    
-    notificacao.status = Notificacao.Status.RESOLVIDO
-    notificacao.data_arquivamento = None
-    notificacao.save()
-    
-    messages.info(request, f'Notificação para a questão {notificacao.questao.codigo} foi restaurada.')
-    
-    # Redireciona de volta para a mesma página de onde o usuário veio
-    return redirect(redirect_url)
 
 # ===================================================================
 # NOVA VIEW PARA O MODAL DE VISUALIZAÇÃO RÁPIDA
@@ -453,3 +447,392 @@ def visualizar_questao_ajax(request, questao_id):
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     
 
+# gestao/views.py
+
+
+
+# =======================================================================
+# INÍCIO: NOVAS VIEWS PARA GERENCIAR USUÁRIOS (APENAS SUPERUSER)
+# =======================================================================
+
+# gestao/views.py
+
+@login_required
+@user_passes_test(is_staff_member)
+def listar_usuarios(request):
+    base_queryset = User.objects.exclude(id=request.user.id)
+    if not request.user.is_superuser:
+        base_queryset = base_queryset.exclude(is_superuser=True)
+    base_queryset = base_queryset.order_by('username')
+    filtro_q = request.GET.get('q', '').strip()
+    filtro_permissao = request.GET.get('permissao', '')
+    if filtro_q:
+        base_queryset = base_queryset.filter(
+            Q(username__icontains=filtro_q) | Q(email__icontains=filtro_q)
+        )
+    if filtro_permissao == 'superuser':
+        if request.user.is_superuser:
+            base_queryset = base_queryset.filter(is_superuser=True)
+    elif filtro_permissao == 'staff':
+        base_queryset = base_queryset.filter(is_staff=True, is_superuser=False)
+    elif filtro_permissao == 'comum':
+        base_queryset = base_queryset.filter(is_staff=False)
+    
+    usuarios_paginados, page_numbers = paginar_itens(request, base_queryset, items_per_page=9) # Ajuste a paginação se desejar
+
+    # Monta o contexto para o template
+    context = {
+        'usuarios': usuarios_paginados,
+        'paginated_object': usuarios_paginados,
+        'page_numbers': page_numbers,
+        'filtro_q': filtro_q,
+        'filtro_permissao': filtro_permissao,
+        # =======================================================================
+        # ADIÇÃO: Passa a contagem total de itens (pós-filtro) para o template
+        # =======================================================================
+        'total_usuarios': usuarios_paginados.paginator.count,
+    }
+    return render(request, 'gestao/listar_usuarios.html', context)
+# =======================================================================
+# FIM DO BLOCO MODIFICADO
+# =======================================================================
+
+
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def editar_usuario_staff(request, user_id):
+    usuario_alvo = get_object_or_404(User, id=user_id)
+    
+    if request.method == 'POST':
+        form = StaffUserForm(request.POST, instance=usuario_alvo)
+        if form.is_valid():
+            # =======================================================================
+            # INÍCIO DA MUDANÇA: Verificação de segurança adicional
+            # =======================================================================
+            is_staff_novo = form.cleaned_data.get('is_staff')
+            if usuario_alvo.is_superuser and not is_staff_novo:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Ação negada: Um Superusuário não pode ser removido do status "Membro da Equipe".'
+                }, status=403) # 403 Forbidden
+            # =======================================================================
+            # FIM DA MUDANÇA
+            # =======================================================================
+            
+            form.save()
+            return JsonResponse({
+                'status': 'success',
+                'message': f'Permissões do usuário {usuario_alvo.username} atualizadas com sucesso.'
+            })
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Ocorreu um erro de validação.',
+                'errors': form.errors
+            }, status=400)
+
+    else:
+        form = StaffUserForm(instance=usuario_alvo)
+
+    context = {
+        'form': form, 'usuario_alvo': usuario_alvo, 'titulo': f'Editar Permissões de {usuario_alvo.username}'
+    }
+    return render(request, 'gestao/form_usuario_staff.html', context)
+
+
+
+
+
+# =======================================================================
+# INÍCIO DO BLOCO NOVO: View para Ações em Massa de Questões
+# =======================================================================
+@login_required
+@user_passes_test(is_staff_member)
+@require_POST
+def questoes_acoes_em_massa(request):
+    """
+    Processa ações em massa (como deletar) para as questões selecionadas.
+    """
+    try:
+        data = json.loads(request.body)
+        questao_ids = data.get('ids', [])
+        action = data.get('action')
+
+        if not questao_ids or not action:
+            return JsonResponse({'status': 'error', 'message': 'IDs ou ação ausentes.'}, status=400)
+
+        queryset = Questao.objects.filter(id__in=questao_ids)
+
+        if action == 'delete':
+            count, _ = queryset.delete()
+            return JsonResponse({
+                'status': 'success',
+                'message': f'{count} questão(ões) foram excluídas com sucesso.'
+            })
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Ação inválida.'}, status=400)
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+# =======================================================================
+# FIM DO BLOCO NOVO
+
+# =======================================================================
+# INÍCIO DO BLOCO NOVO: View para promover um usuário a Superusuário
+# =======================================================================
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def promover_a_superuser(request, user_id):
+    """
+    Promove um usuário existente a superusuário.
+    Ação de alto risco, acessível apenas por outros superusuários.
+    """
+    usuario_alvo = get_object_or_404(User, id=user_id)
+
+    # Verificação de segurança: um superusuário não pode promover a si mesmo.
+    if usuario_alvo == request.user:
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Você não pode alterar suas próprias permissões de superusuário.'
+        }, status=403)
+
+    try:
+        # A promoção para superusuário também exige que o usuário seja staff.
+        usuario_alvo.is_superuser = True
+        usuario_alvo.is_staff = True # Superusuários devem ser staff por definição.
+        usuario_alvo.save(update_fields=['is_superuser', 'is_staff'])
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'O usuário "{usuario_alvo.username}" foi promovido a Superusuário com sucesso.'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': f'Ocorreu um erro inesperado ao promover o usuário: {str(e)}'
+        }, status=500)
+# =======================================================================
+# FIM DO BLOCO NOVO
+# =======================================================================
+
+# =======================================================================
+# INÍCIO DO BLOCO NOVO: View para despromover um Superusuário
+# =======================================================================
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def despromover_de_superuser(request, user_id):
+    """
+    Remove as permissões de superusuário de um usuário.
+    Ação de alto risco com salvaguardas.
+    """
+    usuario_alvo = get_object_or_404(User, id=user_id)
+
+    # Verificação de segurança 1: Não pode despromover a si mesmo.
+    if usuario_alvo == request.user:
+        return JsonResponse({'status': 'error', 'message': 'Você não pode remover suas próprias permissões de superusuário.'}, status=403)
+
+    # Verificação de segurança 2: Não pode despromover o último superusuário ativo.
+    if User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
+        return JsonResponse({'status': 'error', 'message': 'Ação negada: Não é possível remover as permissões do único superusuário do sistema.'}, status=403)
+
+    try:
+        usuario_alvo.is_superuser = False
+        usuario_alvo.save(update_fields=['is_superuser'])
+        return JsonResponse({
+            'status': 'success',
+            'message': f'O usuário "{usuario_alvo.username}" não é mais um Superusuário. Ele ainda é um Membro da Equipe.'
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Ocorreu um erro inesperado: {str(e)}'}, status=500)
+# =======================================================================
+# FIM DO BLOCO NOVO
+# =======================================================================
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def deletar_usuario(request, user_id):
+    usuario_alvo = get_object_or_404(User, id=user_id)
+    form = ExclusaoUsuarioForm(request.POST) # Usa o novo formulário unificado
+
+    # Verificações de segurança (inalteradas)
+    if usuario_alvo == request.user:
+        return JsonResponse({'status': 'error', 'message': 'Ação negada: Você não pode excluir sua própria conta.'}, status=403)
+    if usuario_alvo.is_superuser and User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
+        return JsonResponse({'status': 'error', 'message': 'Ação negada: Não é possível excluir o único superusuário do sistema.'}, status=403)
+
+    if form.is_valid():
+        motivo_predefinido_chave = form.cleaned_data['motivo_predefinido']
+        motivo_predefinido_texto = dict(form.fields['motivo_predefinido'].choices)[motivo_predefinido_chave]
+        justificativa = form.cleaned_data.get('justificativa', '') # Campo opcional para superuser
+        
+        # Constrói o motivo completo para o e-mail
+        motivo_final_para_email = f"{motivo_predefinido_texto}"
+        if justificativa:
+            motivo_final_para_email += f" (Detalhes: {justificativa})"
+            
+        email_alvo = usuario_alvo.email
+        username_alvo = usuario_alvo.username
+
+        if email_alvo:
+            try:
+                enviar_email_com_template(
+                    request,
+                    subject='Sua conta na plataforma Raio-X da Aprovação foi removida',
+                    template_name='gestao/email_conta_excluida.html',
+                    context={'user': usuario_alvo, 'motivo_texto': motivo_final_para_email},
+                    recipient_list=[email_alvo]
+                )
+                usuario_alvo.delete()
+                message = f'O usuário "{username_alvo}" foi excluído e notificado por e-mail com sucesso.'
+            except Exception as e:
+                usuario_alvo.delete()
+                message = f'O usuário "{username_alvo}" foi excluído, mas ocorreu um erro ao enviar o e-mail: {e}'
+        else:
+            usuario_alvo.delete()
+            message = f'O usuário "{username_alvo}" foi excluído. (Nenhuma notificação foi enviada por falta de e-mail).'
+
+        return JsonResponse({'status': 'success', 'message': message, 'deleted_user_id': user_id })
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Por favor, corrija os erros abaixo.', 'field_errors': form.errors}, status=400)
+
+
+# =======================================================================
+# View 'sugerir_exclusao_usuario' refatorada com o novo formulário
+# =======================================================================
+@login_required
+@user_passes_test(lambda u: u.is_staff)
+@require_POST
+def sugerir_exclusao_usuario(request, user_id):
+    usuario_alvo = get_object_or_404(User, id=user_id)
+    form = ExclusaoUsuarioForm(request.POST) # Usa o formulário unificado
+
+    # Verificações de segurança (inalteradas)
+    if usuario_alvo.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Membros da equipe não podem sugerir a exclusão de superusuários.'}, status=403)
+    if SolicitacaoExclusao.objects.filter(usuario_a_ser_excluido=usuario_alvo, status=SolicitacaoExclusao.Status.PENDENTE).exists():
+        return JsonResponse({'status': 'error', 'message': 'Já existe uma solicitação de exclusão pendente para este usuário.'}, status=400)
+
+    # Adiciona a validação de obrigatoriedade para o campo de justificativa
+    form.fields['justificativa'].required = True
+        
+    if form.is_valid():
+        motivo_predefinido_chave = form.cleaned_data['motivo_predefinido']
+        motivo_predefinido_texto = dict(form.fields['motivo_predefinido'].choices)[motivo_predefinido_chave]
+        justificativa = form.cleaned_data['justificativa']
+        
+        # Combina os dois campos para salvar no modelo de solicitação
+        motivo_completo = f"Motivo: {motivo_predefinido_texto}\n\nJustificativa: {justificativa}"
+
+        # =======================================================================
+        # CORREÇÃO PRINCIPAL: Criar o objeto diretamente em vez de usar form.save()
+        # =======================================================================
+        SolicitacaoExclusao.objects.create(
+            usuario_a_ser_excluido=usuario_alvo,
+            solicitado_por=request.user,
+            motivo=motivo_completo
+        )
+        
+        return JsonResponse({'status': 'success', 'message': 'Sua sugestão de exclusão foi enviada para revisão por um superusuário.'})
+    
+    # Se o formulário for inválido
+    return JsonResponse({'status': 'error', 'message': 'Por favor, corrija os erros abaixo.', 'field_errors': form.errors}, status=400)
+
+# 2. View para Superusuários listarem as solicitações
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def listar_solicitacoes_exclusao(request):
+    solicitacoes_list = SolicitacaoExclusao.objects.filter(
+        status=SolicitacaoExclusao.Status.PENDENTE
+    ).select_related('usuario_a_ser_excluido', 'solicitado_por').order_by('-data_solicitacao') # Boa prática adicionar um order_by
+
+    solicitacoes_paginadas, page_numbers = paginar_itens(request, solicitacoes_list, items_per_page=10) # Aumentei para 5, 1 por página é muito pouco. Ajuste como preferir.
+
+    context = {
+        'solicitacoes': solicitacoes_paginadas,
+        'paginated_object': solicitacoes_paginadas,
+        'page_numbers': page_numbers,
+        # =======================================================================
+        # ADIÇÃO: Passa a contagem total de itens para o template
+        # =======================================================================
+        'total_solicitacoes': solicitacoes_paginadas.paginator.count,
+    }
+    return render(request, 'gestao/listar_solicitacoes_exclusao.html', context)
+
+
+# 3. Views para Aprovar/Rejeitar (Ações do Superusuário)
+# gestao/views.py
+
+# ... (outros imports)
+
+# =======================================================================
+# INÍCIO DO BLOCO MODIFICADO: Views de Aprovar/Rejeitar com JSON
+# =======================================================================
+# =======================================================================
+# INÍCIO DO BLOCO CORRIGIDO: View 'aprovar_solicitacao_exclusao'
+# =======================================================================
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def aprovar_solicitacao_exclusao(request, solicitacao_id):
+    solicitacao = get_object_or_404(SolicitacaoExclusao, id=solicitacao_id, status=SolicitacaoExclusao.Status.PENDENTE)
+    usuario_a_deletar = solicitacao.usuario_a_ser_excluido
+
+    # Verificações de segurança (inalteradas)
+    if User.objects.filter(is_superuser=True, is_active=True).count() <= 1 and usuario_a_deletar.is_superuser:
+        return JsonResponse({'status': 'error', 'message': 'Ação negada: Não é possível aprovar a exclusão do único superusuário.'}, status=403)
+
+    try:
+        username = usuario_a_deletar.username
+        
+        # =======================================================================
+        # CORREÇÃO PRINCIPAL: Inverter a ordem das operações
+        # =======================================================================
+        
+        # 1. PRIMEIRO, atualize e salve o status da solicitação
+        solicitacao.status = SolicitacaoExclusao.Status.APROVADO
+        solicitacao.revisado_por = request.user
+        solicitacao.data_revisao = timezone.now()
+        solicitacao.save()
+        
+        # 2. SÓ DEPOIS, delete o usuário
+        usuario_a_deletar.delete()
+        
+        # =======================================================================
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': f'A solicitação foi aprovada e o usuário {username} foi excluído.',
+            'solicitacao_id': solicitacao_id
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Ocorreu um erro inesperado: {str(e)}'}, status=500)
+# =======================================================================
+# FIM DO BLOCO CORRIGIDO
+# =======================================================================
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@require_POST
+def rejeitar_solicitacao_exclusao(request, solicitacao_id):
+    solicitacao = get_object_or_404(SolicitacaoExclusao, id=solicitacao_id, status=SolicitacaoExclusao.Status.PENDENTE)
+    
+    try:
+        solicitacao.status = SolicitacaoExclusao.Status.REJEITADO
+        solicitacao.revisado_por = request.user
+        solicitacao.data_revisao = timezone.now()
+        solicitacao.save(update_fields=['status', 'revisado_por', 'data_revisao'])
+
+        return JsonResponse({
+            'status': 'success',
+            'message': f'A solicitação para excluir o usuário "{solicitacao.usuario_a_ser_excluido.username}" foi rejeitada.',
+            'solicitacao_id': solicitacao_id
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Ocorreu um erro: {str(e)}'}, status=500)
+# =======================================================================
+# FIM DO BLOCO MODIFICADO
+# =======================================================================

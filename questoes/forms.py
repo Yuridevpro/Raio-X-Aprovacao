@@ -3,9 +3,11 @@
 from django import forms
 from .models import Questao, Disciplina, Assunto 
 import json
+from django.contrib.auth.models import User
+
 
 # =======================================================================
-# FORMULÁRIO BASE PARA QUESTÕES (SEM ALTERAÇÕES)
+# FORMULÁRIO BASE PARA QUESTÕES (COM ALTERAÇÕES)
 # =======================================================================
 class BaseQuestaoForm(forms.ModelForm):
     """
@@ -16,7 +18,12 @@ class BaseQuestaoForm(forms.ModelForm):
     alternativa_b = forms.CharField(label="Alternativa B", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
     alternativa_c = forms.CharField(label="Alternativa C", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
     alternativa_d = forms.CharField(label="Alternativa D", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
-    alternativa_e = forms.CharField(label="Alternativa E", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
+    
+    # =============================================================================
+    # MUDANÇA 1: O campo 'alternativa_e' agora é OPCIONAL.
+    # Alteramos 'required=True' para 'required=False'.
+    # =============================================================================
+    alternativa_e = forms.CharField(label="Alternativa E", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=False)
 
     class Meta:
         model = Questao
@@ -46,34 +53,58 @@ class BaseQuestaoForm(forms.ModelForm):
             self.fields['alternativa_c'].initial = alternativas_dict.get('C', '')
             self.fields['alternativa_d'].initial = alternativas_dict.get('D', '')
             self.fields['alternativa_e'].initial = alternativas_dict.get('E', '')
+
+    # =============================================================================
+    # MUDANÇA 2: Adição do método 'clean' para validação inteligente.
+    # Se o gabarito for 'E', o campo da alternativa 'E' se torna obrigatório.
+    # =============================================================================
+    def clean(self):
+        cleaned_data = super().clean()
+        gabarito = cleaned_data.get("gabarito")
+        alternativa_e = cleaned_data.get("alternativa_e")
+
+        if gabarito == 'E' and not alternativa_e:
+            self.add_error('alternativa_e', 'Você não pode marcar o gabarito como "E" e deixar a alternativa "E" vazia.')
+        
+        return cleaned_data
             
+    # =============================================================================
+    # MUDANÇA 3: Lógica de salvamento ajustada.
+    # O dicionário 'alternativas' agora adiciona a alternativa 'E' somente se
+    # ela tiver sido preenchida pelo usuário.
+    # =============================================================================
     def save(self, commit=True):
         alternativas_dict = {
             'A': self.cleaned_data['alternativa_a'],
             'B': self.cleaned_data['alternativa_b'],
             'C': self.cleaned_data['alternativa_c'],
             'D': self.cleaned_data['alternativa_d'],
-            'E': self.cleaned_data['alternativa_e'],
         }
-        self.instance.alternativas = json.dumps(alternativas_dict, ensure_ascii=False)
+        
+        # Adiciona a alternativa 'E' ao dicionário SOMENTE se ela foi preenchida
+        if self.cleaned_data.get('alternativa_e'):
+            alternativas_dict['E'] = self.cleaned_data['alternativa_e']
+
+        # A instância do modelo recebe o dicionário montado
+        self.instance.alternativas = alternativas_dict
+        
+        # O método original do ModelForm é chamado para finalizar o salvamento.
+        # Note que não precisamos mais do json.dumps(), pois o JSONField do Django
+        # lida com a conversão de dicionário para JSON automaticamente.
         return super().save(commit)
 
 # =======================================================================
-# MODIFICAÇÃO 1: Renomeado para AdminQuestaoForm.
-# Este formulário será usado pelo Django Admin e pode ter o widget Tiptap.
+# NENHUMA ALTERAÇÃO NECESSÁRIA ABAIXO
+# As classes a seguir herdam o comportamento corrigido da BaseQuestaoForm
 # =======================================================================
+
 class AdminQuestaoForm(BaseQuestaoForm):
     pass
 
-# =======================================================================
-# MODIFICAÇÃO 2: Criado o GestaoQuestaoForm para o frontend.
-# Ele herda do BaseQuestaoForm mas sobrescreve os widgets para usar
-# textareas simples com placeholders e classes corretas.
-# =======================================================================
 class GestaoQuestaoForm(BaseQuestaoForm):
     class Meta(BaseQuestaoForm.Meta):
         widgets = {
-            **BaseQuestaoForm.Meta.widgets, # Herda todos os widgets da classe base
+            **BaseQuestaoForm.Meta.widgets,
             'enunciado': forms.Textarea(attrs={
                 'class': 'form-control', 
                 'rows': 8, 
@@ -84,13 +115,9 @@ class GestaoQuestaoForm(BaseQuestaoForm):
                 'rows': 5, 
                 'placeholder': 'Digite a explicação detalhada do gabarito. Este campo é opcional, mas altamente recomendado.'
             }),
-            # Aproveitamos para melhorar o widget do campo 'is_inedita' para o novo design
             'is_inedita': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
         }
 
-# =======================================================================
-# INÍCIO: NOVOS FORMULÁRIOS PARA O PAINEL DE GESTÃO (SEM ALTERAÇÕES)
-# =======================================================================
 class EntidadeSimplesForm(forms.Form):
     nome = forms.CharField(label="Nome", max_length=100, widget=forms.TextInput(attrs={'class': 'form-control'}))
 
@@ -105,4 +132,4 @@ class AssuntoForm(forms.Form):
         max_length=100,
         widget=forms.TextInput(attrs={'class': 'form-control'})
     )
-    
+

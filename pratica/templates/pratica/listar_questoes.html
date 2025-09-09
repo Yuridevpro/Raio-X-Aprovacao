@@ -376,23 +376,34 @@
 /* ========================================================================= */
 @media (max-width: 768px) {
 
-/* 1. Container ocupa 100% e com espaçamento confortável */
-.container {
-    max-width: 100%;
-    padding: 0 1rem; /* espaço lateral padrão */
+/* 🔒 Garante que não sobre espaço lateral nem scroll horizontal */
+html, body {
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
 }
 
-/* 2. Cards com layout mais clean */
+/* 1. Container ocupa 100% sem padding lateral */
+.container {
+    max-width: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+/* 2. Cards ocupando 100% da largura da tela */
 .filtros-card,
 .card-questao {
+    width: 100%;
     border-radius: 0;
-    margin: 0 0 1rem 0; /* separa os cards entre si */
+    margin: 0 0 1rem 0; /* apenas margem inferior para separar */
     box-shadow: none;
-    border: 1px solid var(--border-color);
+    border-bottom: 1px solid var(--border-color); 
     background: var(--light-bg);
 }
 
-/* 3. Espaçamento interno mais amplo para melhor leitura */
+/* 3. Conteúdo interno com respiro */
 .filtros-card,
 .card-questao .card-body,
 .card-questao .card-header,
@@ -401,7 +412,7 @@
     padding: 1.25rem;
 }
 
-/* 4. Títulos e textos com mais respiro */
+/* 4. Títulos e textos mais legíveis */
 .card-questao h4,
 .card-questao h5 {
     margin-bottom: 0.75rem;
@@ -413,7 +424,7 @@
     margin-bottom: 0.75rem;
 }
 
-/* 5. Ícone de estrela maior para toque fácil */
+/* 5. Ícone da estrela */
 .card-questao .fa-star {
     font-size: 1.6rem;
     margin-left: 0.5rem;
@@ -423,7 +434,6 @@
 /* ======== AJUSTES NA ÁREA DE COMENTÁRIOS (MOBILE) ====== */
 /* ======================================================= */
 
-/* 6. Avatar com mais respiro */
 .comment-wrapper {
     padding-left: 55px;
     margin-bottom: 1rem;
@@ -435,7 +445,6 @@
     font-size: 1.1rem;
 }
 
-/* 7. Balão de comentário mais clean */
 .comment-card {
     padding: 1rem;
     border-radius: 0.75rem;
@@ -455,7 +464,6 @@
     border-right-color: var(--light-bg);
 }
 
-/* 8. Rodapé dos comentários melhor organizado */
 .comment-footer {
     flex-direction: row;
     flex-wrap: wrap;
@@ -463,13 +471,19 @@
     margin-top: 0.75rem;
 }
 
-/* 9. Recuo das respostas aninhadas mais discreto */
 .comment-replies {
     margin-left: 1.25rem;
     padding-left: 1rem;
     border-left: 2px solid var(--border-color);
 }
+
+/* 6. Proteção extra: imagens e tabelas nunca ultrapassam a tela */
+img, table {
+    max-width: 100%;
+    height: auto;
 }
+}
+
 
     
 </style>

@@ -1,0 +1,343 @@
+<!-- gestao/templates/gestao/form_usuario_staff.html -->
+{% extends 'base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block head %}
+<style>
+
+    
+    /* ================================================= */
+    @media (max-width: 767.98px) {
+            /* --- Ajustes Gerais do Card --- */
+            .card-body {
+                padding: 1.5rem !important; /* Reduz o padding interno em telas menores */
+            }
+
+            /* --- Título da Página e Botão Voltar --- */
+            .d-flex.justify-content-between.align-items-center.mb-4 {
+                flex-direction: column; /* Empilha o título e o botão "Voltar" */
+                align-items: flex-start !important; /* Alinha ambos à esquerda */
+                gap: 0.75rem; /* Adiciona um espaço entre o título e o botão */
+            }
+
+            /* --- Container Principal de Ações do Formulário (Salvar, Cancelar, etc.) --- */
+            .d-flex.justify-content-between.align-items-center.border-top {
+                flex-direction: column-reverse; /* Empilha os botões e inverte a ordem (Salvar fica por último) */
+                align-items: stretch !important; /* Faz os itens ocuparem a largura total */
+                gap: 0.75rem; /* Adiciona espaço vertical entre os botões */
+            }
+
+            /* Organiza os botões de ação primária e secundária */
+            .d-flex.justify-content-between.align-items-center.border-top div {
+                display: flex;
+                flex-direction: column; /* Garante que os botões dentro das divs também fiquem empilhados */
+                gap: 0.75rem;
+            }
+            
+            /* --- Estilo para TODOS os botões nos containers de ação --- */
+            .d-flex.justify-content-between.align-items-center.border-top .btn {
+                width: 100%; /* Ocupa a largura total para melhor toque */
+                margin: 0 !important; /* Remove margens laterais como 'ms-2' */
+            }
+
+            /* --- Estilos para a lista de usuários da IMAGEM --- */
+            /* 
+                Estes seletores são baseados na estrutura visual da sua imagem, 
+                você pode precisar adaptá-los para o seu HTML real da página de listagem.
+            */
+            
+            /* Container dos botões "Filtrar" e "Limpar" */
+            .filter-container { /* Adicione esta classe ao redor dos botões Filtrar/Limpar */
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+            }
+
+            .filter-container .btn {
+                width: 100%;
+            }
+            
+            /* Container das ações "Editar" e "Excluir" em cada linha */
+            .user-actions-cell { /* Adicione esta classe à <td> ou <div> que envolve os botões */
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end; /* Alinha os botões à direita da célula */
+                gap: 0.5rem; /* Espaço entre "Editar" e "Excluir" */
+            }
+        }
+/* ================================================= */
+</style>
+{% endblock %}
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="h3 mb-0">{{ titulo }}</h2>
+                <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Voltar
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <form id="staff-edit-form" method="POST" action="{% url 'gestao:editar_usuario_staff' usuario_alvo.id %}" novalidate>
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">{{ form.username.label }}</label>
+                            <input type="text" class="form-control" value="{{ form.username.value }}" disabled>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label">{{ form.email.label }}</label>
+                            <input type="email" class="form-control" value="{{ form.email.value }}" disabled>
+                        </div>
+                        <hr>
+                        <div class="form-check form-switch mb-4 mt-4">
+                            <!-- O switch é renderizado manualmente para adicionar a lógica 'disabled' -->
+                            <input type="checkbox" name="{{ form.is_staff.name }}" id="{{ form.is_staff.id_for_label }}" 
+                                   class="form-check-input" role="switch" 
+                                   {% if form.is_staff.value %}checked{% endif %}
+                                   {% if usuario_alvo.is_superuser %}disabled{% endif %}>
+                            <label class="form-check-label ms-2" for="{{ form.is_staff.id_for_label }}">
+                                <strong>{{ form.is_staff.label }}</strong>
+                            </label>
+                            <!-- A mensagem de ajuda muda se o usuário for superuser -->
+                            {% if usuario_alvo.is_superuser %}
+                                <div class="form-text mt-1 text-info"><i class="fas fa-info-circle me-1"></i>Superusuários devem ser sempre membros da equipe.</div>
+                            {% else %}
+                                <div class="form-text mt-1">{{ form.is_staff.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-4">
+                            <!-- Botão condicional para Promover ou Despromover -->
+                            <div>
+                                {% if usuario_alvo.is_superuser %}
+                                    <!-- Só mostra a opção de despromover se não for o próprio usuário logado -->
+                                    {% if usuario_alvo != request.user %}
+                                    <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#despromoverSuperuserModal">
+                                        <i class="fas fa-user-minus me-2"></i>Despromover de Superusuário
+                                    </button>
+                                    {% endif %}
+                                {% else %}
+                                    <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#promoverSuperuserModal">
+                                        <i class="fas fa-user-shield me-2"></i>Promover a Superusuário
+                                    </button>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+                                <button id="save-button" type="submit" class="btn btn-primary ms-2">
+                                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
+                                    <i class="fas fa-save me-2 icon"></i>Salvar Alterações
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Promover a Superusuário -->
+<div class="modal fade" id="promoverSuperuserModal" tabindex="-1" aria-labelledby="promoverSuperuserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-promover-superuser" method="POST" action="{% url 'gestao:promover_a_superuser' usuario_alvo.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title" id="promoverSuperuserModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Ação de Alto Risco</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fs-5">Você está prestes a conceder permissões de <strong>Superusuário</strong> para <strong>{{ usuario_alvo.username }}</strong>.</p>
+                    <hr>
+                    <p class="fw-bold text-danger">Esta ação é irreversível e dará ao usuário:</p>
+                    <ul>
+                        <li>Acesso irrestrito a todas as partes do painel de gestão.</li>
+                        <li>O poder de editar e excluir qualquer dado, incluindo outras questões e usuários.</li>
+                        <li>A capacidade de promover outros usuários a superusuários.</li>
+                    </ul>
+                    <p>Conceda esta permissão apenas a administradores de extrema confiança.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-warning" id="btn-confirm-promote">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <span class="btn-text">Eu entendo os riscos, Promover</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Despromover de Superusuário -->
+<div class="modal fade" id="despromoverSuperuserModal" tabindex="-1" aria-labelledby="despromoverSuperuserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-despromover-superuser" method="POST" action="{% url 'gestao:despromover_de_superuser' usuario_alvo.id %}">
+                {% csrf_token %}
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title" id="despromoverSuperuserModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Despromoção</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="fs-5">Você está prestes a <strong>remover</strong> as permissões de Superusuário de <strong>{{ usuario_alvo.username }}</strong>.</p>
+                    <p>O usuário perderá o acesso irrestrito e não poderá mais gerenciar outros usuários ou permissões.</p>
+                    <p class="fw-bold">Ele continuará sendo um Membro da Equipe com acesso normal ao painel.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger" id="btn-confirm-demote">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <span class="btn-text">Sim, Despromover</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // --- Lógica do formulário de edição de Staff ---
+    const form = document.getElementById('staff-edit-form');
+    const saveButton = document.getElementById('save-button');
+    if (form && saveButton) {
+        const spinner = saveButton.querySelector('.spinner-border');
+        const icon = saveButton.querySelector('.icon');
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            saveButton.disabled = true;
+            spinner.style.display = 'inline-block';
+            icon.style.display = 'none';
+
+            const formData = new FormData(form);
+            const url = form.getAttribute('action');
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => {
+                return response.json().then(data => ({ ok: response.ok, data }));
+            })
+            .then(({ ok, data }) => {
+                if (ok) {
+                    showNotificationModal('Sucesso!', data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = "{% url 'gestao:listar_usuarios' %}";
+                    }, 2000);
+                } else {
+                    throw new Error(data.message || 'Ocorreu um erro desconhecido.');
+                }
+            })
+            .catch(error => {
+                showNotificationModal('Erro', error.message, 'error');
+            })
+            .finally(() => {
+                saveButton.disabled = false;
+                spinner.style.display = 'none';
+                icon.style.display = 'inline-block';
+            });
+        });
+    }
+
+    // --- Lógica do modal de promoção para Superusuário ---
+    const promoverModalEl = document.getElementById('promoverSuperuserModal');
+    if (promoverModalEl) {
+        const promoverModal = new bootstrap.Modal(promoverModalEl);
+        const promoverForm = document.getElementById('form-promover-superuser');
+        const promoverBtn = document.getElementById('btn-confirm-promote');
+        const spinner = promoverBtn.querySelector('.spinner-border');
+        const btnText = promoverBtn.querySelector('.btn-text');
+
+        promoverForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            promoverBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.style.display = 'none';
+
+            const url = promoverForm.getAttribute('action');
+            const csrfToken = promoverForm.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => response.json().then(data => ({ok: response.ok, data})))
+            .then(({ok, data}) => {
+                promoverModal.hide();
+                if (ok) {
+                    showNotificationModal('Sucesso!', data.message, 'success');
+                    // Recarrega a página para refletir o novo status de superusuário
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    throw new Error(data.message || 'Não foi possível promover o usuário.');
+                }
+            })
+            .catch(error => {
+                showNotificationModal('Erro', error.message, 'error');
+            })
+            .finally(() => {
+                promoverBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.style.display = 'inline-block';
+            });
+        });
+    }
+
+    // --- Lógica do modal de despromoção de Superusuário ---
+    const despromoverModalEl = document.getElementById('despromoverSuperuserModal');
+    if (despromoverModalEl) {
+        const despromoverModal = new bootstrap.Modal(despromoverModalEl);
+        const despromoverForm = document.getElementById('form-despromover-superuser');
+        const despromoverBtn = document.getElementById('btn-confirm-demote');
+        const spinner = despromoverBtn.querySelector('.spinner-border');
+        const btnText = despromoverBtn.querySelector('.btn-text');
+
+        despromoverForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            despromoverBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.style.display = 'none';
+
+            const url = despromoverForm.getAttribute('action');
+            const csrfToken = despromoverForm.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            fetch(url, { method: 'POST', headers: {'X-CSRFToken': csrfToken} })
+            .then(response => response.json().then(data => ({ok: response.ok, data})))
+            .then(({ok, data}) => {
+                despromoverModal.hide();
+                if (ok) {
+                    showNotificationModal('Sucesso!', data.message, 'success');
+                    setTimeout(() => window.location.reload(), 2000);
+                } else {
+                    throw new Error(data.message || 'Não foi possível despromover o usuário.');
+                }
+            })
+            .catch(error => { showNotificationModal('Erro', error.message, 'error'); })
+            .finally(() => {
+                despromoverBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.style.display = 'inline-block';
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

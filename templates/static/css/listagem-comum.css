@@ -135,3 +135,66 @@
 .nav-pagination .page-link:focus {
     box-shadow: none;
 }
+
+/* ================= PAGINAÇÃO RESPONSIVA ================= */
+@media (max-width: 768px) {
+    .nav-pagination {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        overflow-x: auto; /* Permite scroll horizontal se necessário */
+    }
+
+    .nav-pagination .pagination {
+        justify-content: center;
+        flex-wrap: nowrap; /* Não quebra linha */
+        min-width: max-content; /* Garante que a ul ocupe só o necessário */
+    }
+
+    .nav-pagination .page-item {
+        margin: 0 2px; /* Espaçamento mínimo entre botões */
+    }
+
+    .nav-pagination .page-link {
+        padding: 0.3rem 0.5rem; /* Reduz tamanho do botão */
+        font-size: 0.85rem; /* Fonte menor para caber melhor */
+    }
+    .nav-pagination .pagination .page-link {
+        padding: 0.2rem 0.35rem;
+        font-size: 0.75rem;
+        min-width: 1.8rem;
+    }
+    .nav-pagination {
+        display: flex;
+        justify-content: center;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* deslize suave no iOS */
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-pagination .page-item .page-link {
+       /* Botões retangulares com cantos arredondados */
+        width: auto;                          /* Ajusta largura ao conteúdo */
+        min-width: 30px;                      /* Mantém touch-friendly */
+        height: 30px;                          /* Altura menor */
+        padding: 0 0.4rem;                    /* Reduz padding horizontal */
+        font-size: 0.7rem;                     /* Fonte menor */
+        margin: 0 2px;       
+        margin-top: 20px;                 /* Espaçamento mínimo entre botões */
+    }
+
+    /* Garante que a paginação não estoure a tela */
+    .nav-pagination {
+        overflow-x: auto;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    /* Flex wrap evita quebra de linha desnecessária */
+    .nav-pagination .pagination {
+        flex-wrap: nowrap;
+        justify-content: center;
+        min-width: max-content;
+    }
+}
+

@@ -1,3 +1,4 @@
+<!-- gestao/templates/form_questao.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -265,6 +266,16 @@
                         <!-- SEÇÃO 3: ALTERNATIVAS E EXPLICAÇÃO -->
                         <div class="sub-card">
                             <h5 class="form-section-title">Alternativas</h5>
+                            
+                            <!-- INÍCIO: NOVO CAMPO PARA COLAR ALTERNATIVAS EM BLOCO -->
+                            <div class="mb-4">
+                                <label for="bulk-alternativas" class="form-label">Alternativas em Bloco (Opcional)</label>
+                                <textarea id="bulk-alternativas" class="form-control" rows="6" 
+                                          placeholder="Cole as alternativas aqui para preenchimento automático. Ex:&#10;A) Texto da alternativa A&#10;B) Texto da alternativa B&#10;C) ..."></textarea>
+                                <div class="form-text">O sistema preencherá os campos abaixo automaticamente.</div>
+                            </div>
+                            <!-- FIM: NOVO CAMPO -->
+
                             <div class="d-flex flex-column">
                                 <div class="alternativa-item"><div class="alternativa-letra">A</div><div class="alternativa-campo">{{ form.alternativa_a }}{{ form.alternativa_a.errors }}</div></div>
                                 <div class="alternativa-item"><div class="alternativa-letra">B</div><div class="alternativa-campo">{{ form.alternativa_b }}{{ form.alternativa_b.errors }}</div></div>
@@ -491,12 +502,69 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // =======================================================================
+    // 5. VERSÃO FINAL E ROBUSTA: PREENCHIMENTO AUTOMÁTICO DE ALTERNATIVAS
+    // =======================================================================
+    function handleBulkAlternatives() {
+        const bulkTextarea = document.getElementById('bulk-alternativas');
+        if (!bulkTextarea) return;
+
+        const alternativeFields = {
+            'A': document.querySelector('textarea[name="alternativa_a"]'),
+            'B': document.querySelector('textarea[name="alternativa_b"]'),
+            'C': document.querySelector('textarea[name="alternativa_c"]'),
+            'D': document.querySelector('textarea[name="alternativa_d"]'),
+            'E': document.querySelector('textarea[name="alternativa_e"]'),
+        };
+
+        bulkTextarea.addEventListener('input', (event) => {
+            const text = event.target.value;
+
+            // Dicionário para armazenar as alternativas encontradas.
+            const foundAlternatives = {};
+
+            // 1. DIVIDIR EM BLOCOS (CHUNKS)
+            // A regex abaixo divide o texto em um array. A divisão ocorre na quebra de linha ANTES de uma
+            // linha que parece ser o início de uma nova alternativa (ex: "A)", "2. B)", "c.", etc.).
+            // O `(?= ...)` é um "lookahead" que garante que o delimitador ("A)", etc.) não seja removido.
+            // `\b` garante que ele capture a letra 'A' como uma palavra, e não no meio de 'Apple'.
+            const chunks = text.split(/\n(?=\s*(?:\(?\d+[.)]?\s*)?[A-Ea-e]\b)/);
+
+            // 2. PROCESSAR CADA BLOCO INDIVIDUALMENTE
+            for (const chunk of chunks) {
+                if (!chunk.trim()) continue; // Ignora blocos vazios
+
+                // Esta regex captura a LETRA e o CONTEÚDO de cada bloco.
+                // Grupo 1 ([A-Ea-e]): Captura a letra da alternativa (case-insensitive).
+                // Grupo 2 ([\s\S]*): Captura todo o resto do conteúdo do bloco.
+                // A parte `(?:\(?\d+...)?` ignora qualquer numeração opcional no início.
+                const match = chunk.match(/^\s*(?:\(?\d+[.)]?\s*)?([A-Ea-e])\s*[.)-]?\s*([\s\S]*)$/);
+
+                if (match) {
+                    const letter = match[1].toUpperCase();
+                    const content = match[2].trim();
+                    foundAlternatives[letter] = content;
+                }
+            }
+
+            // 3. PREENCHER OS CAMPOS DO FORMULÁRIO
+            // Itera sobre A, B, C, D, E e preenche os campos com os valores encontrados.
+            // Se uma alternativa não foi encontrada no texto, seu campo correspondente será limpo.
+            for (const letter in alternativeFields) {
+                if (alternativeFields[letter]) {
+                    alternativeFields[letter].value = foundAlternatives[letter] || '';
+                }
+            }
+        });
+    }
+    // =======================================================================
     // CHAMADAS DE INICIALIZAÇÃO
     // =======================================================================
     initTomSelects();
     handleIneditaToggle();
     handleCustomFileInput();
     initTiptapEditors();
+    handleBulkAlternatives(); // <-- Chame a nova função aqui
+
 });
 </script>
 {% endblock %}
