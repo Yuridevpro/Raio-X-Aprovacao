@@ -1,0 +1,518 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load log_extras %}
+
+{% block title %}Registro de Atividades{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<!-- ======================================================================= -->
+<!-- INÍCIO: Adicionado CSS do Tom Select via CDN -->
+<!-- ======================================================================= -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<!-- ======================================================================= -->
+<!-- FIM: Adicionado CSS do Tom Select -->
+<!-- ======================================================================= -->
+
+<style>
+/* ======================================================================= */
+/* INÍCIO: Variáveis de Design e Estilos Globais */
+/* ======================================================================= */
+:root {
+    --app-bg: #f8f9fa; /* Um cinza muito claro para o fundo da página */
+    --card-bg: #ffffff;
+    --border-color: #dee2e6;
+    --border-radius: 0.5rem; /* Bordas um pouco mais suaves */
+    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    --primary-light: #eef5ff;
+    --primary-border: #a3c9fe;
+}
+
+body {
+    background-color: var(--app-bg);
+}
+
+/* Transição suave para fade-out ao deletar */
+.fade-out { 
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out, max-height 0.5s ease-out; 
+    opacity: 0;
+    transform: scale(0.95);
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-width: 0 !important;
+    overflow: hidden;
+}
+
+/* ======================================================================= */
+/* CARD DE FILTROS - Agora totalmente responsivo com Flexbox */
+/* ======================================================================= */
+.filter-form-container {
+    display: flex;
+    flex-wrap: wrap; /* A mágica da responsividade acontece aqui! */
+    gap: 1rem;
+    align-items: flex-end;
+}
+.filter-field {
+    flex: 1 1 250px; /* Cresce e encolhe, com uma base de 250px */
+    min-width: 200px; /* Garante que não fique muito espremido */
+}
+.filter-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex: 1 1 150px;
+}
+.filter-actions .btn {
+    flex-grow: 1; /* Faz os botões ocuparem o espaço disponível */
+}
+
+/* ======================================================================= */
+/* LISTA DE LOGS - Design mais limpo e elegante */
+/* ======================================================================= */
+.activity-log-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 1rem; 
+}
+.log-item { 
+    display: flex; 
+    align-items: flex-start; 
+    gap: 1rem; 
+    padding: 1rem; 
+    background-color: var(--card-bg); 
+    border-radius: var(--border-radius); 
+    border: 1px solid var(--border-color); 
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out; 
+}
+.log-item:hover { 
+    box-shadow: var(--shadow-md); 
+    border-color: #cdd4da;
+}
+.log-item.selected { 
+    background-color: var(--primary-light); 
+    border-color: var(--primary-border); 
+}
+
+.log-selection { padding-top: 0.2rem; }
+.log-icon { 
+    font-size: 1.5rem; 
+    flex-shrink: 0; 
+    width: 30px; 
+    text-align: center;
+    padding-top: 0.1rem;
+    color: #6c757d;
+}
+.log-content-wrapper { flex-grow: 1; }
+
+.log-main-info { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: flex-start; 
+    flex-wrap: wrap; 
+    gap: 0.5rem 1rem; 
+}
+.log-message { margin: 0; font-size: 1rem; color: #343a40; }
+.log-message strong { color: #000; font-weight: 500; }
+.log-meta { 
+    font-size: 0.8rem; 
+    color: #6c757d; 
+    white-space: nowrap; 
+    padding-top: 0.15rem;
+}
+
+.log-details-reason { margin-top: 0.75rem; }
+.log-reason-quote { 
+    font-size: 0.875rem; 
+    padding: 0.5rem 1rem; 
+    border-left: 3px solid #e9ecef; 
+    background-color: #f8f9fa; 
+    color: #495057; 
+    margin: 0; 
+    white-space: pre-wrap; 
+    word-break: break-word; 
+    border-radius: 0 0.25rem 0.25rem 0;
+}
+.log-actions { margin-left: auto; padding-left: 1rem; }
+
+/* ======================================================================= */
+/* BARRA DE AÇÕES EM MASSA */
+/* ======================================================================= */
+#bulk-actions-bar {
+    display: none;
+    top: 10px;
+    z-index: 1020; /* Acima de outros elementos */
+    background-color: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-md);
+}
+
+/* ======================================================================= */
+/* INÍCIO: Media Queries para Responsividade Mobile */
+/* ======================================================================= */
+@media (max-width: 767.98px) {
+    .container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+    .page-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 0.75rem;
+    }
+    
+    .log-item {
+        padding: 0.75rem;
+        position: relative; /* Contexto para o botão de ação */
+    }
+    .log-main-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    .log-message {
+        font-size: 0.95rem;
+        /* Permite que a mensagem ocupe o espaço, deixando o botão no canto */
+        padding-right: 2.5rem; 
+    }
+    .log-actions {
+        /* Posiciona o botão no canto superior direito do card */
+        position: absolute;
+        top: 0.75rem;
+        right: 0.75rem;
+        padding-left: 0;
+        margin-left: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 py-lg-5">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+        <h1 class="h3 mb-0">Registro de Atividades</h1>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+    </div>
+
+    <!-- CARD DE FILTROS -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light border-bottom-0">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Registros</h5>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
+                <div class="filter-form-container">
+                    <!-- Campo de Ator -->
+                    <div class="filter-field">
+                        <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
+                        <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
+                    </div>
+                    <!-- Campo de Ação (Note que o HTML do select não muda) -->
+                    <div class="filter-field">
+                        <label for="acao" class="form-label">Tipo de Ação</label>
+                        <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
+                            <option value="">Todas as Ações</option>
+                            <optgroup label="Usuários">
+                                <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
+                                <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
+                                <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Promovido a Superuser</option>
+                                <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Despromovido de Superuser</option>
+                            </optgroup>
+                             <optgroup label="Solicitações de Exclusão">
+                                <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação Criada</option>
+                                <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação Aprovada</option>
+                                <option value="SOLICITACAO_EXCLUSAO_REJEITADA" {% if "SOLICITACAO_EXCLUSAO_REJEITADA" == filtro_acao %}selected{% endif %}>Solicitação Rejeitada</option>
+                                <option value="SOLICITACAO_EXCLUSAO_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação Cancelada</option>
+                            </optgroup>
+                            <optgroup label="Questões">
+                                <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
+                                <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
+                                <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
+                            </optgroup>
+                            <optgroup label="Entidades & Assuntos">
+                                <option value="ENTIDADE_CRIADA" {% if "ENTIDADE_CRIADA" == filtro_acao %}selected{% endif %}>Entidade Criada</option>
+                                <option value="ASSUNTO_CRIADO" {% if "ASSUNTO_CRIADO" == filtro_acao %}selected{% endif %}>Assunto Criado</option>
+                            </optgroup>
+                             <optgroup label="Notificações de Erro">
+                                <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
+                                <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
+                                <option value="NOTIFICACOES_DELETADAS" {% if "NOTIFICACOES_DELETADAS" == filtro_acao %}selected{% endif %}>Notificações Deletadas</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <!-- Campo de Período -->
+                    <div class="filter-field">
+                        <label class="form-label">Período</label>
+                        <div class="input-group">
+                            <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}" title="Data de Início">
+                            <span class="input-group-text">até</span>
+                            <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
+                        </div>
+                    </div>
+                    <!-- Botões de Ação -->
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary">Limpar</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- BARRA DE AÇÕES EM MASSA -->
+    <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="select-all-checkbox" value="">
+                <label class="form-check-label" for="select-all-checkbox">
+                    <span id="selected-count" class="fw-bold">0</span> selecionado(s)
+                </label>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown" id="bulk-action-dropdown-btn">
+                    <span class="spinner-border spinner-border-sm me-1" style="display: none;" role="status" aria-hidden="true"></span>
+                    <span class="btn-text">Ações em Massa</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item text-danger" href="#" data-action="delete">
+                            <i class="fas fa-trash-alt fa-fw me-2"></i>Excluir Selecionados
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- LISTA DE LOGS -->
+    <div class="activity-log-list">
+        {% for log in logs %}
+        <div class="log-item" id="log-item-{{ log.id }}">
+            <div class="log-selection">
+                {% if log.ator != request.user %}
+                    <input class="form-check-input log-checkbox" type="checkbox" data-id="{{ log.id }}" 
+                           aria-label="Selecionar log {{ log.id }}">
+                {% endif %}
+            </div>
+            <div class="log-icon">
+                <i class="{{ log|get_log_icon }}"></i>
+            </div>
+            <div class="log-content-wrapper">
+                <div class="log-main-info">
+                    <p class="log-message">{{ log|generate_log_message|safe }}</p>
+                    <div class="log-meta">
+                        <span class="log-timestamp" title="{{ log.data_criacao|date:'d/m/Y H:i:s' }}">
+                            <i class="far fa-clock me-1"></i>{{ log.data_criacao|date:"d/m/Y, H:i" }}
+                        </span>
+                    </div>
+                </div>
+                {% with reason=log.detalhes|format_log_reason %}
+                    {% if reason %}
+                        <div class="log-details-reason">
+                            <blockquote class="log-reason-quote">{{ reason }}</blockquote>
+                        </div>
+                    {% endif %}
+                {% endwith %}
+            </div>
+            <div class="log-actions">
+                {% if log.ator != request.user %}
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-log" data-log-id="{{ log.id }}" title="Excluir este registro">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                {% else %}
+                    <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="left" title="Você não pode excluir seus próprios registros.">
+                        <button type="button" class="btn btn-sm btn-secondary" disabled style="pointer-events: none;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </span>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+            <div class="card card-body text-center p-5">
+                <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                <h5 class="text-muted mb-0">Nenhum registro de atividade encontrado.</h5>
+                <p class="text-muted">Tente ajustar os filtros ou limpar a busca.</p>
+            </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- PAGINAÇÃO -->
+<nav aria-label="Paginação dos logs" class="mt-4">
+    {% include 'includes/_paginacao.html' with paginated_object=logs page_numbers=page_numbers %}
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<!-- ======================================================================= -->
+<!-- INÍCIO: Adicionado JS do Tom Select via CDN -->
+<!-- ======================================================================= -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+<!-- ======================================================================= -->
+<!-- FIM: Adicionado JS do Tom Select -->
+<!-- ======================================================================= -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ===================================================================
+    // INICIALIZAÇÃO DE PLUGINS
+    // ===================================================================
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    // ===================================================================
+    // INÍCIO: Inicialização do Tom Select no campo de Ação
+    // ===================================================================
+    new TomSelect('#acao',{
+		create: false,
+		sortField: {
+			field: "text",
+			direction: "asc"
+		}
+	});
+    // ===================================================================
+    // FIM: Inicialização do Tom Select
+    // ===================================================================
+
+    // ===================================================================
+    // DELETAR LOG INDIVIDUAL
+    // ===================================================================
+    document.querySelectorAll('.btn-delete-log:not([disabled])').forEach(button => {
+        button.addEventListener('click', function() {
+            const logId = this.dataset.logId;
+            const url = `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', logId);
+            
+            showConfirmationModal('Confirmar Exclusão', 'Deseja excluir permanentemente este registro?', () => {
+                fetch(url, {
+                    method: 'POST',
+                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
+                })
+                .then(response => response.json().then(data => ({ok: response.ok, data})))
+                .then(({ok, data}) => {
+                    if (ok) {
+                        showNotificationModal('Sucesso!', data.message, 'success');
+                        const item = document.getElementById(`log-item-${data.deleted_log_id}`);
+                        if (item) {
+                            item.classList.add('fade-out');
+                            // Espera a animação terminar antes de remover o elemento do DOM
+                            item.addEventListener('transitionend', () => item.remove());
+                        }
+                    } else { throw new Error(data.message); }
+                })
+                .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível excluir o registro.', 'error'));
+            });
+        });
+    });
+
+    // ===================================================================
+    // LÓGICA DE AÇÕES EM MASSA
+    // ===================================================================
+    const bulkActionsBar = document.getElementById('bulk-actions-bar');
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const logCheckboxes = document.querySelectorAll('.log-checkbox');
+    const selectedCountSpan = document.getElementById('selected-count');
+    const bulkActionDropdownBtn = document.getElementById('bulk-action-dropdown-btn');
+
+    function updateBulkActionBar() {
+        if (!bulkActionsBar) return;
+        
+        const selectedCheckboxes = document.querySelectorAll('.log-checkbox:checked');
+        const count = selectedCheckboxes.length;
+
+        // Atualiza a contagem e a visibilidade da barra
+        selectedCountSpan.textContent = count;
+        bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+
+        // Atualiza o estado dos itens de log
+        logCheckboxes.forEach(cb => {
+            cb.closest('.log-item').classList.toggle('selected', cb.checked);
+        });
+        
+        // Atualiza o checkbox "selecionar todos"
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
+        }
+    }
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            logCheckboxes.forEach(checkbox => { 
+                checkbox.checked = this.checked;
+            });
+            updateBulkActionBar();
+        });
+    }
+    
+    logCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateBulkActionBar)
+    });
+
+    document.querySelectorAll('.bulk-action-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const action = this.dataset.action;
+            const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
+
+            if (selectedIds.length === 0) {
+                showNotificationModal('Atenção', 'Nenhum registro foi selecionado.', 'info');
+                return;
+            }
+
+            const confirmationMessage = `Tem certeza que deseja EXCLUIR ${selectedIds.length} registro(s) permanentemente?`;
+
+            showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
+                const spinner = bulkActionDropdownBtn.querySelector('.spinner-border');
+                const btnText = bulkActionDropdownBtn.querySelector('.btn-text');
+                
+                bulkActionDropdownBtn.disabled = true;
+                spinner.style.display = 'inline-block';
+                btnText.textContent = 'Processando...';
+
+                fetch("{% url 'gestao:logs_acoes_em_massa' %}", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                    body: JSON.stringify({ ids: selectedIds, action: action })
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => { 
+                    if (ok) {
+                        showNotificationModal('Sucesso!', data.message, 'success', () => {
+                            // Em vez de recarregar a página, remove os itens um por um
+                            data.deleted_ids.forEach(id => {
+                                const item = document.getElementById(`log-item-${id}`);
+                                if (item) {
+                                    item.classList.add('fade-out');
+                                    item.addEventListener('transitionend', () => item.remove());
+                                }
+                            });
+                            updateBulkActionBar();
+                        });
+                    } else {
+                        throw new Error(data.message || 'Ocorreu um erro ao processar a solicitação.');
+                    }
+                })
+                .catch(err => {
+                    showNotificationModal('Erro', err.message, 'error');
+                })
+                .finally(() => {
+                    bulkActionDropdownBtn.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.textContent = 'Ações em Massa';
+                });
+            });
+        });
+    });
+
+    // Inicia a barra de ações caso a página seja carregada com itens já selecionados (ex: ao voltar)
+    updateBulkActionBar();
+});
+</script>
+{% endblock %}

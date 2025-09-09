@@ -55,28 +55,45 @@
         <!-- ======================================================================= -->
         <!-- Card de Solicitações de Exclusão                                      -->
         <!-- ======================================================================= -->
-        {% if user.is_superuser %}
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card text-center h-100 shadow-sm">
-                <div class="card-body d-flex flex-column justify-content-between p-4">
-                    <div>
-                        <h5 class="card-title">Solicitações de Exclusão</h5>
-                         <i class="fas fa-user-slash display-4 text-danger text-opacity-50 my-3"></i>
-                    </div>
-                    <!-- MUDANÇA AQUI: Adicionadas classes d-flex -->
-                    <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="btn btn-danger mt-3 d-flex justify-content-center align-items-center">
-                        <span>Revisar Solicitações</span>
-                        {% if solicitacoes_pendentes_count > 0 %}
-                        <span class="badge text-bg-light rounded-pill ms-2">{{ solicitacoes_pendentes_count }}</span>
-                        {% endif %}
-                    </a>
-                </div>
+<!-- gestao/templates/gestao/dashboard.html -->
+
+<!-- ======================================================================= -->
+<!-- Card de Solicitações de Exclusão (Agora visível para todo o Staff)      -->
+<!-- ======================================================================= -->
+{% if user.is_staff %}
+<div class="col-lg-3 col-md-6 mb-4">
+    <div class="card text-center h-100 shadow-sm">
+        <div class="card-body d-flex flex-column justify-content-between p-4">
+            <div>
+                <h5 class="card-title">Solicitações de Exclusão</h5>
+                 <i class="fas fa-user-slash display-4 text-danger text-opacity-50 my-3"></i>
             </div>
+
+            <!-- Lógica condicional para o botão -->
+            {% if user.is_superuser %}
+                <!-- Versão para Superusuários -->
+                <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="btn btn-danger mt-3 d-flex justify-content-center align-items-center">
+                    <span>Revisar Solicitações</span>
+                    {% if solicitacoes_pendentes_count > 0 %}
+                    <span class="badge text-bg-light rounded-pill ms-2">{{ solicitacoes_pendentes_count }}</span>
+                    {% endif %}
+                </a>
+            {% else %}
+                <!-- Versão para Staff (não-superuser) -->
+                <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="btn btn-outline-danger mt-3 d-flex justify-content-center align-items-center">
+                    <span>Ver Solicitações</span>
+                    {% if solicitacoes_pendentes_count > 0 %}
+                    <span class="badge text-bg-danger rounded-pill ms-2">{{ solicitacoes_pendentes_count }}</span>
+                    {% endif %}
+                </a>
+            {% endif %}
         </div>
-        {% endif %}
+    </div>
+</div>
+{% endif %}
 
         <!-- ======================================================================= -->
-        <!-- Card de Gestão de Equipe                                              -->
+        <!-- Card de Gestão de Usuario                                            -->
         <!-- ======================================================================= -->
         {% if user.is_staff %}
         <div class="col-lg-3 col-md-6 mb-4">
@@ -97,6 +114,25 @@
                         {% else %}
                             <span>Visualizar Usuários</span>
                         {% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+                <!-- ======================================================================= -->
+        <!-- Card de Registro de Atividades                                        -->
+        <!-- ======================================================================= -->
+        {% if user.is_superuser %}
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column justify-content-between p-4">
+                    <div>
+                        <h5 class="card-title">Registro de Atividades</h5>
+                        <i class="fas fa-history display-4 text-secondary text-opacity-50 my-3"></i>
+                    </div>
+                    <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-outline-secondary mt-3">
+                        <span>Ver Registros</span>
                     </a>
                 </div>
             </div>

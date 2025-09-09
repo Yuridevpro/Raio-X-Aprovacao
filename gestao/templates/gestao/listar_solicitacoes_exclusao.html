@@ -6,30 +6,29 @@
 
 
 {% block head %}
-    <!-- Carrega o CSS específico para o painel de gestão -->
     <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
-    {% endblock %}
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
+    <div class="d-flex justify-content-end mb-4">
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+        </a>
+    </div>
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="d-flex align-items-center">
-            <h2 class="h3 mb-0 me-3">Revisar Solicitações</h2>
+            <h2 class="h3 mb-0 me-3">Solicitações de Exclusão</h2>
             {% if total_solicitacoes > 0 %}
             <span class="badge rounded-pill text-bg-danger fs-6 fw-normal">
                 {{ total_solicitacoes }} {% if total_solicitacoes == 1 %}pendente{% else %}pendentes{% endif %}
             </span>
             {% endif %}
         </div>
-        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
-        </a>
     </div>
 
-    <!-- Container para mensagens (se necessário no futuro) -->
     <div id="message-container"></div>
 
-    <!-- Container para a lista de solicitações -->
     <div id="solicitacoes-list">
         {% for solicitacao in solicitacoes %}
         <div class="card mb-3 shadow-sm" id="solicitacao-card-{{ solicitacao.id }}">
@@ -47,22 +46,36 @@
                     <p class="mb-0 fst-italic">"{{ solicitacao.motivo|linebreaksbr }}"</p>
                 </blockquote>
             </div>
+            <!-- ======================================================================= -->
+            <!-- INÍCIO DO BLOCO MODIFICADO: Lógica condicional para os botões -->
+            <!-- ======================================================================= -->
             <div class="card-footer text-end bg-white">
-                <button type="button" class="btn btn-secondary action-btn" data-action="rejeitar" data-solicitacao-id="{{ solicitacao.id }}">
-                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                    <span class="btn-text"><i class="fas fa-times me-2"></i>Rejeitar</span>
-                </button>
-                <button type="button" class="btn btn-danger ms-2 action-btn" data-action="aprovar" data-solicitacao-id="{{ solicitacao.id }}"
-                        data-username="{{ solicitacao.usuario_a_ser_excluido.username }}">
-                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                    <span class="btn-text"><i class="fas fa-check me-2"></i>Aprovar e Excluir</span>
-                </button>
+                {% if user.is_superuser %}
+                    <!-- Botões para Superusuários -->
+                    <button type="button" class="btn btn-secondary action-btn" data-action="rejeitar" data-solicitacao-id="{{ solicitacao.id }}">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <span class="btn-text"><i class="fas fa-times me-2"></i>Rejeitar</span>
+                    </button>
+                    <button type="button" class="btn btn-danger ms-2 action-btn" data-action="aprovar" data-solicitacao-id="{{ solicitacao.id }}"
+                            data-username="{{ solicitacao.usuario_a_ser_excluido.username }}">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <span class="btn-text"><i class="fas fa-check me-2"></i>Aprovar e Excluir</span>
+                    </button>
+                {% elif solicitacao.solicitado_por == request.user %}
+                    <!-- Botão para Staff que criou a solicitação -->
+                    <button type="button" class="btn btn-outline-danger action-btn" data-action="cancelar" data-solicitacao-id="{{ solicitacao.id }}">
+                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                        <span class="btn-text"><i class="fas fa-trash-alt me-2"></i>Cancelar Minha Solicitação</span>
+                    </button>
+                {% endif %}
             </div>
+            <!-- ======================================================================= -->
+            <!-- FIM DO BLOCO MODIFICADO -->
+            <!-- ======================================================================= -->
         </div>
         {% endfor %}
     </div>
 
-    <!-- Mensagem de "Lista Vazia", agora fora do loop e escondida por padrão -->
     <div class="card card-body text-center p-5" id="empty-state-message" style="display: none;">
         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
         <h5 class="text-muted">Não há solicitações de exclusão pendentes.</h5>
@@ -70,35 +83,23 @@
     </div>
 </div>
 
-
-    <div class="mt-4">
-        {% include 'includes/_paginacao.html' with paginated_object=solicitacoes page_numbers=page_numbers %}
-    </div>
-
+<div class="mt-4">
+    {% include 'includes/_paginacao.html' with paginated_object=solicitacoes page_numbers=page_numbers %}
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // =======================================================================
-    // Função helper para gerenciar a visibilidade da mensagem de "lista vazia"
-    // =======================================================================
     const emptyStateMessage = document.getElementById('empty-state-message');
     const solicitacoesList = document.getElementById('solicitacoes-list');
 
     function checkEmptyState() {
         if (!emptyStateMessage || !solicitacoesList) return;
-        
-        // Verifica se ainda existe algum elemento com a classe '.card' dentro da lista
         const hasCards = solicitacoesList.querySelector('.card') !== null;
-        
-        // Mostra a mensagem se não houver cards, esconde se houver
         emptyStateMessage.style.display = hasCards ? 'none' : 'block';
     }
 
-    // =======================================================================
-    // Lógica principal dos botões de ação
-    // =======================================================================
     document.querySelectorAll('.action-btn').forEach(button => {
         button.addEventListener('click', function() {
             const action = this.dataset.action;
@@ -116,9 +117,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmTitle = 'Aprovar Exclusão Permanente';
                 confirmationMessage = `ATENÇÃO!\n\nVocê está prestes a APROVAR e EXCLUIR o usuário ${username} permanentemente. Esta ação não pode ser desfeita. Deseja continuar?`;
                 url = `{% url 'gestao:aprovar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId);
+            // =======================================================================
+            // INÍCIO DO BLOCO NOVO: Lógica para o botão de cancelar
+            // =======================================================================
+            } else if (action === 'cancelar') {
+                confirmTitle = 'Cancelar Solicitação';
+                confirmationMessage = 'Tem certeza que deseja cancelar e remover sua solicitação de exclusão?';
+                url = `{% url 'gestao:cancelar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId);
             }
+            // =======================================================================
+            // FIM DO BLOCO NOVO
+            // =======================================================================
 
-            // Presumindo que showConfirmationModal e showNotificationModal são globais
             showConfirmationModal(confirmTitle, confirmationMessage, () => {
                 const spinner = this.querySelector('.spinner-border');
                 const btnText = this.querySelector('.btn-text');
@@ -139,7 +149,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         if(cardToRemove) {
                             cardToRemove.remove();
                         }
-                        // Após remover, verifica se a lista ficou vazia
                         checkEmptyState();
                     } else {
                         throw new Error(data.message || 'Ocorreu um erro.');
@@ -157,7 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Chama a função no carregamento inicial da página para definir o estado correto
     checkEmptyState();
 });
 </script>

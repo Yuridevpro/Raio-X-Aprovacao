@@ -186,9 +186,7 @@
     
 {% block content %}
 <div class="container mt-5 mb-5">
-
     <div class="mb-4">
-        <!-- ATENÇÃO: Verifique se 'gestao:painel' é a URL correta para o seu painel de gestão -->
         <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm">
             <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel de Gestão
         </a>
@@ -214,13 +212,11 @@
         </div>
     </div>
     
-    <!-- MENSAGENS DO SISTEMA -->
     {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>{% endfor %}{% endif %}
 
-    <!-- CARD DE FILTROS RECOLHÍVEL -->
     <div class="filter-card">
         <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
             <div class="d-flex justify-content-between align-items-center">
@@ -235,90 +231,76 @@
         </div>
     </div>
 
-
-    <!-- INÍCIO DO BLOCO NOVO: Barra de Ações em Massa -->
-<div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
-    <div class="d-flex justify-content-between align-items-center">
-        <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="select-all-checkbox">
-            <label class="form-check-label" for="select-all-checkbox">
-                <span id="selected-count" class="fw-bold">0</span> selecionada(s)
-            </label>
-        </div>
-        <div class="dropdown">
-            <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown" id="bulk-action-dropdown-btn">
-                <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                <span class="btn-text">Aplicar Ação</span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li>
-                    <a class="dropdown-item bulk-action-btn" href="#" data-action="delete">
-                        <i class="fas fa-trash-alt text-danger fa-fw me-2"></i>Excluir Selecionadas
-                    </a>
-                </li>
-            </ul>
+    <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="select-all-checkbox">
+                <label class="form-check-label" for="select-all-checkbox">
+                    <span id="selected-count" class="fw-bold">0</span> selecionada(s)
+                </label>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown" id="bulk-action-dropdown-btn">
+                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                    <span class="btn-text">Aplicar Ação</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item bulk-action-btn" href="#" data-action="delete">
+                            <i class="fas fa-trash-alt text-danger fa-fw me-2"></i>Excluir Selecionadas
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
-</div>
-<!-- FIM DO BLOCO NOVO -->
 
-<!-- CABEÇALHO DA LISTA DE RESULTADOS -->
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h3 class="h5 mb-0 text-secondary">Questões Encontradas</h3>
-    <!-- MUDANÇA: Adicionado um ID ao span para que o JS possa atualizá-lo -->
-    <span id="total-results-badge" class="badge bg-light text-dark fs-6">
-        <span id="total-results-count">{{ questoes.paginator.count }}</span> resultados
-    </span>
-</div>
-<!-- FIM DO BLOCO MODIFICADO -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3 class="h5 mb-0 text-secondary">Questões Encontradas</h3>
+        <span id="total-results-badge" class="badge bg-light text-dark fs-6">
+            <span id="total-results-count">{{ questoes.paginator.count }}</span> resultados
+        </span>
+    </div>
 
     {% if questoes %}
         <div class="lista-questoes-container">
-            <!-- INÍCIO DO BLOCO MODIFICADO: Itens da lista de questões -->
-<!-- INÍCIO DO BLOCO MODIFICADO: Itens da lista com Checkbox -->
-{% for questao in questoes %}
-    <div class="questao-item" id="questao-item-{{ questao.id }}">
-        <!-- Checkbox para seleção em massa -->
-        <div class="form-check">
-            <input class="form-check-input questao-checkbox" type="checkbox" data-id="{{ questao.id }}">
-        </div>
-        <!-- Informações da Questão (agora dentro de um container flex) -->
-        <div class="questao-info">
-            <span class="codigo">{{ questao.codigo }}</span>
-            <span class="disciplina">{{ questao.disciplina.nome }}</span>
-            <span class="meta">
-                {% if questao.is_inedita %}
-                    <span class="badge bg-info text-dark">Inédita</span>
-                {% else %}
-                    {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
-                {% endif %}
-            </span>
-        </div>
-        <!-- Botões de Ação (Direita) -->
-        <div class="questao-actions">
-            <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao"
-                    data-questao-id="{{ questao.id }}" data-bs-toggle="tooltip" title="Visualização Rápida">
-                <i class="fas fa-eye"></i>
-            </button>
-            <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Editar">
-                <i class="fas fa-edit"></i>
-            </a>
-            <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-questao"
-                    data-bs-toggle="modal"
-                    data-bs-target="#deletarQuestaoModal"
-                    data-questao-id="{{ questao.id }}"
-                    data-questao-codigo="{{ questao.codigo }}"
-                    data-bs-toggle="tooltip" title="Deletar">
-                <i class="fas fa-trash"></i>
-            </button>
-        </div>
-    </div>
-{% endfor %}
-<!-- FIM DO BLOCO MODIFICADO -->
-            <!-- FIM DO BLOCO MODIFICADO -->
+            {% for questao in questoes %}
+            <div class="questao-item" id="questao-item-{{ questao.id }}">
+                <div class="form-check">
+                    <input class="form-check-input questao-checkbox" type="checkbox" data-id="{{ questao.id }}">
+                </div>
+                <div class="questao-info">
+                    <span class="codigo">{{ questao.codigo }}</span>
+                    <span class="disciplina">{{ questao.disciplina.nome }}</span>
+                    <span class="meta">
+                        {% if questao.is_inedita %}
+                            <span class="badge bg-info text-dark">Inédita</span>
+                        {% else %}
+                            {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="questao-actions">
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao"
+                            data-questao-id="{{ questao.id }}" data-bs-toggle="tooltip" title="Visualização Rápida">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-questao"
+                            data-bs-toggle="modal"
+                            data-bs-target="#deletarQuestaoModal"
+                            data-questao-id="{{ questao.id }}"
+                            data-questao-codigo="{{ questao.codigo }}"
+                            data-bs-toggle="tooltip" title="Deletar">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
         </div>
     {% else %}
-        <!-- ESTADO VAZIO (QUANDO NÃO HÁ RESULTADOS) -->
         <div class="text-center py-5 empty-state-card">
             <i class="fas fa-search fa-4x text-muted mb-3"></i>
             <h4 class="h5 fw-bold">Nenhuma questão foi encontrada</h4>
@@ -326,66 +308,90 @@
         </div>
     {% endif %}
 
-
-  
-
-
-</div> <!-- Fim do .container -->
-<div class="mt-4">
-    {% include 'includes/_paginacao.html' with paginated_object=questoes %} 
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=questoes page_numbers=page_numbers %} 
+    </div>
 </div>
 
+<!-- ======================================================= -->
+<!-- INÍCIO DA MODIFICAÇÃO: Modais agora com formulários -->
+<!-- ======================================================= -->
 
-<!-- ======================================================= -->
-<!-- MODAIS (ESTRUTURA E LÓGICA 100% INALTERADAS) -->
-<!-- ======================================================= -->
-<!-- INÍCIO DO BLOCO MODIFICADO: Modais -->
-<!-- Modal 'addEntidadeModal' com Spinner -->
+<!-- Modal 'addEntidadeModal' -->
 <div class="modal fade" id="addEntidadeModal" tabindex="-1" aria-labelledby="addEntidadeModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <!-- ... (modal-header e modal-body inalterados) ... -->
-        <div class="modal-footer d-flex justify-content-center">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <!-- Botão "Salvar" agora tem ID e spinner -->
-          <button type="button" class="btn btn-primary" id="btn-salvar-entidade">
-              <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-              <span class="btn-text">Salvar</span>
-          </button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEntidadeModalLabel">Adicionar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-entidade">
+                    {% csrf_token %}
+                    <input type="hidden" name="tipo_entidade" id="input-tipo-entidade">
+                    <div class="mb-3">
+                        <label for="input-nome-entidade" class="form-label">{{ entidade_simples_form.nome.label }}:</label>
+                        {{ entidade_simples_form.nome }}
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-salvar-entidade">
+                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                    <span class="btn-text">Salvar</span>
+                </button>
+            </div>
         </div>
-      </div>
     </div>
 </div>
 
-<!-- Modal 'addAssuntoModal' com Spinner -->
+<!-- Modal 'addAssuntoModal' -->
 <div class="modal fade" id="addAssuntoModal" tabindex="-1" aria-labelledby="addAssuntoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <!-- ... (modal-header e modal-body inalterados) ... -->
-        <div class="modal-footer d-flex justify-content-center">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <!-- Botão "Salvar Assunto" agora tem ID e spinner -->
-          <button type="button" class="btn btn-primary" id="btn-salvar-assunto">
-            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-            <span class="btn-text">Salvar Assunto</span>
-          </button>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addAssuntoModalLabel">Adicionar Novo Assunto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="form-add-assunto">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="{{ assunto_form.disciplina.id_for_label }}" class="form-label">{{ assunto_form.disciplina.label }}:</label>
+                        {{ assunto_form.disciplina }}
+                    </div>
+                    <div class="mb-3">
+                        <label for="{{ assunto_form.nome.id_for_label }}" class="form-label">{{ assunto_form.nome.label }}:</label>
+                        {{ assunto_form.nome }}
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-salvar-assunto">
+                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                    <span class="btn-text">Salvar Assunto</span>
+                </button>
+            </div>
         </div>
-      </div>
     </div>
 </div>
 
-<!-- NOVO MODAL: Confirmação para Deletar Questão -->
+<!-- Outros modais (deletar, visualizar) permanecem aqui -->
 <div class="modal fade" id="deletarQuestaoModal" tabindex="-1" aria-labelledby="deletarQuestaoModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <form id="form-deletar-questao" method="POST" action="">
                 {% csrf_token %}
-                <div class="modal-header bg-danger text-white  ">
+                <div class="modal-header bg-danger text-white">
                     <h5 class="modal-title" id="deletarQuestaoModalLabel">Confirmar Exclusão</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p >Você tem certeza que deseja excluir permanentemente a questão <strong id="codigo-para-deletar"></strong>?</p>
+                    <p>Você tem certeza que deseja excluir permanentemente a questão <strong id="codigo-para-deletar"></strong>?</p>
                     <p class="text-danger fw-bold">Esta ação não pode ser desfeita.</p>
                 </div>
                 <div class="modal-footer justify-content-center">

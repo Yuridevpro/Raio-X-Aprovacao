@@ -1,0 +1,1 @@
+Este eh um arquivo de teste automatico de conexao com o S3.

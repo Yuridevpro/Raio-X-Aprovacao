@@ -121,26 +121,32 @@ TIME_ZONE = 'America/Sao_Paulo'
 USE_I18N = True
 USE_TZ = True
 
-# --- ARQUIVOS ESTÁTICOS E DE MÍDIA (DINÂMICO) ---
+# --- ARQUIVOS ESTÁTICOS (CONFIGURAÇÃO PARA PRODUÇÃO COM WHITENOISE) ---
+# Esta parte permanece a mesma, pois Whitenoise lida com os arquivos estáticos
+# do seu template (CSS, JS), não com os uploads dos usuários (mídia).
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'templates/static')]
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-if DEBUG:
-    # Em desenvolvimento, salvamos os arquivos localmente na pasta /media/
-    MEDIA_URL = '/media/'
-    MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-else:
-    # Em produção, usamos o Amazon S3
-    AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
-    AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
-    AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
-    AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
-    AWS_S3_FILE_OVERWRITE = False
-    AWS_DEFAULT_ACL = None
-    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
-    MEDIA_URL = f'https://{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com/'
+
+# --- CONFIGURAÇÃO DE ARQUIVOS DE MÍDIA SEMPRE PARA O S3 ---
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
+AWS_STORAGE_BUCKET_NAME = os.getenv('AWS_STORAGE_BUCKET_NAME')
+AWS_S3_REGION_NAME = os.getenv('AWS_S3_REGION_NAME')
+
+# Configurações adicionais para garantir o funcionamento correto
+AWS_S3_FILE_OVERWRITE = False
+AWS_DEFAULT_ACL = None # Recomendado para segurança
+AWS_S3_CUSTOM_DOMAIN = f'{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com'
+AWS_LOCATION = 'media' # Salva tudo dentro de uma pasta 'media' no bucket
+
+# Define o storage padrão para os arquivos de mídia (uploads)
+DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+
+# A URL base para acessar os arquivos de mídia no S3
+MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
 
 
 
