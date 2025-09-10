@@ -200,3 +200,18 @@ h1, h2, h3, h4, h5, h6 {
    
 }
 
+.filter-card .card-header .icon-toggle::before {
+    content: '\f078'; /* FontAwesome down arrow */
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    transition: transform 0.3s ease;
+    display: inline-block;
+}
+
+.filter-card .card-header.collapsed .icon-toggle::before {
+    transform: rotate(0deg);
+}
+
+.filter-card .card-header:not(.collapsed) .icon-toggle::before {
+    transform: rotate(-180deg);
+}

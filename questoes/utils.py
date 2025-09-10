@@ -1,32 +1,21 @@
 # questoes/utils.py
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
-# questoes/utils.py
-
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q # Adicione esta importação
+from django.db.models import Q
 
 def paginar_itens(request, queryset, items_per_page=15):
     """
     Função genérica para paginar qualquer queryset e gerar a lista de páginas correta.
     Agora lê a quantidade de itens por página da URL.
     """
-    # =======================================================================
-    # INÍCIO DA MODIFICAÇÃO
-    # =======================================================================
     try:
-        # Pega o valor da URL, usa o padrão se não existir ou for inválido.
         per_page = int(request.GET.get('per_page', items_per_page))
-        if per_page not in [10, 20, 50]: # Lista de valores permitidos
+        if per_page not in [10, 20, 50]:
             per_page = items_per_page
     except (ValueError, TypeError):
         per_page = items_per_page
-    # =======================================================================
-    # FIM DA MODIFICAÇÃO
-    # =======================================================================
 
-    paginator = Paginator(queryset, per_page) # Usa a variável per_page
+    paginator = Paginator(queryset, per_page)
     page_number = request.GET.get('page', 1)
 
     try:
@@ -34,7 +23,6 @@ def paginar_itens(request, queryset, items_per_page=15):
     except (EmptyPage, PageNotAnInteger):
         page_obj = paginator.page(paginator.num_pages if paginator.num_pages > 0 else 1)
 
-    # ... (lógica de page_numbers continua a mesma) ...
     page_numbers = []
     current_page = page_obj.number
     total_pages = paginator.num_pages
@@ -48,21 +36,14 @@ def paginar_itens(request, queryset, items_per_page=15):
             page_numbers = [1, '...'] + list(range(total_pages - 4, total_pages + 1))
         else:
             page_numbers = [1, '...', current_page - 1, current_page, current_page + 1, '...', total_pages]
+            
+    return page_obj, page_numbers, per_page
 
-    return page_obj, page_numbers, per_page # Retorna também o per_page para o contexto
 
-
-# =======================================================================
-# PASSO 2: REATORAR A FUNÇÃO ANTIGA
-# Agora que temos uma função genérica perfeita, vamos fazer com que a
-# função de filtrar questões a utilize, em vez de ter sua própria lógica.
-# =======================================================================
 def filtrar_e_paginar_questoes(request, base_queryset, items_per_page=15):
     """
     Centraliza a lógica de filtrar e agora USA a função genérica para paginar.
     """
-    
-    # 1. Lógica de Filtragem (permanece a mesma)
     palavra_chave = request.GET.get('palavra_chave', '').strip()
     disciplinas_ids = request.GET.getlist('disciplina')
     assuntos_ids = request.GET.getlist('assunto')
@@ -89,14 +70,12 @@ def filtrar_e_paginar_questoes(request, base_queryset, items_per_page=15):
         else:
             lista_questoes = lista_questoes.filter(enunciado__icontains=palavra_chave)
 
-    # 2. Lógica de Paginação (AGORA USANDO A FUNÇÃO GENÉRICA)
-    # Removemos todo o código de paginação duplicado daqui.
-    questoes_paginadas, page_numbers = paginar_itens(request, lista_questoes, items_per_page)
+    questoes_paginadas, page_numbers, per_page = paginar_itens(request, lista_questoes, items_per_page)
     
-    # 3. Montagem do Contexto de Retorno
     context = {
         'questoes': questoes_paginadas,
-        'page_numbers': page_numbers, # Vem da nossa função genérica!
+        'page_numbers': page_numbers,
+        'per_page': per_page, # Passando adiante o valor de itens por página
         'selected_disciplinas': [int(i) for i in disciplinas_ids if i.isdigit()],
         'selected_assuntos': [int(i) for i in assuntos_ids if i.isdigit()],
         'selected_bancas': [int(i) for i in bancas_ids if i.isdigit()],

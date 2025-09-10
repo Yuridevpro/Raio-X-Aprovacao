@@ -139,6 +139,11 @@
                 <li class="nav-item"><a class="nav-link {% if status_ativo == 'TODAS' %}active{% endif %}" href="?status=TODAS">Todos</a></li>
             </ul>
 
+            <!-- INCLUSÃO DOS CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
+            <div class="my-4">
+                {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes_agrupadas sort_options=sort_options sort_by=sort_by per_page=per_page %}
+            </div>
+
             {% if status_ativo != 'TODAS' %}
             <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
                 <div class="d-flex justify-content-between align-items-center">

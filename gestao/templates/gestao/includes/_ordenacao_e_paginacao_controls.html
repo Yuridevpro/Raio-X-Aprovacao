@@ -1,18 +1,30 @@
 <!-- templates/gestao/includes/_ordenacao_e_paginacao_controls.html -->
 {% load gestao_extras %}
 
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-    <div>
+<!-- ======================================================================= -->
+<!-- INÍCIO DA CORREÇÃO FINAL: Layout responsivo aprimorado -->
+<!-- ======================================================================= -->
+<!-- Por padrão (mobile-first), usamos flex-column. Em telas médias (md) e acima, usamos flex-row -->
+<div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center mb-3 gap-2">
+    
+    <!-- Texto 'Exibindo...' -->
+    <!-- Em telas pequenas, o texto fica centralizado. Em telas médias, alinhado à esquerda. -->
+    <div class="text-center text-md-start">
         <span class="text-muted small">
             Exibindo <strong>{{ paginated_object.start_index }}-{{ paginated_object.end_index }}</strong> de <strong>{{ paginated_object.paginator.count }}</strong> resultados
         </span>
     </div>
-    <div class="d-flex align-items-center gap-2">
+
+    <!-- Container dos Botões Dropdown -->
+    <!-- Em telas pequenas, botões centralizados. Em telas médias, alinhados à direita. -->
+    <div class="d-flex align-items-center justify-content-center justify-content-md-end gap-2">
+        
         <!-- Dropdown de Ordenação -->
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-sort-amount-down me-1"></i>
-                Ordenar por: <strong>{{ sort_options|get_item:sort_by|default:"Padrão" }}</strong>
+                <span class="d-none d-md-inline">Ordenar por: </span><!-- O texto "Ordenar por:" agora só aparece em telas médias ou maiores -->
+                <strong>{{ sort_options|get_item:sort_by|default:"Padrão" }}</strong>
             </button>
             <ul class="dropdown-menu dropdown-menu-end">
                 {% for key, value in sort_options.items %}
@@ -30,14 +42,14 @@
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fas fa-list-ol me-1"></i>
-                <strong>{{ per_page }}</strong> por página
+                <strong>{{ per_page }}</strong> <span class="d-none d-md-inline">por página</span> <!-- O texto "por página" só aparece em telas médias ou maiores -->
             </button>
-            <ul class="dropdown-menu dropdown-menu-end">
+            <ul class="dropdown-menu dropdown-menu-end" style="min-width: auto;">
                 {% for count in "10,20,50"|split:',' %}
                 <li>
                     <a class="dropdown-item {% if per_page|stringformat:"s" == count %}active{% endif %}"
                        href="?{% update_query_params per_page=count page=1 %}">
-                       {{ count }} por página
+                       {{ count }}
                     </a>
                 </li>
                 {% endfor %}
@@ -45,3 +57,6 @@
         </div>
     </div>
 </div>
+<!-- ======================================================================= -->
+<!-- FIM DA CORREÇÃO -->
+<!-- ======================================================================= -->

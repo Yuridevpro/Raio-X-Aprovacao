@@ -1,11 +1,11 @@
-<!-- gestao/templates/gestao/form_usuario_staff.html (VERSÃO FINAL) -->
+<!-- gestao/templates/gestao/form_usuario_staff.html (VERSÃO CORRIGIDA) -->
 {% extends 'base.html' %}
-{% load gestao_extras %} <!-- Carrega a tag personalizada -->
+{% load gestao_extras %}
 
-{% block title %}{{ titulo }}{% endblock %}
+{% block title %}Editar Permissões de {{ usuario_alvo.username }}{% endblock %}
+
 {% block head %}
 <style>
-    /* Estilos Opcionais para melhor aparência */
     .disabled-field {
         background-color: #e9ecef;
         opacity: 1;
@@ -18,7 +18,7 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2 class="h3 mb-0">{{ titulo }}</h2>
+                <h2 class="h3 mb-0">Editar Permissões: {{ usuario_alvo.username }}</h2>
                 <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-2"></i>Voltar
                 </a>
@@ -38,10 +38,7 @@
                         </div>
                         <hr>
                         <div class="form-check form-switch mb-4 mt-4">
-                            <input type="checkbox" name="{{ form.is_staff.name }}" id="{{ form.is_staff.id_for_label }}" 
-                                   class="form-check-input" role="switch" 
-                                   {% if usuario_alvo.is_staff %}checked{% endif %}
-                                   {% if usuario_alvo.is_superuser %}disabled{% endif %}>
+                            {{ form.is_staff }}
                             <label class="form-check-label ms-2" for="{{ form.is_staff.id_for_label }}">
                                 <strong>Membro da equipe</strong>
                             </label>
@@ -53,17 +50,8 @@
                         </div>
 
                         <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-4">
-                            <!-- ======================================================================= -->
-                            <!-- INÍCIO DA LÓGICA DE PROMOÇÃO/DESPROMOÇÃO ATUALIZADA -->
-                            <!-- ======================================================================= -->
                             <div>
-                                {% if usuario_alvo.is_superuser %}
-                                    {% if usuario_alvo != request.user %}
-                                        <a href="{% url 'gestao:solicitar_despromocao_superuser' usuario_alvo.id %}" class="btn btn-outline-danger">
-                                            <i class="fas fa-user-minus me-2"></i>Solicitar Despromoção
-                                        </a>
-                                    {% endif %}
-                                {% else %}
+                                {% if not usuario_alvo.is_superuser %}
                                     {% get_superuser_count as superuser_count %}
                                     {% if superuser_count <= 1 %}
                                         <form id="form-promover-direto-{{ usuario_alvo.id }}" method="POST" action="{% url 'gestao:promover_diretamente_superuser' usuario_alvo.id %}">
@@ -82,11 +70,9 @@
                                     {% endif %}
                                 {% endif %}
                             </div>
-                            <!-- ======================================================================= -->
-                            <!-- FIM DA LÓGICA -->
-                            <!-- ======================================================================= -->
                             
                             <div>
+                                <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary">Cancelar</a>
                                 <button id="save-button" type="submit" class="btn btn-primary ms-2">
                                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
                                     <i class="fas fa-save me-2 icon"></i>Salvar Alterações
@@ -104,25 +90,79 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Lógica para salvar as alterações do formulário principal
+    
+    // =======================================================================
+    // INÍCIO DA ADIÇÃO: Lógica para o envio do formulário principal via AJAX
+    // =======================================================================
     const form = document.getElementById('staff-edit-form');
-    // ... (o javascript para o formulário principal permanece o mesmo)
+    const saveButton = document.getElementById('save-button');
 
-    // Lógica para confirmação de Ações via Modal
+    if (form && saveButton) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Impede o envio tradicional do formulário
+
+            const spinner = saveButton.querySelector('.spinner-border');
+            const icon = saveButton.querySelector('.icon');
+
+            saveButton.disabled = true;
+            spinner.style.display = 'inline-block';
+            if(icon) icon.style.display = 'none';
+
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok) {
+                    // Supondo que você tenha uma função global showNotificationModal
+                    if (typeof showNotificationModal === 'function') {
+                        showNotificationModal('Sucesso!', data.message, 'success');
+                    } else {
+                        alert(data.message); // Fallback
+                    }
+                } else {
+                    throw new Error(data.message || 'Ocorreu um erro ao salvar.');
+                }
+            })
+            .catch(error => {
+                if (typeof showNotificationModal === 'function') {
+                    showNotificationModal('Erro', error.message, 'error');
+                } else {
+                    alert(error.message); // Fallback
+                }
+            })
+            .finally(() => {
+                saveButton.disabled = false;
+                spinner.style.display = 'none';
+                if(icon) icon.style.display = 'inline-block';
+            });
+        });
+    }
+    // =======================================================================
+    // FIM DA ADIÇÃO
+    // =======================================================================
+
+    // Lógica para confirmação de Ações via Modal (permanece a mesma)
     document.querySelectorAll('.btn-confirm-action').forEach(button => {
         button.addEventListener('click', function() {
             const formId = this.dataset.formId;
             const modalTitle = this.dataset.modalTitle;
             const modalBody = this.dataset.modalBody;
-            const form = document.getElementById(formId);
+            const formToSubmit = document.getElementById(formId);
 
-            if (form && typeof showConfirmationModal === 'function') {
+            if (formToSubmit && typeof showConfirmationModal === 'function') {
                 showConfirmationModal(modalTitle, modalBody, () => {
-                    form.submit();
+                    formToSubmit.submit();
                 });
             } else {
                 if (confirm(modalBody)) {
-                    form.submit();
+                    formToSubmit.submit();
                 }
             }
         });

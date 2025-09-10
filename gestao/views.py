@@ -105,9 +105,35 @@ def dashboard_gestao(request):
 @user_passes_test(is_staff_member)
 @login_required
 def listar_questoes_gestao(request):
-    lista_questoes = Questao.objects.all().order_by('-id')
+    # Queryset base
+    lista_questoes = Questao.objects.all()
+
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO: Lógica de Ordenação
+    # =======================================================================
+    sort_by = request.GET.get('sort_by', '-id') # Padrão: mais recentes
+    sort_options = {
+        '-id': 'Mais Recentes',
+        'id': 'Mais Antigas',
+        'disciplina__nome': 'Disciplina (A-Z)',
+        '-ano': 'Ano (Decrescente)',
+        'ano': 'Ano (Crescente)',
+    }
+    
+    # Aplica a ordenação ao queryset base ANTES de filtrar e paginar
+    if sort_by in sort_options:
+        lista_questoes = lista_questoes.order_by(sort_by)
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
+    # A função de filtro e paginação agora recebe o queryset já ordenado
     context = filtrar_e_paginar_questoes(request, lista_questoes, items_per_page=20)
+    
+    # Adiciona as variáveis de ordenação e outras informações específicas da página ao contexto
     context.update({
+        'sort_by': sort_by,
+        'sort_options': sort_options,
         'disciplinas_para_filtro': Disciplina.objects.all().order_by('nome'),
         'disciplinas': Disciplina.objects.all().order_by('nome'),
         'bancas': Banca.objects.all().order_by('nome'),
@@ -116,6 +142,7 @@ def listar_questoes_gestao(request):
         'entidade_simples_form': EntidadeSimplesForm(),
         'assunto_form': AssuntoForm(),
     })
+    
     return render(request, 'gestao/listar_questoes.html', context)
 
 @user_passes_test(is_staff_member)
@@ -284,31 +311,58 @@ def visualizar_questao_ajax(request, questao_id):
 @user_passes_test(is_staff_member)
 @login_required
 def listar_notificacoes(request):
-    # (Esta view já estava correta e otimizada, sem necessidade de alterações)
     status_filtro = request.GET.get('status', 'PENDENTE')
     base_queryset = Questao.objects.annotate(num_notificacoes=Count('notificacoes')).filter(num_notificacoes__gt=0)
+    
     if status_filtro != 'TODAS':
         reports_na_aba_atual = Notificacao.objects.filter(questao_id=OuterRef('pk'), status=status_filtro)
         base_queryset = base_queryset.filter(Exists(reports_na_aba_atual))
+    
     filtro_anotacao = Q(notificacoes__status=status_filtro) if status_filtro != 'TODAS' else Q()
+
+    # --- LÓGICA DE ORDENAÇÃO ---
+    sort_by = request.GET.get('sort_by', '-ultima_notificacao')
+    sort_options = {
+        '-ultima_notificacao': 'Mais Recentes',
+        'ultima_notificacao': 'Mais Antigas',
+        '-num_reports': 'Mais Reportadas',
+        'num_reports': 'Menos Reportadas',
+    }
+    
     questoes_reportadas = base_queryset.annotate(
         num_reports=Count('notificacoes', filter=filtro_anotacao),
         ultima_notificacao=Max('notificacoes__data_criacao', filter=filtro_anotacao)
-    ).order_by('-ultima_notificacao')
+    )
+
+    if sort_by in sort_options:
+        questoes_reportadas = questoes_reportadas.order_by(sort_by)
+
+    # --- Lógica de Prefetch e Paginação ---
     prefetch_queryset = Notificacao.objects.select_related('usuario_reportou__userprofile')
     if status_filtro != 'TODAS':
         prefetch_queryset = prefetch_queryset.filter(status=status_filtro)
+    
     questoes_reportadas = questoes_reportadas.prefetch_related(
         Prefetch('notificacoes', queryset=prefetch_queryset.order_by('-data_criacao'), to_attr='reports_filtrados')
     )
-    page_obj, page_numbers = paginar_itens(request, questoes_reportadas, 10)
+    
+    page_obj, page_numbers, per_page = paginar_itens(request, questoes_reportadas, 10)
+    
     stats = {
         'pendentes_total': Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count(),
         'resolvidas_total': Notificacao.objects.filter(status=Notificacao.Status.RESOLVIDO).count(),
         'rejeitadas_total': Notificacao.objects.filter(status=Notificacao.Status.REJEITADO).count(),
     }
+    
     context = {
-        'questoes_agrupadas': page_obj, 'page_numbers': page_numbers, 'status_ativo': status_filtro, 'stats': stats,
+        'questoes_agrupadas': page_obj,
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'status_ativo': status_filtro,
+        'stats': stats,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
     }
     return render(request, 'gestao/listar_notificacoes_agrupadas.html', context)
 
@@ -382,6 +436,10 @@ def notificacoes_acoes_em_massa(request):
 
 # gestao/views.py
 
+# gestao/views.py
+
+# gestao/views.py
+
 @login_required
 @user_passes_test(is_staff_member)
 def listar_usuarios(request):
@@ -397,48 +455,73 @@ def listar_usuarios(request):
         tem_solicitacao_pendente=Exists(solicitacoes_pendentes)
     )
 
-    # Ordenação padrão
-    base_queryset = base_queryset.order_by('-tem_solicitacao_pendente', 'username')
-
-    # =======================================================================
-    # INÍCIO DA LÓGICA DE FILTRAGEM RESTAURADA
-    # =======================================================================
+    # --- LÓGICA DE FILTRAGEM (sem alterações) ---
     filtro_q = request.GET.get('q', '').strip()
     filtro_permissao = request.GET.get('permissao', '')
     filtro_solicitacao = request.GET.get('solicitacao', '')
-
     if filtro_q:
         base_queryset = base_queryset.filter(
             Q(username__icontains=filtro_q) | Q(email__icontains=filtro_q)
         )
     if filtro_permissao:
         if filtro_permissao == 'superuser':
-            if request.user.is_superuser:
-                base_queryset = base_queryset.filter(is_superuser=True)
+            base_queryset = base_queryset.filter(is_superuser=True)
         elif filtro_permissao == 'staff':
             base_queryset = base_queryset.filter(is_staff=True, is_superuser=False)
         elif filtro_permissao == 'comum':
             base_queryset = base_queryset.filter(is_staff=False)
-    
     if filtro_solicitacao == 'pendente':
         base_queryset = base_queryset.filter(tem_solicitacao_pendente=True)
+
     # =======================================================================
-    # FIM DA LÓGICA DE FILTRAGEM
+    # INÍCIO DA CORREÇÃO FINAL: Lógica de Ordenação Hierárquica
     # =======================================================================
+    sort_by = request.GET.get('sort_by', 'nivel')
+    sort_options = {
+        'nivel': 'Nível de Permissão',
+        '-date_joined': 'Mais Recentes',
+        'date_joined': 'Mais Antigos',
+        'username': 'Nome (A-Z)',
+        '-username': 'Nome (Z-A)',
+    }
     
-    usuarios_paginados, page_numbers = paginar_itens(request, base_queryset, items_per_page=9)
+    # Define a hierarquia de ordenação correta.
+    # A permissão é o critério principal. A solicitação é o secundário.
+    order_fields = [
+        '-is_superuser',             # 1. Superusuários sempre no topo.
+        '-is_staff',                 # 2. Membros da equipe logo abaixo.
+        '-tem_solicitacao_pendente', # 3. DENTRO de cada grupo, priorizar quem tem solicitação.
+    ]
+
+    # Adiciona o critério de desempate final, que é a escolha do usuário.
+    if sort_by != 'nivel' and sort_by in sort_options:
+        order_fields.append(sort_by)
+    else:
+        # Se a ordenação for por 'nivel' (padrão), o desempate final é o nome de usuário.
+        order_fields.append('username')
+    
+    base_queryset = base_queryset.order_by(*order_fields)
+    # =======================================================================
+    # FIM DA CORREÇÃO FINAL
+    # =======================================================================
+
+    # --- LÓGICA DE PAGINAÇÃO ---
+    paginated_object, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=9)
 
     context = {
-        'usuarios': usuarios_paginados,
-        'paginated_object': usuarios_paginados,
+        'usuarios': paginated_object,
+        'paginated_object': paginated_object,
         'page_numbers': page_numbers,
-        # Passa os filtros de volta para o template para manter os valores nos campos
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
         'filtro_q': filtro_q,
         'filtro_permissao': filtro_permissao,
         'filtro_solicitacao': filtro_solicitacao,
-        'total_usuarios': usuarios_paginados.paginator.count,
+        'total_usuarios': paginated_object.paginator.count,
     }
     return render(request, 'gestao/listar_usuarios.html', context)
+
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
@@ -551,12 +634,14 @@ def cancelar_promocao_superuser(request, promocao_id):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def listar_logs_atividade(request):
-    # (View existente, sem alterações)
+    logs_list = LogAtividade.objects.select_related('ator').all()
+
+    # --- LÓGICA DE FILTRAGEM ---
     filtro_q = request.GET.get('q', '').strip()
     filtro_acao = request.GET.get('acao', '')
     filtro_data_inicio = request.GET.get('data_inicio', '')
     filtro_data_fim = request.GET.get('data_fim', '')
-    logs_list = LogAtividade.objects.select_related('ator').all()
+    
     if filtro_q:
         logs_list = logs_list.filter(Q(ator__username__icontains=filtro_q) | Q(ator__email__icontains=filtro_q))
     if filtro_acao:
@@ -567,10 +652,29 @@ def listar_logs_atividade(request):
         data_fim_obj = datetime.strptime(filtro_data_fim, '%Y-%m-%d') + timedelta(days=1)
         logs_list = logs_list.filter(data_criacao__lt=data_fim_obj)
     
-    logs_paginados, page_numbers = paginar_itens(request, logs_list, 20)
+    # --- LÓGICA DE ORDENAÇÃO ---
+    sort_by = request.GET.get('sort_by', '-data_criacao')
+    sort_options = {
+        '-data_criacao': 'Mais Recentes',
+        'data_criacao': 'Mais Antigos',
+    }
+    if sort_by in sort_options:
+        logs_list = logs_list.order_by(sort_by)
+
+    # --- LÓGICA DE PAGINAÇÃO ---
+    logs_paginados, page_numbers, per_page = paginar_itens(request, logs_list, 20)
+    
     context = {
-        'logs': logs_paginados, 'paginated_object': logs_paginados, 'page_numbers': page_numbers,
-        'filtro_q': filtro_q, 'filtro_acao': filtro_acao, 'filtro_data_inicio': filtro_data_inicio, 'filtro_data_fim': filtro_data_fim,
+        'logs': logs_paginados,
+        'paginated_object': logs_paginados,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
+        'filtro_q': filtro_q,
+        'filtro_acao': filtro_acao,
+        'filtro_data_inicio': filtro_data_inicio,
+        'filtro_data_fim': filtro_data_fim,
         'acao_choices': LogAtividade.Acao.choices,
     }
     return render(request, 'gestao/listar_logs_atividade.html', context)
@@ -616,14 +720,27 @@ def logs_acoes_em_massa(request):
 def listar_solicitacoes_exclusao(request):
     solicitacoes_list = SolicitacaoExclusao.objects.filter(
         status=SolicitacaoExclusao.Status.PENDENTE
-    ).select_related('usuario_a_ser_excluido', 'solicitado_por').order_by('-data_solicitacao')
+    ).select_related('usuario_a_ser_excluido', 'solicitado_por')
 
-    solicitacoes_paginadas, page_numbers = paginar_itens(request, solicitacoes_list, items_per_page=10)
+    # --- LÓGICA DE ORDENAÇÃO ---
+    sort_by = request.GET.get('sort_by', '-data_solicitacao')
+    sort_options = {
+        '-data_solicitacao': 'Mais Recentes',
+        'data_solicitacao': 'Mais Antigas',
+    }
+    if sort_by in sort_options:
+        solicitacoes_list = solicitacoes_list.order_by(sort_by)
+
+    # --- LÓGICA DE PAGINAÇÃO ---
+    solicitacoes_paginadas, page_numbers, per_page = paginar_itens(request, solicitacoes_list, items_per_page=10)
 
     context = {
         'solicitacoes': solicitacoes_paginadas,
         'paginated_object': solicitacoes_paginadas,
         'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
         'total_solicitacoes': solicitacoes_paginadas.paginator.count,
     }
     return render(request, 'gestao/listar_solicitacoes_exclusao.html', context)
@@ -1239,32 +1356,43 @@ def mover_logs_antigos_para_lixeira(request):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 def listar_logs_deletados(request):
-    # Base da query: todos os logs com is_deleted=True
-    logs_list = LogAtividade.all_logs.filter(is_deleted=True).select_related('ator', 'deleted_by').order_by('-deleted_at')
+    logs_list = LogAtividade.all_logs.filter(is_deleted=True).select_related('ator', 'deleted_by')
 
-    # Lógica de filtragem copiada e adaptada de listar_logs_atividade
+    # --- LÓGICA DE FILTRAGEM ---
     filtro_q = request.GET.get('q', '').strip()
     filtro_acao = request.GET.get('acao', '')
     filtro_data_inicio = request.GET.get('data_inicio', '')
     filtro_data_fim = request.GET.get('data_fim', '')
-
+    
     if filtro_q:
         logs_list = logs_list.filter(Q(ator__username__icontains=filtro_q) | Q(ator__email__icontains=filtro_q))
     if filtro_acao:
         logs_list = logs_list.filter(acao=filtro_acao)
     if filtro_data_inicio:
-        logs_list = logs_list.filter(data_criacao__gte=filtro_data_inicio)
+        logs_list = logs_list.filter(deleted_at__gte=filtro_data_inicio)
     if filtro_data_fim:
         data_fim_obj = datetime.strptime(filtro_data_fim, '%Y-%m-%d') + timedelta(days=1)
-        logs_list = logs_list.filter(data_criacao__lt=data_fim_obj)
+        logs_list = logs_list.filter(deleted_at__lt=data_fim_obj)
+        
+    # --- LÓGICA DE ORDENAÇÃO ---
+    sort_by = request.GET.get('sort_by', '-deleted_at')
+    sort_options = {
+        '-deleted_at': 'Exclusão Mais Recente',
+        'deleted_at': 'Exclusão Mais Antiga',
+    }
+    if sort_by in sort_options:
+        logs_list = logs_list.order_by(sort_by)
 
-    logs_paginados, page_numbers = paginar_itens(request, logs_list, 20)
+    # --- LÓGICA DE PAGINAÇÃO ---
+    logs_paginados, page_numbers, per_page = paginar_itens(request, logs_list, 20)
     
     context = {
         'logs': logs_paginados,
         'paginated_object': logs_paginados,
         'page_numbers': page_numbers,
-        # Passa os filtros de volta para o template
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
         'filtro_q': filtro_q,
         'filtro_acao': filtro_acao,
         'filtro_data_inicio': filtro_data_inicio,

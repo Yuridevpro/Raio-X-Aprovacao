@@ -168,75 +168,84 @@ body {
         </a>
     </div>
 
-    <!-- CARD DE FILTROS -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-light border-bottom-0">
-            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Registros</h5>
-        </div>
-        <div class="card-body">
-            <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
-                <div class="filter-form-container">
-                    <div class="filter-field">
-                        <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
-                        <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
-                    </div>
-                    <div class="filter-field">
-                        <label for="acao" class="form-label">Tipo de Ação</label>
-                        <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
-                            <option value="">Todas as Ações</option>
-                            <optgroup label="Usuários e Permissões">
-                                <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
-                                <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
-                            </optgroup>
-                            <optgroup label="Solicitações (Superusuários)">
-                                <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Promovido a Superuser</option>
-                                <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Despromovido de Superuser</option>
-                                <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
-                                <option value="SOLICITACAO_DESPROMOCAO_CRIADA" {% if "SOLICITACAO_DESPROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Despromoção Criada</option>
-                                <!-- INÍCIO DA ADIÇÃO -->
-                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
-                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" == filtro_acao %}selected{% endif %}>Aprovação de Exclusão Registrada</option>
-                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Cancelada</option>
-                                <!-- FIM DA ADIÇÃO -->
-                            </optgroup>
-                             <optgroup label="Solicitações de Exclusão (Comum)">
-                                <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação Criada</option>
-                                <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação Aprovada</option>
-                                <option value="SOLICITACAO_EXCLUSAO_REJEITADA" {% if "SOLICITACAO_EXCLUSAO_REJEITADA" == filtro_acao %}selected{% endif %}>Solicitação Rejeitada</option>
-                                <option value="SOLICITACAO_EXCLUSAO_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação Cancelada</option>
-                            </optgroup>
-                            <optgroup label="Questões">
-                                <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
-                                <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
-                                <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
-                            </optgroup>
-                            <optgroup label="Entidades & Assuntos">
-                                <option value="ENTIDADE_CRIADA" {% if "ENTIDADE_CRIADA" == filtro_acao %}selected{% endif %}>Entidade Criada</option>
-                                <option value="ASSUNTO_CRIADO" {% if "ASSUNTO_CRIADO" == filtro_acao %}selected{% endif %}>Assunto Criado</option>
-                            </optgroup>
-                             <optgroup label="Notificações de Erro">
-                                <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
-                                <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
-                                <option value="NOTIFICACOES_DELETADAS" {% if "NOTIFICACOES_DELETADAS" == filtro_acao %}selected{% endif %}>Notificações Deletadas</option>
-                            </optgroup>
-                        </select>
-                    </div>
-                    <div class="filter-field">
-                        <label class="form-label">Período</label>
-                        <div class="input-group">
-                            <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}" title="Data de Início">
-                            <span class="input-group-text">até</span>
-                            <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
+
+
+                <!-- CARD DE FILTROS - RECOLHÍVEL -->
+                <div class="card mb-4 shadow-sm filter-card">
+                    <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Registros</h5>
+                            <span class="icon-toggle"></span>
                         </div>
                     </div>
-                    <div class="filter-actions">
-                        <button type="submit" class="btn btn-primary">Filtrar</button>
-                        <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary">Limpar</a>
+                    <div class="collapse" id="collapseFilters">
+                        <div class="card-body">
+                            <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
+                                <div class="filter-form-container">
+                                    <div class="filter-form-container">
+                                        <div class="filter-field">
+                                            <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
+                                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
+                                        </div>
+                                        <div class="filter-field">
+                                            <label for="acao" class="form-label">Tipo de Ação</label>
+                                            <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
+                                                <option value="">Todas as Ações</option>
+                                                <optgroup label="Usuários e Permissões">
+                                                    <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
+                                                    <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
+                                                </optgroup>
+                                                <optgroup label="Solicitações (Superusuários)">
+                                                    <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Promovido a Superuser</option>
+                                                    <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Despromovido de Superuser</option>
+                                                    <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
+                                                    <option value="SOLICITACAO_DESPROMOCAO_CRIADA" {% if "SOLICITACAO_DESPROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Despromoção Criada</option>
+                                                    <!-- INÍCIO DA ADIÇÃO -->
+                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
+                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" == filtro_acao %}selected{% endif %}>Aprovação de Exclusão Registrada</option>
+                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Cancelada</option>
+                                                    <!-- FIM DA ADIÇÃO -->
+                                                </optgroup>
+                                                 <optgroup label="Solicitações de Exclusão (Comum)">
+                                                    <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação Criada</option>
+                                                    <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação Aprovada</option>
+                                                    <option value="SOLICITACAO_EXCLUSAO_REJEITADA" {% if "SOLICITACAO_EXCLUSAO_REJEITADA" == filtro_acao %}selected{% endif %}>Solicitação Rejeitada</option>
+                                                    <option value="SOLICITACAO_EXCLUSAO_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação Cancelada</option>
+                                                </optgroup>
+                                                <optgroup label="Questões">
+                                                    <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
+                                                    <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
+                                                    <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
+                                                </optgroup>
+                                                <optgroup label="Entidades & Assuntos">
+                                                    <option value="ENTIDADE_CRIADA" {% if "ENTIDADE_CRIADA" == filtro_acao %}selected{% endif %}>Entidade Criada</option>
+                                                    <option value="ASSUNTO_CRIADO" {% if "ASSUNTO_CRIADO" == filtro_acao %}selected{% endif %}>Assunto Criado</option>
+                                                </optgroup>
+                                                 <optgroup label="Notificações de Erro">
+                                                    <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
+                                                    <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
+                                                    <option value="NOTIFICACOES_DELETADAS" {% if "NOTIFICACOES_DELETADAS" == filtro_acao %}selected{% endif %}>Notificações Deletadas</option>
+                                                </optgroup>
+                                            </select>
+                                        </div>
+                                        <div class="filter-field">
+                                            <label class="form-label">Período</label>
+                                            <div class="input-group">
+                                                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}" title="Data de Início">
+                                                <span class="input-group-text">até</span>
+                                                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
+                                            </div>
+                                        </div>
+                                        <div class="filter-actions">
+                                            <button type="submit" class="btn btn-primary">Filtrar</button>
+                                            <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary">Limpar</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
-            </form>
-        </div>
-    </div>
 
 
 
@@ -296,7 +305,7 @@ body {
     <!-- FIM DA MODIFICAÇÃO -->
     <!-- ======================================================================= -->
 
-
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
 
     <!-- ======================================================================= -->
     <!-- INÍCIO DA MODIFICAÇÃO: Card de Ferramentas com Modal de Confirmação -->

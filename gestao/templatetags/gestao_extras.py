@@ -28,7 +28,13 @@ def split(value, key):
 
 from django import template
 
-
+@register.filter
+def get_item(dictionary, key):
+    """
+    Permite acessar o valor de um dicionário usando uma variável como chave no template.
+    Uso: {{ meu_dicionario|get_item:minha_variavel }}
+    """
+    return dictionary.get(key)
 
 @register.simple_tag(takes_context=True)
 def update_query_params(context, **kwargs):

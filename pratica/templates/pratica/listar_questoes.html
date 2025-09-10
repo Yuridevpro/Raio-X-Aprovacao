@@ -534,10 +534,9 @@ img, table {
     <!-- =================================================================== -->
     <!-- LISTAGEM DE QUESTÕES -->
     <!-- =================================================================== -->
-    <div class="d-flex justify-content-between align-items-center mb-3 px-3 px-md-0">
-        <h3 class="h5 mb-0">Resultados da Busca</h3>
-        <span class="text-muted">{{ questoes.paginator.count }} questões encontradas</span>
-    </div>
+
+
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
    
     {% for questao in questoes %}
     <div class="card card-questao mb-4" id="questao-{{ questao.id }}">

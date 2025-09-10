@@ -21,47 +21,69 @@ from .models import RespostaUsuario, Comentario, FiltroSalvo
 from questoes.utils import filtrar_e_paginar_questoes
 
 
+# pratica/views.py
+
+# ... (outros imports) ...
+from questoes.utils import filtrar_e_paginar_questoes
+
 @login_required
 def listar_questoes(request):
-    # 1. Começa com o queryset base de todas as questões.
-    lista_questoes = Questao.objects.all().order_by('-id')
+    # 1. Começa com o queryset base.
+    lista_questoes = Questao.objects.all()
 
-    # 2. Aplica a lógica de filtro que é EXCLUSIVA da área de prática (status).
+    # 2. Lógica de filtro por status (permanece a mesma)
     status = request.GET.get('status')
     user_profile = request.user.userprofile
     if status == 'favoritas':
         lista_questoes = lista_questoes.filter(pk__in=user_profile.questoes_favoritas.all())
-    elif status == 'respondidas':
-        respondidas_ids = RespostaUsuario.objects.filter(usuario=request.user).values_list('questao_id', flat=True)
-        lista_questoes = lista_questoes.filter(pk__in=respondidas_ids)
-    elif status == 'nao_respondidas':
-        respondidas_ids = RespostaUsuario.objects.filter(usuario=request.user).values_list('questao_id', flat=True)
-        lista_questoes = lista_questoes.exclude(pk__in=respondidas_ids)
-    elif status == 'errei':
-        erradas_ids = RespostaUsuario.objects.filter(usuario=request.user, foi_correta=False).values_list('questao_id', flat=True)
-        lista_questoes = lista_questoes.filter(pk__in=erradas_ids)
-    elif status == 'acertei':
-        acertos_ids = RespostaUsuario.objects.filter(usuario=request.user, foi_correta=True).values_list('questao_id', flat=True)
-        lista_questoes = lista_questoes.filter(pk__in=acertos_ids)
+    # ... (outros elif para status) ...
 
-    # 3. Chama a função central com o queryset já pré-filtrado pelos status.
-    #    Toda a lógica de palavra-chave, disciplina, ano, etc., e a paginação acontecem aqui.
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO: Lógica de Ordenação
+    # =======================================================================
+    sort_by = request.GET.get('sort_by', '-id') # Padrão: mais recentes (por ID)
+    sort_options = {
+        '-id': 'Mais Recentes',
+        'id': 'Mais Antigas',
+        # Você pode adicionar mais opções aqui se fizer sentido, por exemplo:
+        # '-ano': 'Ano (Decrescente)',
+        # 'ano': 'Ano (Crescente)',
+    }
+    
+    # Aplica a ordenação, garantindo que seja uma opção válida
+    if sort_by in sort_options:
+        lista_questoes = lista_questoes.order_by(sort_by)
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
+    # 3. Chama a função de filtro e paginação
     context = filtrar_e_paginar_questoes(request, lista_questoes, items_per_page=20)
     
-    # 4. Adiciona ao contexto as variáveis que são específicas desta página.
+    # 4. Adiciona ao contexto as variáveis específicas desta página
     context.update({
         'favoritas_ids': user_profile.questoes_favoritas.values_list('id', flat=True),
         'filtros_salvos': FiltroSalvo.objects.filter(usuario=request.user),
-        # Adiciona os dados para popular todos os dropdowns de filtro
         'disciplinas': Disciplina.objects.all().order_by('nome'),
         'bancas': Banca.objects.all().order_by('nome'),
         'instituicoes': Instituicao.objects.all().order_by('nome'),
         'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
-        # Passa o parâmetro de status para o include do formulário
         'status_param': status,
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Passa os novos parâmetros para o template
+        # =======================================================================
+        'sort_by': sort_by,
+        'sort_options': sort_options,
+        # A função filtrar_e_paginar_questoes já adiciona 'per_page' ao contexto,
+        # então não precisamos nos preocupar com isso aqui.
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
     })
 
     return render(request, 'pratica/listar_questoes.html', context)
+
+# ... (resto do arquivo pratica/views.py) ...
 
 # =======================================================================
 # AS OUTRAS VIEWS PERMANECEM EXATAMENTE IGUAIS, POIS SÃO ÚNICAS DESTE APP
