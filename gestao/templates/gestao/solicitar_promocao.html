@@ -1,0 +1,65 @@
+<!-- gestao/templates/gestao/solicitar_promocao.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitar Promoção para {{ usuario_alvo.username }}{% endblock %}
+
+{% block head %}
+<style>
+    .main-card {
+        max-width: 700px;
+        margin: auto;
+    }
+    .user-info {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 1rem 1.5rem;
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="main-card">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning border-bottom-0">
+                <h4 class="mb-0"><i class="fas fa-rocket me-2"></i>Solicitar Promoção a Superusuário</h4>
+            </div>
+            <div class="card-body p-4">
+
+                <div class="user-info mb-4 text-center">
+                    <p class="mb-1">Você está solicitando a promoção para o usuário:</p>
+                    <h5 class="fw-bold mb-0">{{ usuario_alvo.username }}</h5>
+                    <small class="text-muted">{{ usuario_alvo.email }}</small>
+                </div>
+
+                <p class="text-muted">Para garantir a segurança e a rastreabilidade, as promoções para o nível de Superusuário exigem uma justificativa clara. Sua solicitação será revisada por outros superusuários.</p>
+
+                <hr class="my-4">
+
+                <form method="POST" action="{% url 'gestao:solicitar_promocao_superuser' usuario_alvo.id %}">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label for="justificativa" class="form-label fw-bold">Justificativa <span class="text-danger">*</span></label>
+                        <textarea name="justificativa" id="justificativa" class="form-control" rows="5" 
+                                  placeholder="Explique por que este usuário precisa de permissões de Superusuário. Detalhe as responsabilidades que ele irá assumir." 
+                                  required></textarea>
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-2 mt-4">
+                        <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="fas fa-paper-plane me-2"></i>Enviar Solicitação
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,39 +1,28 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load log_extras %}
+{% load gestao_extras %}  <!-- ADICIONE ESTA LINHA AQUI -->
 
 {% block title %}Registro de Atividades{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
-<!-- ======================================================================= -->
-<!-- INÍCIO: Adicionado CSS do Tom Select via CDN -->
-<!-- ======================================================================= -->
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
-<!-- ======================================================================= -->
-<!-- FIM: Adicionado CSS do Tom Select -->
-<!-- ======================================================================= -->
 
 <style>
-/* ======================================================================= */
-/* INÍCIO: Variáveis de Design e Estilos Globais */
-/* ======================================================================= */
 :root {
-    --app-bg: #f8f9fa; /* Um cinza muito claro para o fundo da página */
+    --app-bg: #f8f9fa;
     --card-bg: #ffffff;
     --border-color: #dee2e6;
-    --border-radius: 0.5rem; /* Bordas um pouco mais suaves */
+    --border-radius: 0.5rem;
     --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
     --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
     --primary-light: #eef5ff;
     --primary-border: #a3c9fe;
 }
-
 body {
     background-color: var(--app-bg);
 }
-
-/* Transição suave para fade-out ao deletar */
 .fade-out { 
     transition: opacity 0.5s ease-out, transform 0.5s ease-out, max-height 0.5s ease-out; 
     opacity: 0;
@@ -46,19 +35,15 @@ body {
     border-width: 0 !important;
     overflow: hidden;
 }
-
-/* ======================================================================= */
-/* CARD DE FILTROS - Agora totalmente responsivo com Flexbox */
-/* ======================================================================= */
 .filter-form-container {
     display: flex;
-    flex-wrap: wrap; /* A mágica da responsividade acontece aqui! */
+    flex-wrap: wrap;
     gap: 1rem;
     align-items: flex-end;
 }
 .filter-field {
-    flex: 1 1 250px; /* Cresce e encolhe, com uma base de 250px */
-    min-width: 200px; /* Garante que não fique muito espremido */
+    flex: 1 1 250px;
+    min-width: 200px;
 }
 .filter-actions {
     display: flex;
@@ -66,12 +51,8 @@ body {
     flex: 1 1 150px;
 }
 .filter-actions .btn {
-    flex-grow: 1; /* Faz os botões ocuparem o espaço disponível */
+    flex-grow: 1;
 }
-
-/* ======================================================================= */
-/* LISTA DE LOGS - Design mais limpo e elegante */
-/* ======================================================================= */
 .activity-log-list { 
     display: flex; 
     flex-direction: column; 
@@ -96,7 +77,6 @@ body {
     background-color: var(--primary-light); 
     border-color: var(--primary-border); 
 }
-
 .log-selection { padding-top: 0.2rem; }
 .log-icon { 
     font-size: 1.5rem; 
@@ -107,7 +87,6 @@ body {
     color: #6c757d;
 }
 .log-content-wrapper { flex-grow: 1; }
-
 .log-main-info { 
     display: flex; 
     justify-content: space-between; 
@@ -123,7 +102,6 @@ body {
     white-space: nowrap; 
     padding-top: 0.15rem;
 }
-
 .log-details-reason { margin-top: 0.75rem; }
 .log-reason-quote { 
     font-size: 0.875rem; 
@@ -137,23 +115,15 @@ body {
     border-radius: 0 0.25rem 0.25rem 0;
 }
 .log-actions { margin-left: auto; padding-left: 1rem; }
-
-/* ======================================================================= */
-/* BARRA DE AÇÕES EM MASSA */
-/* ======================================================================= */
 #bulk-actions-bar {
     display: none;
     top: 10px;
-    z-index: 1020; /* Acima de outros elementos */
+    z-index: 1020;
     background-color: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(5px);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
 }
-
-/* ======================================================================= */
-/* INÍCIO: Media Queries para Responsividade Mobile */
-/* ======================================================================= */
 @media (max-width: 767.98px) {
     .container {
         padding-top: 1rem !important;
@@ -164,10 +134,9 @@ body {
         align-items: flex-start !important;
         gap: 0.75rem;
     }
-    
     .log-item {
         padding: 0.75rem;
-        position: relative; /* Contexto para o botão de ação */
+        position: relative;
     }
     .log-main-info {
         flex-direction: column;
@@ -176,11 +145,9 @@ body {
     }
     .log-message {
         font-size: 0.95rem;
-        /* Permite que a mensagem ocupe o espaço, deixando o botão no canto */
         padding-right: 2.5rem; 
     }
     .log-actions {
-        /* Posiciona o botão no canto superior direito do card */
         position: absolute;
         top: 0.75rem;
         right: 0.75rem;
@@ -209,12 +176,10 @@ body {
         <div class="card-body">
             <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
                 <div class="filter-form-container">
-                    <!-- Campo de Ator -->
                     <div class="filter-field">
                         <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
                         <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
                     </div>
-                    <!-- Campo de Ação (Note que o HTML do select não muda) -->
                     <div class="filter-field">
                         <label for="acao" class="form-label">Tipo de Ação</label>
                         <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
@@ -247,7 +212,6 @@ body {
                             </optgroup>
                         </select>
                     </div>
-                    <!-- Campo de Período -->
                     <div class="filter-field">
                         <label class="form-label">Período</label>
                         <div class="input-group">
@@ -256,7 +220,6 @@ body {
                             <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
                         </div>
                     </div>
-                    <!-- Botões de Ação -->
                     <div class="filter-actions">
                         <button type="submit" class="btn btn-primary">Filtrar</button>
                         <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary">Limpar</a>
@@ -265,6 +228,70 @@ body {
             </form>
         </div>
     </div>
+
+
+
+
+    <!-- ======================================================================= -->
+    <!-- INÍCIO DA MODIFICAÇÃO: Card de Ferramentas com Dropdown -->
+    <!-- ======================================================================= -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header bg-light border-bottom">
+            <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Ferramentas de Logs</h5>
+        </div>
+        <div class="card-body">
+            <!-- Limpeza de Logs (Mover para Lixeira) -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                <div>
+                    <p class="mb-1 fw-bold">Limpar Logs Antigos</p>
+                    <small class="text-muted">Move logs com uma certa idade para a lixeira para manter esta lista organizada.</small>
+                </div>
+                <div class="btn-group ms-md-auto">
+                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-broom me-2"></i>Limpar Logs com mais de...
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        {% for days in "30,60,90,180"|split:',' %}
+                        <li>
+                            <form id="form-limpar-logs-{{ days }}" action="{% url 'gestao:mover_logs_antigos_para_lixeira' %}" method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="days" value="{{ days }}">
+                                <button type="button" class="dropdown-item btn-confirm-action" 
+                                        data-form-id="form-limpar-logs-{{ days }}"
+                                        data-modal-title="Confirmar Limpeza"
+                                        data-modal-body="Tem certeza? Isso moverá todos os logs com mais de {{ days }} dias para a lixeira.">
+                                    {{ days }} dias
+                                </button>
+                            </form>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            
+            <hr>
+            
+            <!-- Acesso à Lixeira (Inalterado) -->
+            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3">
+                <div>
+                    <p class="mb-1 fw-bold">Lixeira de Logs</p>
+                    <small class="text-muted">Consulte os registros que já foram movidos para a lixeira.</small>
+                </div>
+                <a href="{% url 'gestao:listar_logs_deletados' %}" class="btn btn-outline-info btn-sm ms-md-auto">
+                    <i class="fas fa-trash-restore me-2"></i>Ver Lixeira
+                </a>
+            </div>
+        </div>
+    </div>
+    <!-- ======================================================================= -->
+    <!-- FIM DA MODIFICAÇÃO -->
+    <!-- ======================================================================= -->
+
+
+
+    <!-- ======================================================================= -->
+    <!-- INÍCIO DA MODIFICAÇÃO: Card de Ferramentas com Modal de Confirmação -->
+    <!-- ======================================================================= -->
     
     <!-- BARRA DE AÇÕES EM MASSA -->
     <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top">
@@ -282,8 +309,8 @@ body {
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item text-danger" href="#" data-action="delete">
-                            <i class="fas fa-trash-alt fa-fw me-2"></i>Excluir Selecionados
+                        <a class="dropdown-item text-danger bulk-action-btn" href="#" data-action="delete">
+                            <i class="fas fa-trash-alt fa-fw me-2"></i>Mover para a Lixeira
                         </a>
                     </li>
                 </ul>
@@ -323,7 +350,7 @@ body {
             </div>
             <div class="log-actions">
                 {% if log.ator != request.user %}
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-log" data-log-id="{{ log.id }}" title="Excluir este registro">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-log" data-log-id="{{ log.id }}" title="Mover este registro para a lixeira">
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 {% else %}
@@ -353,34 +380,46 @@ body {
 {% endblock %}
 
 {% block scripts %}
-<!-- ======================================================================= -->
-<!-- INÍCIO: Adicionado JS do Tom Select via CDN -->
-<!-- ======================================================================= -->
+<!-- JS do Tom Select via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-<!-- ======================================================================= -->
-<!-- FIM: Adicionado JS do Tom Select -->
-<!-- ======================================================================= -->
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // ===================================================================
-    // INICIALIZAÇÃO DE PLUGINS
+    // INICIALIZAÇÃO DE PLUGINS E FUNÇÕES GLOBAIS
     // ===================================================================
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
+    new TomSelect('#acao',{ create: false, sortField: { field: "text", direction: "asc" } });
+
     // ===================================================================
-    // INÍCIO: Inicialização do Tom Select no campo de Ação
+    // INÍCIO DA MODIFICAÇÃO: Listener de eventos genérico para confirmações
     // ===================================================================
-    new TomSelect('#acao',{
-		create: false,
-		sortField: {
-			field: "text",
-			direction: "asc"
-		}
-	});
+    document.addEventListener('click', function(event) {
+        const confirmButton = event.target.closest('.btn-confirm-action');
+        if (confirmButton) {
+            event.preventDefault();
+            const formId = confirmButton.dataset.formId;
+            const modalTitle = confirmButton.dataset.modalTitle;
+            const modalBody = confirmButton.dataset.modalBody;
+            const formToSubmit = document.getElementById(formId);
+
+            if (formToSubmit && typeof showConfirmationModal === 'function') {
+                showConfirmationModal(modalTitle, modalBody, () => {
+                    formToSubmit.submit();
+                });
+            } else if (formToSubmit) {
+                if (confirm(modalBody)) {
+                    formToSubmit.submit();
+                }
+            }
+        }
+    });
     // ===================================================================
-    // FIM: Inicialização do Tom Select
+    // FIM DA MODIFICAÇÃO
     // ===================================================================
+
 
     // ===================================================================
     // DELETAR LOG INDIVIDUAL
@@ -390,11 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const logId = this.dataset.logId;
             const url = `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', logId);
             
-            showConfirmationModal('Confirmar Exclusão', 'Deseja excluir permanentemente este registro?', () => {
-                fetch(url, {
-                    method: 'POST',
-                    headers: {'X-CSRFToken': '{{ csrf_token }}'}
-                })
+            showConfirmationModal('Confirmar Exclusão', 'Deseja mover este registro para a lixeira?', () => {
+                fetch(url, { method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'} })
                 .then(response => response.json().then(data => ({ok: response.ok, data})))
                 .then(({ok, data}) => {
                     if (ok) {
@@ -402,12 +438,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         const item = document.getElementById(`log-item-${data.deleted_log_id}`);
                         if (item) {
                             item.classList.add('fade-out');
-                            // Espera a animação terminar antes de remover o elemento do DOM
                             item.addEventListener('transitionend', () => item.remove());
                         }
                     } else { throw new Error(data.message); }
                 })
-                .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível excluir o registro.', 'error'));
+                .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível mover o registro.', 'error'));
             });
         });
     });
@@ -420,23 +455,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const logCheckboxes = document.querySelectorAll('.log-checkbox');
     const selectedCountSpan = document.getElementById('selected-count');
     const bulkActionDropdownBtn = document.getElementById('bulk-action-dropdown-btn');
+    const bulkActionLinks = document.querySelectorAll('.dropdown-menu a.bulk-action-btn');
 
     function updateBulkActionBar() {
         if (!bulkActionsBar) return;
-        
         const selectedCheckboxes = document.querySelectorAll('.log-checkbox:checked');
         const count = selectedCheckboxes.length;
-
-        // Atualiza a contagem e a visibilidade da barra
         selectedCountSpan.textContent = count;
         bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
-
-        // Atualiza o estado dos itens de log
         logCheckboxes.forEach(cb => {
             cb.closest('.log-item').classList.toggle('selected', cb.checked);
         });
-        
-        // Atualiza o checkbox "selecionar todos"
         if (selectAllCheckbox) {
             selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
         }
@@ -444,9 +473,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (selectAllCheckbox) {
         selectAllCheckbox.addEventListener('change', function() {
-            logCheckboxes.forEach(checkbox => { 
-                checkbox.checked = this.checked;
-            });
+            logCheckboxes.forEach(checkbox => { checkbox.checked = this.checked; });
             updateBulkActionBar();
         });
     }
@@ -455,8 +482,8 @@ document.addEventListener('DOMContentLoaded', function() {
         checkbox.addEventListener('change', updateBulkActionBar)
     });
 
-    document.querySelectorAll('.bulk-action-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
+    bulkActionLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
             e.preventDefault();
             const action = this.dataset.action;
             const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
@@ -466,7 +493,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const confirmationMessage = `Tem certeza que deseja EXCLUIR ${selectedIds.length} registro(s) permanentemente?`;
+            const confirmationMessage = `Tem certeza que deseja MOVER PARA A LIXEIRA ${selectedIds.length} registro(s)?`;
 
             showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
                 const spinner = bulkActionDropdownBtn.querySelector('.spinner-border');
@@ -484,8 +511,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(response => response.json().then(data => ({ ok: response.ok, data })))
                 .then(({ ok, data }) => { 
                     if (ok) {
-                        showNotificationModal('Sucesso!', data.message, 'success', () => {
-                            // Em vez de recarregar a página, remove os itens um por um
+                        showNotificationModal('Sucesso!', data.message, 'success');
+                        if (data.deleted_ids && Array.isArray(data.deleted_ids)) {
                             data.deleted_ids.forEach(id => {
                                 const item = document.getElementById(`log-item-${id}`);
                                 if (item) {
@@ -493,8 +520,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     item.addEventListener('transitionend', () => item.remove());
                                 }
                             });
-                            updateBulkActionBar();
-                        });
+                        }
                     } else {
                         throw new Error(data.message || 'Ocorreu um erro ao processar a solicitação.');
                     }
@@ -506,12 +532,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     bulkActionDropdownBtn.disabled = false;
                     spinner.style.display = 'none';
                     btnText.textContent = 'Ações em Massa';
+                    if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                    logCheckboxes.forEach(cb => cb.checked = false);
+                    updateBulkActionBar();
                 });
             });
         });
     });
 
-    // Inicia a barra de ações caso a página seja carregada com itens já selecionados (ex: ao voltar)
     updateBulkActionBar();
 });
 </script>

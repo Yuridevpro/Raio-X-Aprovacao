@@ -1,0 +1,115 @@
+<!-- gestao/templates/gestao/listar_solicitacoes_promocao.html (VERSÃO FINAL) -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitações de Promoção{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0"><i class="fas fa-user-shield me-2"></i>Solicitações de Promoção</h2>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} d-flex align-items-center" role="alert">
+                {% if message.tags == 'success' %}<i class="fas fa-check-circle me-2"></i>
+                {% elif message.tags == 'error' or message.tags == 'warning' %}<i class="fas fa-exclamation-triangle me-2"></i>
+                {% else %}<i class="fas fa-info-circle me-2"></i>{% endif %}
+                <div>{{ message }}</div>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if solicitacoes %}
+        <div class="row g-4">
+            {% for promocao in solicitacoes %}
+            <div class="col-12" id="promocao-item-{{ promocao.id }}">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <h5 class="card-title mb-1">
+                                    <i class="fas fa-user-graduate me-2 text-primary"></i>
+                                    {{ promocao.usuario_alvo.username }}
+                                </h5>
+                                <p class="card-text text-muted mb-2">
+                                    <small>Solicitado por: {{ promocao.solicitado_por.username }} em {{ promocao.data_solicitacao|date:"d/m/Y" }}</small>
+                                </p>
+                            </div>
+                            <div class="col-md-5 mb-3 mb-md-0">
+                                <p class="mb-0"><strong>Justificativa:</strong> {{ promocao.justificativa }}</p>
+                            </div>
+                            <div class="col-md-3 text-center text-md-end">
+                                <!-- ======================================================================= -->
+                                <!-- INÍCIO DA MODIFICAÇÃO: Formulários agora chamam JS -->
+                                <!-- ======================================================================= -->
+                                {% if promocao.solicitado_por == request.user %}
+                                    <form id="form-cancelar-{{ promocao.id }}" method="POST" action="{% url 'gestao:cancelar_promocao_superuser' promocao.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action"
+                                                data-form-id="form-cancelar-{{ promocao.id }}"
+                                                data-modal-title="Confirmar Cancelamento"
+                                                data-modal-body="Tem certeza que deseja cancelar sua solicitação de promoção?">
+                                            <i class="fas fa-times me-2"></i>Cancelar Solicitação
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <form id="form-aprovar-{{ promocao.id }}" method="POST" action="{% url 'gestao:aprovar_promocao_superuser' promocao.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-success btn-confirm-action"
+                                                data-form-id="form-aprovar-{{ promocao.id }}"
+                                                data-modal-title="Confirmar Aprovação"
+                                                data-modal-body="Tem certeza que deseja registrar sua aprovação para esta promoção?">
+                                            <i class="fas fa-check me-2"></i>Aprovar
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <!-- ======================================================================= -->
+                                <!-- FIM DA MODIFICAÇÃO -->
+                                <!-- ======================================================================= -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="card card-body text-center p-5">
+            <i class="fas fa-check-double fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Não há solicitações de promoção pendentes no momento.</h5>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Função para lidar com a submissão de formulário após confirmação em modal
+    document.querySelectorAll('.btn-confirm-action').forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.dataset.formId;
+            const modalTitle = this.dataset.modalTitle;
+            const modalBody = this.dataset.modalBody;
+            const form = document.getElementById(formId);
+
+            if (form && typeof showConfirmationModal === 'function') {
+                showConfirmationModal(modalTitle, modalBody, () => {
+                    form.submit();
+                });
+            } else {
+                // Fallback para o confirm do navegador se o modal não existir
+                if (confirm(modalBody)) {
+                    form.submit();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

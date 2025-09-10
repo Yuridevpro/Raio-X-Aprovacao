@@ -2,6 +2,7 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
+{% load gestao_extras %}  <!-- ADICIONE ESTA LINHA AQUI -->
 
 {% block title %}Gerenciar Usuários{% endblock %}
 
@@ -31,6 +32,15 @@
                 <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
             </a>
         </div>
+
+        {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
     
         <!-- CARD DE FILTROS -->
         <div class="card mb-4 shadow-sm">
@@ -39,29 +49,25 @@
             </div>
             <div class="card-body">
                 <form method="GET" action="{% url 'gestao:listar_usuarios' %}">
-                    <!-- ======================================================================= -->
-                    <!-- INÍCIO DO BLOCO MODIFICADO: Adicionando o novo filtro -->
-                    <!-- ======================================================================= -->
                     <div class="row g-3 align-items-end">
                         <div class="col-lg-4 col-md-12">
                             <label for="q" class="form-label">Nome de usuário ou E-mail</label>
-                            <input type="text" name="q" id="q" class="form-control" value="{{ request.GET.q|default:'' }}">
+                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q|default:'' }}">
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <label for="permissao" class="form-label">Permissão</label>
                             <select name="permissao" id="permissao" class="form-select">
-                                <option value="" {% if not request.GET.permissao %}selected{% endif %}>Todas</option>
-                                <option value="staff" {% if request.GET.permissao == 'staff' %}selected{% endif %}>Membro da Equipe</option>
-                                <option value="superuser" {% if request.GET.permissao == 'superuser' %}selected{% endif %}>Superusuário</option>
-                                <option value="comum" {% if request.GET.permissao == 'comum' %}selected{% endif %}>Usuário Comum</option>
+                                <option value="" {% if not filtro_permissao %}selected{% endif %}>Todas</option>
+                                <option value="staff" {% if filtro_permissao == 'staff' %}selected{% endif %}>Membro da Equipe</option>
+                                <option value="superuser" {% if filtro_permissao == 'superuser' %}selected{% endif %}>Superusuário</option>
+                                <option value="comum" {% if filtro_permissao == 'comum' %}selected{% endif %}>Usuário Comum</option>
                             </select>
                         </div>
-                        <!-- NOVO CAMPO DE FILTRO -->
                         <div class="col-lg-3 col-md-6">
                             <label for="solicitacao" class="form-label">Status da Solicitação</label>
                             <select name="solicitacao" id="solicitacao" class="form-select">
-                                <option value="" {% if not request.GET.solicitacao %}selected{% endif %}>Todos</option>
-                                <option value="pendente" {% if request.GET.solicitacao == 'pendente' %}selected{% endif %}>Com Solicitação Pendente</option>
+                                <option value="" {% if not filtro_solicitacao %}selected{% endif %}>Todos</option>
+                                <option value="pendente" {% if filtro_solicitacao == 'pendente' %}selected{% endif %}>Com Solicitação Pendente</option>
                             </select>
                         </div>
                         <div class="col-lg-2 col-md-12">
@@ -71,9 +77,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- ======================================================================= -->
-                    <!-- FIM DO BLOCO MODIFICADO -->
-                    <!-- ======================================================================= -->
                 </form>
             </div>
         </div>
@@ -101,28 +104,18 @@
                                 <span class="badge text-bg-secondary">Usuário Comum</span>
                             {% endif %}
     
-                            <!-- ======================================================================= -->
-                            <!-- INÍCIO DO BLOCO NOVO: Selo de solicitação pendente -->
-                            <!-- ======================================================================= -->
                             {% if usuario.tem_solicitacao_pendente %}
                             <span class="badge text-bg-dark mt-1" title="Este usuário possui uma solicitação de exclusão pendente de revisão.">
                                 <i class="fas fa-user-clock me-1"></i>Exclusão Solicitada
                             </span>
                             {% endif %}
-                            <!-- ======================================================================= -->
-                            <!-- FIM DO BLOCO NOVO -->
-                            <!-- ======================================================================= -->
                         </div>
     
                         <!-- Dropdown de ações -->
                         <div class="mt-3 text-end">
                             <div class="dropdown">
                                 <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" 
-                                        type="button" 
-                                        id="actions-{{ usuario.id }}" 
-                                        data-bs-toggle="dropdown" 
-                                        data-bs-container="body" 
-                                        data-bs-strategy="fixed" 
+                                        type="button" id="actions-{{ usuario.id }}" data-bs-toggle="dropdown" 
                                         aria-expanded="false">
                                     <i class="fas fa-cog"></i> Ações
                                 </button>
@@ -134,6 +127,36 @@
                                             <i class="fas fa-edit fa-fw me-2"></i>Editar Permissões
                                         </a>
                                     </li>
+                                    
+                                    <!-- ======================================================================= -->
+                                    <!-- INÍCIO DA LÓGICA DINÂMICA DE PROMOÇÃO -->
+                                    <!-- ======================================================================= -->
+                                    {% if not usuario.is_superuser and usuario != request.user %}
+                                        {% get_superuser_count as superuser_count %}
+                                        <li>
+                                            {% if superuser_count <= 1 %}
+                                                <!-- Cenário 1: Só existe 1 superusuário -> Promoção Direta -->
+                                                <form id="form-promover-direto-{{ usuario.id }}" method="POST" action="{% url 'gestao:promover_diretamente_superuser' usuario.id %}">
+                                                    {% csrf_token %}
+                                                    <button type="button" class="dropdown-item text-success btn-confirm-action"
+                                                            data-form-id="form-promover-direto-{{ usuario.id }}"
+                                                            data-modal-title="Confirmar Promoção Direta"
+                                                            data-modal-body="Você é o único Superusuário. Deseja promover {{ usuario.username }} diretamente, sem necessidade de aprovação?">
+                                                        <i class="fas fa-user-check fa-fw me-2"></i>Promover Diretamente
+                                                    </button>
+                                                </form>
+                                            {% else %}
+                                                <!-- Cenário 2: Existem múltiplos superusuários -> Sistema de Solicitação -->
+                                                <a class="dropdown-item text-warning" href="{% url 'gestao:solicitar_promocao_superuser' usuario.id %}">
+                                                    <i class="fas fa-rocket fa-fw me-2"></i>Solicitar Promoção
+                                                </a>
+                                            {% endif %}
+                                        </li>
+                                    {% endif %}
+                                    <!-- ======================================================================= -->
+                                    <!-- FIM DA LÓGICA DINÂMICA -->
+                                    <!-- ======================================================================= -->
+                                    
                                     {% endif %}
     
                                     {% if usuario != request.user %}
@@ -167,17 +190,11 @@
                 </div>
             </div>
             {% empty %}
-                <!-- ======================================================================= -->
-                <!-- INÍCIO DO BLOCO NOVO: Mensagem de "nenhum resultado" -->
-                <!-- ======================================================================= -->
                 <div class="col-12">
                     <div class="card card-body text-center p-5">
                         <h5 class="text-muted">Nenhum usuário encontrado com os filtros aplicados.</h5>
                     </div>
                 </div>
-                <!-- ======================================================================= -->
-                <!-- FIM DO BLOCO NOVO -->
-                <!-- ======================================================================= -->
             {% endfor %}
         </div>
     
@@ -190,7 +207,7 @@
     
     </div>
     
-    <!-- MODAIS (permanecem inalterados) -->
+    <!-- MODAIS -->
     <!-- Modal de Exclusão Direta (para Superusuários) -->
     <div class="modal fade" id="deletarUsuarioModal" tabindex="-1" aria-labelledby="deletarUsuarioModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -274,8 +291,39 @@
     {% block scripts %}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
+    
         // =======================================================================
-        // Lógica do modal de exclusão direta (SUPERUSER) - COM CORREÇÃO
+        // INÍCIO DA ADIÇÃO: Lógica genérica para confirmação de ações via modal
+        // =======================================================================
+        // Este código irá capturar o clique no botão "Promover Diretamente"
+        document.querySelectorAll('.btn-confirm-action').forEach(button => {
+            button.addEventListener('click', function() {
+                const formId = this.dataset.formId;
+                const modalTitle = this.dataset.modalTitle;
+                const modalBody = this.dataset.modalBody;
+                const formToSubmit = document.getElementById(formId);
+    
+                // Supondo que você tenha uma função global 'showConfirmationModal'
+                // que aceita (título, corpo, callback_on_confirm)
+                if (formToSubmit && typeof showConfirmationModal === 'function') {
+                    showConfirmationModal(modalTitle, modalBody, () => {
+                        formToSubmit.submit();
+                    });
+                } else {
+                    // Fallback caso a função de modal não exista, usando o confirm padrão
+                    if (confirm(modalBody)) {
+                        formToSubmit.submit();
+                    }
+                }
+            });
+        });
+        // =======================================================================
+        // FIM DA ADIÇÃO
+        // =======================================================================
+    
+    
+        // =======================================================================
+        // Lógica do modal de exclusão direta (SUPERUSER) - SEM ALTERAÇÕES
         // =======================================================================
         const deletarModalEl = document.getElementById('deletarUsuarioModal');
         if (deletarModalEl) {
@@ -283,19 +331,14 @@
             const form = document.getElementById('form-deletar-usuario');
             const submitBtn = document.getElementById('btn-confirm-delete');
             const spinner = submitBtn.querySelector('.spinner-border');
-            
-            // MUDANÇA 1: Selecionar os campos e divs de erro CORRETOS
             const motivoPredefinidoSelect = form.querySelector('[name=motivo_predefinido]');
-            const justificativaTextarea = form.querySelector('[name=justificativa]');
             const motivoPredefinidoError = document.getElementById('motivo-predefinido-error-delete');
-            // Não precisamos de uma div de erro para a justificativa opcional aqui
     
             deletarModalEl.addEventListener('show.bs.modal', function (event) {
                 const button = event.relatedTarget;
                 const userId = button.dataset.userId;
                 const username = button.dataset.userUsername;
     
-                // Limpa estados de erro anteriores
                 motivoPredefinidoSelect.classList.remove('is-invalid');
                 if (motivoPredefinidoError) motivoPredefinidoError.textContent = '';
                 
@@ -322,11 +365,14 @@
                     if (ok) {
                         deletarModal.hide();
                         showNotificationModal('Sucesso!', data.message, 'success');
-                        const rowToRemove = document.getElementById(`user-row-${data.deleted_user_id}`);
-                        if(rowToRemove) rowToRemove.remove();
-                        else setTimeout(() => window.location.reload(), 2000);
+                        // Tenta remover o card do usuário da tela
+                        const cardToRemove = button.closest('.col-12');
+                        if(cardToRemove) {
+                            cardToRemove.remove();
+                        } else {
+                            setTimeout(() => window.location.reload(), 2000);
+                        }
                     } else {
-                        // MUDANÇA 2: Exibir erros nos campos corretos
                         if (data.field_errors && data.field_errors.motivo_predefinido) {
                             motivoPredefinidoSelect.classList.add('is-invalid');
                             motivoPredefinidoError.textContent = data.field_errors.motivo_predefinido[0];
@@ -344,7 +390,7 @@
         }
     
         // =======================================================================
-        // Lógica do modal para Sugerir Exclusão (STAFF) - COM CORREÇÃO
+        // Lógica do modal para Sugerir Exclusão (STAFF) - SEM ALTERAÇÕES
         // =======================================================================
         const sugerirModalEl = document.getElementById('sugerirExclusaoModal');
         if (sugerirModalEl) {
@@ -353,20 +399,16 @@
             const sugerirBtn = document.getElementById('btn-confirm-sugestao');
             const spinner = sugerirBtn.querySelector('.spinner-border');
             const btnText = sugerirBtn.querySelector('.btn-text');
-    
-            // MUDANÇA 3: Selecionar os campos e divs de erro CORRETOS
             const motivoPredefinidoSelect = sugerirForm.querySelector('[name=motivo_predefinido]');
             const justificativaTextarea = sugerirForm.querySelector('[name=justificativa]');
             const motivoPredefinidoError = document.getElementById('motivo-predefinido-error-suggest');
             const justificativaError = document.getElementById('justificativa-error-suggest');
-    
     
             sugerirModalEl.addEventListener('show.bs.modal', function(event) {
                 const button = event.relatedTarget;
                 const userId = button.dataset.userId;
                 const username = button.dataset.userUsername;
                 
-                // Limpa o formulário e os erros de usos anteriores
                 sugerirForm.reset();
                 motivoPredefinidoSelect.classList.remove('is-invalid');
                 justificativaTextarea.classList.remove('is-invalid');
@@ -386,7 +428,6 @@
                 motivoPredefinidoSelect.classList.remove('is-invalid');
                 justificativaTextarea.classList.remove('is-invalid');
     
-    
                 const formData = new FormData(sugerirForm);
                 const url = sugerirForm.getAttribute('action');
     
@@ -397,7 +438,6 @@
                     if (ok) {
                         showNotificationModal('Solicitação Enviada', data.message, 'success');
                     } else {
-                        // MUDANÇA 4: Exibir erros nos campos corretos
                         if (data.field_errors) {
                             if (data.field_errors.motivo_predefinido) {
                                 motivoPredefinidoSelect.classList.add('is-invalid');

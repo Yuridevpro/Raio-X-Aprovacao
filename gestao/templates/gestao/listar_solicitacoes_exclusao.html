@@ -40,7 +40,14 @@
                 <small class="text-muted">Solicitado em: {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}</small>
             </div>
             <div class="card-body">
-                <h6 class="card-subtitle mb-2 text-muted">Solicitado por: {{ solicitacao.solicitado_por.username }}</h6>
+                <h6 class="card-subtitle mb-2 text-muted">
+                    Solicitado por: 
+                    {% if solicitacao.solicitado_por %}
+                        {{ solicitacao.solicitado_por.username }}
+                    {% else %}
+                        <span class="fst-italic">(Usuário deletado)</span>
+                    {% endif %}
+                </h6>
                 <p class="card-text"><strong>Justificativa Fornecida:</strong></p>
                 <blockquote class="blockquote bg-light p-3 rounded border-start border-4 border-warning">
                     <p class="mb-0 fst-italic">"{{ solicitacao.motivo|linebreaksbr }}"</p>

@@ -1,0 +1,107 @@
+<!-- gestao/templates/gestao/listar_solicitacoes_despromocao.html (VERSÃO FINAL) -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Solicitações de Despromoção{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0"><i class="fas fa-user-times me-2 text-danger"></i>Solicitações de Despromoção</h2>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if solicitacoes %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Usuário Alvo</th>
+                            <th>Solicitado Por</th>
+                            <th>Data</th>
+                            <th>Justificativa</th>
+                            <th class="text-center">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for despromocao in solicitacoes %}
+                        <tr>
+                            <td><strong>{{ despromocao.usuario_alvo.username }}</strong></td>
+                            <td>{{ despromocao.solicitado_por.username }}</td>
+                            <td>{{ despromocao.data_solicitacao|date:"d/m/Y H:i" }}</td>
+                            <td>{{ despromocao.justificativa|truncatewords:15 }}</td>
+                            <td class="text-center">
+                                {% if despromocao.solicitado_por == request.user %}
+                                    <!-- Solicitante vê o botão de cancelar -->
+                                    <form id="form-cancelar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:cancelar_despromocao_superuser' despromocao.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-confirm-action"
+                                                data-form-id="form-cancelar-despromocao-{{ despromocao.id }}"
+                                                data-modal-title="Confirmar Cancelamento"
+                                                data-modal-body="Tem certeza que deseja cancelar sua solicitação?">
+                                            <i class="fas fa-times me-2"></i>Cancelar
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <!-- Outros superusuários veem o botão de aprovar -->
+                                    <form id="form-aprovar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:aprovar_despromocao_superuser' despromocao.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-danger btn-confirm-action"
+                                                data-form-id="form-aprovar-despromocao-{{ despromocao.id }}"
+                                                data-modal-title="Confirmar Aprovação de Despromoção"
+                                                data-modal-body="Você confirma a necessidade de despromover este usuário? Esta ação pode requerer mais aprovações.">
+                                            <i class="fas fa-check me-2"></i>Aprovar Despromoção
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center p-5">
+                <h5 class="text-muted">Não há solicitações de despromoção pendentes.</h5>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Script genérico para usar o modal de confirmação antes de submeter um formulário
+    document.querySelectorAll('.btn-confirm-action').forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.dataset.formId;
+            const modalTitle = this.dataset.modalTitle;
+            const modalBody = this.dataset.modalBody;
+            const form = document.getElementById(formId);
+
+            if (form && typeof showConfirmationModal === 'function') {
+                showConfirmationModal(modalTitle, modalBody, () => {
+                    form.submit();
+                });
+            } else {
+                if (confirm(modalBody)) {
+                    form.submit();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
