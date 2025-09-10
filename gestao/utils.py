@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from django.utils import timezone
 from .models import LogAtividade
 from botocore.exceptions import NoCredentialsError, ClientError
+from .models import LogAtividade
 
 def arquivar_logs_antigos_no_s3():
     """
@@ -68,3 +69,17 @@ def arquivar_logs_antigos_no_s3():
     LogAtividade.objects.filter(id__in=ids_arquivados).update(is_archived=True)
 
     return True, f"{len(ids_arquivados)} logs foram arquivados com sucesso em '{file_name}' no bucket '{bucket_name}'."
+
+
+
+
+def criar_log(ator, acao, alvo=None, detalhes={}):
+    """
+    Cria uma nova entrada no Registro de Atividades de forma centralizada.
+    """
+    LogAtividade.objects.create(
+        ator=ator,
+        acao=acao,
+        alvo=alvo,
+        detalhes=detalhes
+    )

@@ -2,16 +2,31 @@
 
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-# =======================================================================
-# PASSO 1: CORRIGIR A FUNÇÃO GENÉRICA
-# Esta função agora terá a lógica de paginação correta e será a única
-# fonte de verdade para a criação dos números de página.
-# =======================================================================
+# questoes/utils.py
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q # Adicione esta importação
+
 def paginar_itens(request, queryset, items_per_page=15):
     """
     Função genérica para paginar qualquer queryset e gerar a lista de páginas correta.
+    Agora lê a quantidade de itens por página da URL.
     """
-    paginator = Paginator(queryset, items_per_page)
+    # =======================================================================
+    # INÍCIO DA MODIFICAÇÃO
+    # =======================================================================
+    try:
+        # Pega o valor da URL, usa o padrão se não existir ou for inválido.
+        per_page = int(request.GET.get('per_page', items_per_page))
+        if per_page not in [10, 20, 50]: # Lista de valores permitidos
+            per_page = items_per_page
+    except (ValueError, TypeError):
+        per_page = items_per_page
+    # =======================================================================
+    # FIM DA MODIFICAÇÃO
+    # =======================================================================
+
+    paginator = Paginator(queryset, per_page) # Usa a variável per_page
     page_number = request.GET.get('page', 1)
 
     try:
@@ -19,7 +34,7 @@ def paginar_itens(request, queryset, items_per_page=15):
     except (EmptyPage, PageNotAnInteger):
         page_obj = paginator.page(paginator.num_pages if paginator.num_pages > 0 else 1)
 
-    # Lógica de customização dos números de página (A VERSÃO CORRETA)
+    # ... (lógica de page_numbers continua a mesma) ...
     page_numbers = []
     current_page = page_obj.number
     total_pages = paginator.num_pages
@@ -33,8 +48,8 @@ def paginar_itens(request, queryset, items_per_page=15):
             page_numbers = [1, '...'] + list(range(total_pages - 4, total_pages + 1))
         else:
             page_numbers = [1, '...', current_page - 1, current_page, current_page + 1, '...', total_pages]
-            
-    return page_obj, page_numbers
+
+    return page_obj, page_numbers, per_page # Retorna também o per_page para o contexto
 
 
 # =======================================================================

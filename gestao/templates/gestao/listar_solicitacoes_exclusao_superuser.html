@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+
+{% block title %}Solicitações de Exclusão de Superusuários{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <h2 class="h3 mb-0">Revisar Solicitações de Exclusão</h2>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary align-self-start align-self-md-auto">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if solicitacoes %}
+                <div class="list-group list-group-flush">
+                    {% for s in solicitacoes %}
+                        <div class="list-group-item px-0 py-3">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">
+                                    <i class="fas fa-user-shield text-danger me-2"></i>
+                                    Excluir Superusuário: <strong>{{ s.usuario_alvo.username }}</strong>
+                                </h5>
+                                <small class="text-muted">{{ s.data_solicitacao|date:"d/m/Y H:i" }}</small>
+                            </div>
+                            <p class="mb-2"><strong>Solicitado por:</strong> {{ s.solicitado_por.username }}</p>
+                            <p class="mb-2"><strong>Justificativa:</strong> {{ s.justificativa|linebreaksbr }}</p>
+                            
+                            <div class="d-flex justify-content-end align-items-center mt-3">
+                                <!-- ======================================================================= -->
+                                <!-- INÍCIO DA CORREÇÃO: Lógica de Botão Condicional -->
+                                <!-- ======================================================================= -->
+                                {% if s.solicitado_por == request.user %}
+                                    <!-- O solicitante SEMPRE vê o botão de cancelar -->
+                                    <form id="form-cancelar-exclusao-{{ s.id }}" method="POST" action="{% url 'gestao:cancelar_exclusao_superuser' s.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-secondary btn-confirm-action"
+                                                data-form-id="form-cancelar-exclusao-{{ s.id }}"
+                                                data-modal-title="Confirmar Cancelamento"
+                                                data-modal-body="Tem certeza que deseja cancelar sua solicitação de exclusão?">
+                                            <i class="fas fa-times me-2"></i>Cancelar Minha Solicitação
+                                        </button>
+                                    </form>
+                                {% elif s.usuario_alvo == request.user and s.get_quorum_necessario == 1 %}
+                                    <!-- CASO ESPECIAL: O usuário-alvo é o único que pode aprovar -->
+                                    <form id="form-aprovar-exclusao-{{ s.id }}" method="POST" action="{% url 'gestao:aprovar_exclusao_superuser' s.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-danger btn-confirm-action"
+                                                data-form-id="form-aprovar-exclusao-{{ s.id }}"
+                                                data-modal-title="Confirmar Sua Própria Exclusão"
+                                                data-modal-body="Uma solicitação foi feita para remover sua conta. Como não há outros superusuários para votar, a decisão final é sua. Esta ação é irreversível. Deseja confirmar sua exclusão?">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Minha Exclusão
+                                        </button>
+                                    </form>
+                                {% else %}
+                                    <!-- CASO NORMAL: Outro superusuário (que não é o alvo nem o solicitante) aprova -->
+                                    <form id="form-aprovar-exclusao-{{ s.id }}" method="POST" action="{% url 'gestao:aprovar_exclusao_superuser' s.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-success btn-confirm-action"
+                                                data-form-id="form-aprovar-exclusao-{{ s.id }}"
+                                                data-modal-title="Confirmar Aprovação de Exclusão"
+                                                data-modal-body="Você confirma a necessidade de excluir este superusuário? Esta ação pode requerer mais aprovações para ser concluída.">
+                                            <i class="fas fa-check me-2"></i>Aprovar Exclusão
+                                        </button>
+                                    </form>
+                                {% endif %}
+                                <!-- ======================================================================= -->
+                                <!-- FIM DA CORREÇÃO -->
+                                <!-- ======================================================================= -->
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center p-5">
+                    <h5 class="text-muted">Não há solicitações de exclusão de superusuários pendentes no momento.</h5>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Script genérico para usar o modal de confirmação
+    // (Nenhuma alteração necessária aqui, pois ele é genérico)
+    document.querySelectorAll('.btn-confirm-action').forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.dataset.formId;
+            const modalTitle = this.dataset.modalTitle;
+            const modalBody = this.dataset.modalBody;
+            const form = document.getElementById(formId);
+
+            if (form && typeof showConfirmationModal === 'function') {
+                showConfirmationModal(modalTitle, modalBody, () => {
+                    form.submit();
+                });
+            } else if (form) {
+                if (confirm(modalBody)) {
+                    form.submit();
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

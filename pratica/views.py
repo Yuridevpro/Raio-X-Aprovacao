@@ -156,6 +156,10 @@ def carregar_comentarios(request, questao_id):
 
 
 
+# pratica/views.py
+
+# ... (outros imports e views) ...
+
 @login_required
 @require_POST
 def adicionar_comentario(request):
@@ -178,6 +182,21 @@ def adicionar_comentario(request):
         if parent_id:
             try:
                 parent_comentario = Comentario.objects.get(id=parent_id)
+
+                # =======================================================================
+                # INÍCIO DA ADIÇÃO DE SEGURANÇA E INTEGRIDADE
+                # =======================================================================
+                # Verifica se o comentário pai realmente pertence à questão informada.
+                # Isso impede que uma resposta seja criada em uma árvore de comentários de outra questão.
+                if parent_comentario.questao_id != questao.id:
+                    return JsonResponse({
+                        'status': 'error',
+                        'message': 'Inconsistência de dados detectada. A resposta não corresponde à questão principal.'
+                    }, status=400) # 400 Bad Request é apropriado aqui.
+                # =======================================================================
+                # FIM DA ADIÇÃO
+                # =======================================================================
+
                 dados_novo_comentario['parent'] = parent_comentario
             except Comentario.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Comentário pai não encontrado.'}, status=404)
@@ -196,14 +215,15 @@ def adicionar_comentario(request):
                 'likes_count': 0,
                 'user_liked': False,
                 'respostas': [],
-                # --- ADIÇÕES NECESSÁRIAS ---
-                'respostas_count': 0, # Uma nova resposta não tem respostas
-                'parent_id': novo_comentario.parent_id # Informa ao frontend que este é um filho
+                'respostas_count': 0,
+                'parent_id': novo_comentario.parent_id
             }
         })
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+# ... (resto do arquivo pratica/views.py) ...
 
 # --- INÍCIO DA NOVA VIEW PARA LIKE ---
 @login_required

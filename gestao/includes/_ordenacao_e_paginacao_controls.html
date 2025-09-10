@@ -1,0 +1,47 @@
+<!-- templates/gestao/includes/_ordenacao_e_paginacao_controls.html -->
+{% load gestao_extras %}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <span class="text-muted small">
+            Exibindo <strong>{{ paginated_object.start_index }}-{{ paginated_object.end_index }}</strong> de <strong>{{ paginated_object.paginator.count }}</strong> resultados
+        </span>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <!-- Dropdown de Ordenação -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-sort-amount-down me-1"></i>
+                Ordenar por: <strong>{{ sort_options|get_item:sort_by|default:"Padrão" }}</strong>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% for key, value in sort_options.items %}
+                <li>
+                    <a class="dropdown-item {% if sort_by == key %}active{% endif %}"
+                       href="?{% update_query_params sort_by=key page=1 %}">
+                       {{ value }}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <!-- Dropdown de Itens por Página -->
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-list-ol me-1"></i>
+                <strong>{{ per_page }}</strong> por página
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% for count in "10,20,50"|split:',' %}
+                <li>
+                    <a class="dropdown-item {% if per_page|stringformat:"s" == count %}active{% endif %}"
+                       href="?{% update_query_params per_page=count page=1 %}">
+                       {{ count }} por página
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>

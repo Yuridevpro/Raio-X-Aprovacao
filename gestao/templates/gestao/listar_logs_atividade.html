@@ -184,13 +184,22 @@ body {
                         <label for="acao" class="form-label">Tipo de Ação</label>
                         <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
                             <option value="">Todas as Ações</option>
-                            <optgroup label="Usuários">
+                            <optgroup label="Usuários e Permissões">
                                 <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
                                 <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
+                            </optgroup>
+                            <optgroup label="Solicitações (Superusuários)">
                                 <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Promovido a Superuser</option>
                                 <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Despromovido de Superuser</option>
+                                <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
+                                <option value="SOLICITACAO_DESPROMOCAO_CRIADA" {% if "SOLICITACAO_DESPROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Despromoção Criada</option>
+                                <!-- INÍCIO DA ADIÇÃO -->
+                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
+                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" == filtro_acao %}selected{% endif %}>Aprovação de Exclusão Registrada</option>
+                                <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Cancelada</option>
+                                <!-- FIM DA ADIÇÃO -->
                             </optgroup>
-                             <optgroup label="Solicitações de Exclusão">
+                             <optgroup label="Solicitações de Exclusão (Comum)">
                                 <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação Criada</option>
                                 <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação Aprovada</option>
                                 <option value="SOLICITACAO_EXCLUSAO_REJEITADA" {% if "SOLICITACAO_EXCLUSAO_REJEITADA" == filtro_acao %}selected{% endif %}>Solicitação Rejeitada</option>

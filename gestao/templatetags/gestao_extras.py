@@ -23,3 +23,21 @@ def split(value, key):
 # =======================================================================
 # FIM DA ADIÇÃO
 # =======================================================================
+
+# gestao/templatetags/gestao_extras.py
+
+from django import template
+
+
+
+@register.simple_tag(takes_context=True)
+def update_query_params(context, **kwargs):
+    """
+    Atualiza ou adiciona parâmetros a uma URL de query string.
+    Ex: {% update_query_params sort_by='recent' page=1 %}
+    """
+    query_params = context['request'].GET.copy()
+    for key, value in kwargs.items():
+        query_params[key] = value
+    return query_params.urlencode()
+

@@ -41,6 +41,12 @@ urlpatterns = [
     path('usuarios/despromocao/solicitacoes/', views.listar_solicitacoes_despromocao, name='listar_solicitacoes_despromocao'),
     path('usuarios/despromocao/aprovar/<int:despromocao_id>/', views.aprovar_despromocao_superuser, name='aprovar_despromocao_superuser'),
     path('usuarios/despromocao/cancelar/<int:despromocao_id>/', views.cancelar_despromocao_superuser, name='cancelar_despromocao_superuser'),
+    
+       # --- Sistema de exclusao com Quorum ---
+    path('usuarios/exclusao-superuser/solicitar/<int:user_id>/', views.solicitar_exclusao_superuser, name='solicitar_exclusao_superuser'),
+    path('usuarios/exclusao-superuser/solicitacoes/', views.listar_solicitacoes_exclusao_superuser, name='listar_solicitacoes_exclusao_superuser'),
+    path('usuarios/exclusao-superuser/aprovar/<int:exclusao_id>/', views.aprovar_exclusao_superuser, name='aprovar_exclusao_superuser'),
+    path('usuarios/exclusao-superuser/cancelar/<int:exclusao_id>/', views.cancelar_exclusao_superuser, name='cancelar_exclusao_superuser'),
 
     # --- Sistema de Exclusão com Solicitação ---
     path('usuarios/<int:user_id>/sugerir-exclusao/', views.sugerir_exclusao_usuario, name='sugerir_exclusao_usuario'),

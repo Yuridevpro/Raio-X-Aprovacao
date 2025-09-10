@@ -13,20 +13,21 @@ import json
 import markdown
 import boto3
 import os
+from django.db import transaction
 
 # Importações de outros apps
 from pratica.models import Notificacao
-from usuarios.views import enviar_email_com_template
+from usuarios.utils import enviar_email_com_template
 from questoes.models import Questao, Disciplina, Banca, Instituicao, Assunto
 from questoes.forms import GestaoQuestaoForm, EntidadeSimplesForm, AssuntoForm
 from questoes.utils import paginar_itens, filtrar_e_paginar_questoes
-from .models import DespromocaoSuperuser # Não se esqueça de importar o novo modelo
+from .models import DespromocaoSuperuser, ExclusaoSuperuser # Não se esqueça de importar o novo modelo
 
 
 # Importações locais do app 'gestao'
 from .models import SolicitacaoExclusao, PromocaoSuperuser, LogAtividade
 from .forms import StaffUserForm, ExclusaoUsuarioForm
-from .utils import arquivar_logs_antigos_no_s3
+from .utils import arquivar_logs_antigos_no_s3, criar_log
 
 
 from django.contrib.auth.models import User
@@ -60,20 +61,22 @@ def dashboard_gestao(request):
     solicitacoes_pendentes_count = SolicitacaoExclusao.objects.filter(status=SolicitacaoExclusao.Status.PENDENTE).count()
     
     promocoes_pendentes_count = 0
+    despromocoes_pendentes_count = 0
     # =======================================================================
     # INÍCIO DA ADIÇÃO
     # =======================================================================
-    despromocoes_pendentes_count = 0
+    exclusoes_superuser_pendentes_count = 0
     # =======================================================================
     # FIM DA ADIÇÃO
     # =======================================================================
 
     if request.user.is_superuser:
         promocoes_pendentes_count = PromocaoSuperuser.objects.filter(status=PromocaoSuperuser.Status.PENDENTE).count()
+        despromocoes_pendentes_count = DespromocaoSuperuser.objects.filter(status=DespromocaoSuperuser.Status.PENDENTE).count()
         # =======================================================================
         # INÍCIO DA ADIÇÃO
         # =======================================================================
-        despromocoes_pendentes_count = DespromocaoSuperuser.objects.filter(status=DespromocaoSuperuser.Status.PENDENTE).count()
+        exclusoes_superuser_pendentes_count = ExclusaoSuperuser.objects.filter(status=ExclusaoSuperuser.Status.PENDENTE).count()
         # =======================================================================
         # FIM DA ADIÇÃO
         # =======================================================================
@@ -83,7 +86,14 @@ def dashboard_gestao(request):
         'notificacoes_pendentes': notificacoes_pendentes,
         'solicitacoes_pendentes_count': solicitacoes_pendentes_count,
         'promocoes_pendentes_count': promocoes_pendentes_count,
-        'despromocoes_pendentes_count': despromocoes_pendentes_count, # Adiciona a nova contagem ao contexto
+        'despromocoes_pendentes_count': despromocoes_pendentes_count,
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO
+        # =======================================================================
+        'exclusoes_superuser_pendentes_count': exclusoes_superuser_pendentes_count,
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
     }
     return render(request, 'gestao/dashboard.html', context)
 
@@ -435,6 +445,14 @@ def listar_usuarios(request):
 def editar_usuario_staff(request, user_id):
     # (Esta view já estava correta, sem necessidade de alterações)
     usuario_alvo = get_object_or_404(User, id=user_id)
+
+    # --- INÍCIO DA ADIÇÃO DE SEGURANÇA ---
+    # Impede que um superusuário edite as permissões de outro superusuário.
+    # Essas ações devem passar exclusivamente pelo sistema de quórum.
+    if usuario_alvo.is_superuser and usuario_alvo != request.user:
+        messages.error(request, "Você não pode editar as permissões de outro superusuário diretamente. Use os sistemas de despromoção ou exclusão.")
+        return redirect('gestao:listar_usuarios')
+    # --- FIM DA ADIÇÃO DE SEGURANÇA ---
     old_is_staff = usuario_alvo.is_staff
     if request.method == 'POST':
         form = StaffUserForm(request.POST, instance=usuario_alvo)
@@ -487,6 +505,7 @@ def listar_solicitacoes_promocao(request):
 
 @require_POST
 @login_required
+@transaction.atomic
 @user_passes_test(lambda u: u.is_superuser)
 def aprovar_promocao_superuser(request, promocao_id):
     promocao = get_object_or_404(PromocaoSuperuser, id=promocao_id)
@@ -825,6 +844,7 @@ def rejeitar_solicitacao_exclusao(request, solicitacao_id):
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
 @require_POST
+@transaction.atomic
 def deletar_usuario(request, user_id):
     usuario_alvo = get_object_or_404(User, id=user_id)
     form = ExclusaoUsuarioForm(request.POST)
@@ -955,29 +975,56 @@ def listar_solicitacoes_despromocao(request):
 
 @require_POST
 @login_required
+@transaction.atomic
 @user_passes_test(lambda u: u.is_superuser)
 def aprovar_despromocao_superuser(request, despromocao_id):
     despromocao = get_object_or_404(DespromocaoSuperuser, id=despromocao_id, status=DespromocaoSuperuser.Status.PENDENTE)
     
-    success, message = despromocao.aprovar(request.user)
-    
-    if success:
-        log_acao = LogAtividade.Acao.USUARIO_DESPROMOVIDO_SUPERUSER
-        messages.success(request, message)
-    else:
-        log_acao = LogAtividade.Acao.SOLICITACAO_DESPROMOCAO_APROVADA
-        messages.info(request, message)
+    usuario_alvo_username = despromocao.usuario_alvo.username
+    usuario_alvo_obj = despromocao.usuario_alvo
 
-    criar_log(
-        ator=request.user, 
-        acao=log_acao, 
-        alvo=despromocao,
-        detalhes={
-            'usuario_alvo': despromocao.usuario_alvo.username, 
+    status, message = despromocao.aprovar(request.user)
+
+    if status == 'QUORUM_MET':
+        is_self_approval = (request.user == usuario_alvo_obj)
+        log_details = {
+            'usuario_alvo': usuario_alvo_username,
             'aprovador_atual': request.user.username,
-            'quorum_atingido': success
+            'quorum_atingido': True,
+            'motivo': "Confirmação final (quorum atingido)" if not is_self_approval else "Usuário confirmou a própria despromoção (quorum=1)"
         }
-    )
+        
+        # 1. Cria o log ANTES de qualquer alteração final
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.USUARIO_DESPROMOVIDO_SUPERUSER,
+            alvo=despromocao,
+            detalhes=log_details
+        )
+        
+        # 2. Executa as ações finais de salvamento
+        usuario_alvo_obj.is_superuser = False
+        usuario_alvo_obj.save(update_fields=['is_superuser'])
+        despromocao.save(update_fields=['status'])
+        
+        # 3. Define a mensagem de sucesso
+        final_message = f"Você confirmou sua própria despromoção." if is_self_approval else message
+        messages.success(request, final_message)
+
+    elif status == 'APPROVAL_REGISTERED':
+        criar_log(
+            ator=request.user, 
+            acao=LogAtividade.Acao.SOLICITACAO_DESPROMOCAO_APROVADA, 
+            alvo=despromocao,
+            detalhes={
+                'usuario_alvo': usuario_alvo_username, 
+                'aprovador_atual': request.user.username,
+                'quorum_atingido': False
+            }
+        )
+        messages.info(request, message)
+    else: # status == 'FAILED'
+        messages.error(request, message)
     
     return redirect('gestao:listar_solicitacoes_despromocao')
 
@@ -992,6 +1039,18 @@ def cancelar_despromocao_superuser(request, despromocao_id):
             solicitado_por=request.user,
             status=DespromocaoSuperuser.Status.PENDENTE
         )
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Log de cancelamento
+        # =======================================================================
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.SOLICITACAO_DESPROMOCAO_CANCELADA,
+            alvo=despromocao,
+            detalhes={'usuario_alvo': despromocao.usuario_alvo.username}
+        )
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
         despromocao.delete()
         messages.success(request, 'Sua solicitação de despromoção foi cancelada com sucesso.')
     except DespromocaoSuperuser.DoesNotExist:
@@ -1001,7 +1060,145 @@ def cancelar_despromocao_superuser(request, despromocao_id):
 
 
 
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def solicitar_exclusao_superuser(request, user_id):
+    usuario_alvo = get_object_or_404(User, id=user_id, is_superuser=True)
 
+    if usuario_alvo == request.user:
+        messages.error(request, "Você não pode solicitar sua própria exclusão.")
+        return redirect('gestao:listar_usuarios')
+        
+    if User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
+        messages.error(request, "Não é possível solicitar a exclusão do único superusuário do sistema.")
+        return redirect('gestao:listar_usuarios')
+
+    if request.method == 'POST':
+        justificativa = request.POST.get('justificativa')
+        if justificativa:
+            exclusao, created = ExclusaoSuperuser.objects.get_or_create(
+                usuario_alvo=usuario_alvo,
+                status=ExclusaoSuperuser.Status.PENDENTE,
+                defaults={'solicitado_por': request.user, 'justificativa': justificativa}
+            )
+            if created:
+                criar_log(
+                    ator=request.user, 
+                    acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA, 
+                    alvo=exclusao, 
+                    detalhes={'usuario_alvo': usuario_alvo.username}
+                )
+                messages.success(request, 'Solicitação de exclusão enviada para revisão.')
+            else:
+                messages.warning(request, 'Já existe uma solicitação de exclusão pendente para este usuário.')
+            return redirect('gestao:listar_usuarios')
+        else:
+            messages.error(request, "A justificativa é obrigatória.")
+    
+    context = {'usuario_alvo': usuario_alvo}
+    return render(request, 'gestao/solicitar_exclusao_superuser.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def listar_solicitacoes_exclusao_superuser(request):
+    solicitacoes = ExclusaoSuperuser.objects.filter(status=ExclusaoSuperuser.Status.PENDENTE).select_related('usuario_alvo', 'solicitado_por')
+    context = {'solicitacoes': solicitacoes}
+    return render(request, 'gestao/listar_solicitacoes_exclusao_superuser.html', context)
+
+# gestao/views.py
+
+# gestao/views.py
+
+# ... (outros imports e views) ...
+
+@require_POST
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+@transaction.atomic
+def aprovar_exclusao_superuser(request, exclusao_id):
+    exclusao = get_object_or_404(ExclusaoSuperuser.objects.select_for_update(), id=exclusao_id, status=ExclusaoSuperuser.Status.PENDENTE)
+    
+    usuario_alvo_username = exclusao.usuario_alvo.username
+    usuario_alvo_obj = exclusao.usuario_alvo
+
+    # =======================================================================
+    # CORREÇÃO FINAL DA LÓGICA DE SEGURANÇA
+    # =======================================================================
+    # A verificação de segurança é feita ANTES de chamar .aprovar()
+    # A regra é: NÃO permitir que a contagem de superusuários chegue a ZERO.
+    # Portanto, bloqueamos a exclusão apenas se a contagem atual for 1.
+    if User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
+        messages.error(request, f"Ação negada: A exclusão de '{usuario_alvo_username}' deixaria o sistema sem superusuários, o que não é permitido.")
+        return redirect('gestao:listar_solicitacoes_exclusao_superuser')
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+
+    status, message = exclusao.aprovar(request.user)
+
+    if status == 'QUORUM_MET':
+        is_self_approval = (request.user == usuario_alvo_obj)
+        log_details = {
+            'usuario_alvo': usuario_alvo_username,
+            'aprovador_atual': request.user.username,
+            'quorum_atingido': True,
+            'motivo': "Confirmação final (quorum atingido)" if not is_self_approval else "Usuário confirmou a própria exclusão (quorum=1)"
+        }
+        
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.USUARIO_DELETADO,
+            alvo=None,
+            detalhes=log_details
+        )
+        
+        usuario_alvo_obj.delete()
+        
+        final_message = f"Você confirmou sua própria exclusão. Sua conta foi removida." if is_self_approval else message
+        messages.success(request, final_message)
+        
+    elif status == 'APPROVAL_REGISTERED':
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA,
+            alvo=exclusao,
+            detalhes={
+                'usuario_alvo': usuario_alvo_username,
+                'aprovador_atual': request.user.username,
+                'quorum_atingido': False
+            }
+        )
+        messages.info(request, message)
+
+    else: # status == 'FAILED'
+        messages.error(request, message)
+    
+    return redirect('gestao:listar_solicitacoes_exclusao_superuser')
+
+
+@require_POST
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def cancelar_exclusao_superuser(request, exclusao_id):
+    try:
+        exclusao = get_object_or_404(
+            ExclusaoSuperuser,
+            id=exclusao_id,
+            solicitado_por=request.user,
+            status=ExclusaoSuperuser.Status.PENDENTE
+        )
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA,
+            alvo=exclusao,
+            detalhes={'usuario_alvo': exclusao.usuario_alvo.username}
+        )
+        exclusao.delete()
+        messages.success(request, 'Sua solicitação de exclusão foi cancelada com sucesso.')
+    except ExclusaoSuperuser.DoesNotExist:
+        messages.error(request, 'Solicitação não encontrada ou você não tem permissão para cancelá-la.')
+    
+    return redirect('gestao:listar_solicitacoes_exclusao_superuser')
 
 
 

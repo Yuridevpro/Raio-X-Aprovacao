@@ -11,34 +11,17 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from questoes.models import Questao
-
-# =======================================================================
-# FUNÇÃO AUXILIAR PARA ENVIO DE E-MAILS COM TEMPLATES HTML
-# =======================================================================
-def enviar_email_com_template(request, subject, template_name, context, recipient_list):
-    """
-    Renderiza um template HTML e o envia como um e-mail.
-    """
-    # Adiciona o host (ex: 127.0.0.1:8000 ou raio-x-aprovacao.onrender.com) ao contexto
-    # para que possamos construir links absolutos (http://...) nos templates de e-mail.
-    context['host'] = request.get_host()
-    
-    html_content = render_to_string(template_name, context)
-    
-    email = EmailMultiAlternatives(
-        subject=subject,
-        body='', # O corpo de texto simples é opcional, pois o HTML é o principal
-        from_email=settings.EMAIL_HOST_USER, # Remetente (configurado no settings.py)
-        to=recipient_list # Lista de destinatários
-    )
-    email.attach_alternative(html_content, "text/html")
-    email.send()
+from gestao.views import criar_log
+from gestao.models import LogAtividade
+from .utils import enviar_email_com_template
+from django.db import transaction  # 1. IMPORTAR transaction
 
 
 # =======================================================================
 # VIEWS DE AUTENTICAÇÃO ATUALIZADAS
 # =======================================================================
 
+@transaction.atomic  # 2. APLICAR O DECORADOR DE TRANSAÇÃO
 def cadastro(request):
     if request.user.is_authenticated:
         return redirect('home')
@@ -56,19 +39,36 @@ def cadastro(request):
         if senha != confirmar_senha:
             messages.error(request, 'As senhas não coincidem!')
             return redirect('cadastro')
-        if User.objects.filter(email=email).exists():
-            messages.error(request, 'Este e-mail já está em uso.')
-            return redirect('cadastro')
+
+        # =======================================================================
+        # 3. LÓGICA INTELIGENTE PARA E-MAILS JÁ EXISTENTES
+        # =======================================================================
+        try:
+            user_existente = User.objects.get(email=email)
+            # Se o usuário existe, mas está inativo, provavelmente falhou no envio de e-mail anterior.
+            if not user_existente.is_active:
+                # Remove o usuário antigo para permitir uma nova tentativa de cadastro.
+                user_existente.delete() 
+            else:
+                # Se o usuário existe E está ativo, o e-mail está realmente em uso.
+                messages.error(request, 'Este e-mail já está em uso por uma conta ativa.')
+                return redirect('cadastro')
+        except User.DoesNotExist:
+            # O e-mail não existe, podemos prosseguir normalmente.
+            pass
+        # =======================================================================
+        # FIM DA LÓGICA INTELIGENTE
+        # =======================================================================
 
         try:
-            # 1. Cria o usuário, mas o mantém INATIVO até a confirmação por e-mail.
+            # Todo o bloco de criação e envio de e-mail agora está dentro de uma transação.
+            # Se 'enviar_email_com_template' falhar, o 'User.objects.create_user' será desfeito.
+            
             user = User.objects.create_user(username=email, email=email, password=senha, is_active=False)
             UserProfile.objects.create(user=user, nome=nome, sobrenome=sobrenome)
             
-            # 2. Cria um token de ativação para este usuário.
             ativacao = Ativacao.objects.create(user=user)
             
-            # 3. Envia o e-mail de confirmação usando nossa função auxiliar.
             enviar_email_com_template(
                 request,
                 subject='Confirme seu Cadastro no Raio-X da Aprovação',
@@ -77,11 +77,14 @@ def cadastro(request):
                 recipient_list=[user.email]
             )
             
-            messages.success(request, 'Cadastro realizado! Um e-mail de confirmação foi enviado para o seu endereço. Por favor, verifique sua caixa de entrada (e spam).')
+            messages.success(request, 'Cadastro realizado! Um e-mail de confirmação foi enviado. Por favor, verifique sua caixa de entrada (e spam).')
             return redirect('login')
 
         except Exception as e:
-            messages.error(request, f'Ocorreu um erro inesperado durante o cadastro: {e}')
+            # Graças ao @transaction.atomic, qualquer usuário criado aqui será revertido.
+            messages.error(request, f'Ocorreu um erro inesperado durante o cadastro. Nenhuma conta foi criada. Por favor, tente novamente.')
+            # Logar o erro real para depuração do administrador seria uma boa prática aqui.
+            print(f"Erro de cadastro: {e}") 
             return redirect('cadastro')
 
     return render(request, 'usuarios/cadastro.html')
@@ -243,17 +246,41 @@ def alterar_senha(request):
         return redirect('alterar_senha')
     return render(request, 'usuarios/alterar_senha.html')
 
-# --- INÍCIO DA NOVA VIEW ---
 @login_required
 def deletar_conta(request):
     if request.method == 'POST':
         user = request.user
-        # O Django deleta em cascata: ao deletar o User, o UserProfile também será deletado.
+
+        # Verificação de segurança para o último superusuário (já implementada)
+        if user.is_superuser and User.objects.filter(is_superuser=True, is_active=True).count() <= 1:
+            messages.error(request, 'Ação negada: Você não pode excluir sua própria conta porque você é o único superusuário restante no sistema.')
+            messages.info(request, 'Para realizar esta ação, primeiro promova outro usuário a superusuário através do painel de gestão.')
+            return redirect('editar_perfil')
+
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Criação do log antes da exclusão
+        # =======================================================================
+        # Captura o nome de usuário antes que o objeto seja deletado
+        username = user.username
+
+        # Cria o log de atividade ANTES de deletar o usuário
+        criar_log(
+            ator=user, # O usuário ainda existe neste ponto
+            acao=LogAtividade.Acao.USUARIO_DELETADO,
+            alvo=None, # Não há um objeto alvo específico além do próprio usuário
+            detalhes={
+                'usuario_deletado': username,
+                'motivo': 'Usuário excluiu a própria conta através da página de perfil.'
+            }
+        )
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
+        
+        # O processo de exclusão continua normalmente
         user.delete()
         logout(request)
         messages.success(request, 'Sua conta foi excluída com sucesso.')
-        return redirect('home') # Redireciona para a página inicial após a exclusão
+        return redirect('home')
     
-    # Se a requisição não for POST, redireciona para a página de edição de perfil.
     return redirect('editar_perfil')
-# --- FIM DA NOVA VIEW ---

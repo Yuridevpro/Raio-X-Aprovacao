@@ -1,3 +1,4 @@
+# gestao/templatetags/log_extras.py
 from django import template
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
@@ -11,15 +12,26 @@ def get_log_icon(log):
         # Ações de Usuário
         'USUARIO_DELETADO': 'fas fa-user-slash text-danger',
         'PERMISSOES_ALTERADAS': 'fas fa-user-shield text-info',
-        'USUARIO_PROMOVIDO_SUPERUSER': 'fas fa-rocket text-warning',
-        'USUARIO_DESPROMOVIDO_SUPERUSER': 'fas fa-user-minus text-secondary',
+        'USUARIO_PROMOVIDO_SUPERUSER': 'fas fa-rocket text-success',
+        'USUARIO_DESPROMOVIDO_SUPERUSER': 'fas fa-user-minus text-danger',
         
-        # Ações de Solicitação de Exclusão
+        # Ações de Solicitação de Exclusão (Usuário Comum)
         'SOLICITACAO_EXCLUSAO_CRIADA': 'fas fa-user-clock text-warning',
         'SOLICITACAO_EXCLUSAO_APROVADA': 'fas fa-user-check text-success',
         'SOLICITACAO_EXCLUSAO_REJEITADA': 'fas fa-user-times text-danger',
         'SOLICITACAO_EXCLUSAO_CANCELADA': 'fas fa-ban text-secondary',
         
+        # Ações de Solicitação (Superusuário)
+        'SOLICITACAO_PROMOCAO_CRIADA': 'fas fa-award text-warning',
+        'SOLICITACAO_PROMOCAO_APROVADA': 'fas fa-thumbs-up text-info',
+        'SOLICITACAO_PROMOCAO_CANCELADA': 'fas fa-ban text-secondary',
+        'SOLICITACAO_DESPROMOCAO_CRIADA': 'fas fa-user-graduate text-warning',
+        'SOLICITACAO_DESPROMOCAO_APROVADA': 'fas fa-thumbs-up text-info',
+        'SOLICITACAO_DESPROMOCAO_CANCELADA': 'fas fa-ban text-secondary',
+        'SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA': 'fas fa-user-shield text-warning',
+        'SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA': 'fas fa-shield-alt text-info', # Alterado para info para diferenciar do resultado final
+        'SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA': 'fas fa-ban text-secondary',
+
         # Ações de Questão
         'QUESTAO_CRIADA': 'fas fa-plus-circle text-success',
         'QUESTAO_EDITADA': 'fas fa-edit text-info',
@@ -44,8 +56,17 @@ def generate_log_message(log):
     
     # Mensagens para Ações de Usuário e Solicitações
     if log.acao == 'USUARIO_DELETADO':
-        usuario = f"<strong>{escape(detalhes.get('usuario_deletado', 'N/A'))}</strong>"
-        message = f"{ator} deletou o usuário {usuario}."
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', detalhes.get('usuario_deletado', 'N/A')))}</strong>"
+        # =======================================================================
+        # INÍCIO DA MODIFICAÇÃO: Mensagem aprimorada para autoaprovação
+        # =======================================================================
+        if "Confirmação final pelo solicitante" in detalhes.get('motivo', ''):
+            message = f"{ator} confirmou sua própria solicitação, excluindo o <strong>superusuário</strong> {usuario}."
+        else:
+            message = f"{ator} deletou o usuário {usuario}."
+        # =======================================================================
+        # FIM DA MODIFICAÇÃO
+        # =======================================================================
     
     elif log.acao == 'SOLICITACAO_EXCLUSAO_CRIADA':
         usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
@@ -65,6 +86,42 @@ def generate_log_message(log):
         usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
         message = f"{ator} cancelou sua própria solicitação para excluir o usuário {usuario}."
 
+    elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA':
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} criou uma solicitação para excluir o <strong>superusuário</strong> {usuario}."
+
+    elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA':
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} registrou uma aprovação na solicitação para excluir o <strong>superusuário</strong> {usuario}."
+
+    elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA':
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} cancelou sua solicitação para excluir o <strong>superusuário</strong> {usuario}."
+
+    elif log.acao in ['SOLICITACAO_PROMOCAO_CRIADA', 'SOLICITACAO_DESPROMOCAO_CRIADA']:
+        acao_texto = "promoção" if log.acao == 'SOLICITACAO_PROMOCAO_CRIADA' else "despromoção"
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} criou uma solicitação de {acao_texto} para {usuario}."
+
+    elif log.acao in ['SOLICITACAO_PROMOCAO_APROVADA', 'SOLICITACAO_DESPROMOCAO_APROVADA']:
+        acao_texto = "promoção" if log.acao == 'SOLICITACAO_PROMOCAO_APROVADA' else "despromoção"
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} registrou uma aprovação na solicitação de {acao_texto} de {usuario}."
+    
+    elif log.acao == 'SOLICITACAO_PROMOCAO_CANCELADA':
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} cancelou sua solicitação de promoção para {usuario}."
+        
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO
+    # =======================================================================
+    elif log.acao == 'SOLICITACAO_DESPROMOCAO_CANCELADA':
+        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
+        message = f"{ator} cancelou sua solicitação de despromoção para {usuario}."
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
     # Mensagens para Permissões
     elif log.acao == 'PERMISSOES_ALTERADAS':
         alvo = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
@@ -78,7 +135,16 @@ def generate_log_message(log):
 
     elif log.acao == 'USUARIO_DESPROMOVIDO_SUPERUSER':
         alvo = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} removeu as permissões de Superusuário do usuário {alvo}."
+        # =======================================================================
+        # INÍCIO DA MODIFICAÇÃO: Mensagem aprimorada para autoaprovação
+        # =======================================================================
+        if "Confirmação final pelo solicitante" in detalhes.get('motivo', ''):
+            message = f"{ator} confirmou sua própria solicitação, despromovendo o <strong>superusuário</strong> {alvo}."
+        else:
+            message = f"{ator} removeu as permissões de Superusuário do usuário {alvo}."
+        # =======================================================================
+        # FIM DA MODIFICAÇÃO
+        # =======================================================================
     
     # Mensagens para Ações de Questão
     elif log.acao == 'QUESTAO_CRIADA':
@@ -130,6 +196,7 @@ def generate_log_message(log):
         
     return mark_safe(message)
 
+
 @register.filter(name='format_log_reason')
 def format_log_reason(details_dict):
     """
@@ -139,10 +206,45 @@ def format_log_reason(details_dict):
         return ""
         
     motivo = details_dict.get('motivo')
-    if not motivo:
+    justificativa = details_dict.get('justificativa')
+
+    # =======================================================================
+    # INÍCIO DA MODIFICAÇÃO: Lógica de exibição de motivo aprimorada
+    # =======================================================================
+    content_to_display = None
+
+    # Prioriza a justificativa se ela existir (padrão de solicitações)
+    if justificativa:
+        content_to_display = justificativa
+    # Senão, usa o motivo (padrão de deleções diretas e logs de autoaprovação)
+    elif motivo:
+        content_to_display = motivo
+    
+    if not content_to_display:
         return ""
-        
-    motivo_escaped = escape(motivo)
-    html = f'<blockquote class="log-reason-quote">{motivo_escaped}</blockquote>'
+
+    content_escaped = escape(content_to_display).strip()
+    
+    # Limpa o texto de ações de sistema para não poluir a citação
+    system_texts_to_remove = [
+        "Confirmação final pelo solicitante (quorum = 1)",
+        "Aprovação de solicitação de exclusão #"
+    ]
+    for text in system_texts_to_remove:
+        if text in content_escaped:
+            # Se for uma mensagem de sistema, não mostra nada na citação
+            return ""
+
+    # Limpa texto combinado de formulários antigos
+    if 'Justificativa:' in content_escaped:
+        content_escaped = content_escaped.split('Justificativa:', 1)[1].strip()
+
+    if not content_escaped:
+        return ""
+
+    html = f'<blockquote class="log-reason-quote">{content_escaped}</blockquote>'
     
     return mark_safe(html)
+    # =======================================================================
+    # FIM DA MODIFICAÇÃO
+    # =======================================================================

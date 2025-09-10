@@ -4,11 +4,19 @@
 {% block title %}Painel de Gestão{% endblock %}
 
 {% block content %}
+
+{% if messages %}
+{% for message in messages %}
+<div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+{% endfor %}
+{% endif %}
+
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0">Painel de Gestão</h2>
     </div>
     <div class="row">
+
 
         <!-- ======================================================================= -->
         <!-- Card de Questões                                                      -->
@@ -163,6 +171,15 @@
                             Despromoções Pendentes
                             {% if despromocoes_pendentes_count > 0 %}
                                 <span class="badge bg-danger rounded-pill">{{ despromocoes_pendentes_count }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-dark rounded-pill">0</span>
+                            {% endif %}
+                        </a>
+
+                        <a href="{% url 'gestao:listar_solicitacoes_exclusao_superuser' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Exclusões Pendentes
+                            {% if exclusoes_superuser_pendentes_count > 0 %}
+                                <span class="badge bg-dark rounded-pill">{{ exclusoes_superuser_pendentes_count }}</span>
                             {% else %}
                                 <span class="badge bg-light text-dark rounded-pill">0</span>
                             {% endif %}

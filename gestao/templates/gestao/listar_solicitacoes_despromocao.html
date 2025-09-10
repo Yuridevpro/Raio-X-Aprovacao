@@ -1,4 +1,4 @@
-<!-- gestao/templates/gestao/listar_solicitacoes_despromocao.html (VERSÃO FINAL) -->
+<!-- gestao/templates/gestao/listar_solicitacoes_despromocao.html (VERSÃO FINAL COM DESIGN CONSISTENTE) -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -7,7 +7,7 @@
 {% block content %}
 <div class="container my-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0"><i class="fas fa-user-times me-2 text-danger"></i>Solicitações de Despromoção</h2>
+        <h2 class="h3 mb-0"><i class="fas fa-user-graduate me-2 text-danger"></i>Solicitações de Despromoção</h2>
         <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
         </a>
@@ -15,75 +15,89 @@
 
     {% if messages %}
         {% for message in messages %}
-        <div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>
+            <div class="alert alert-{{ message.tags|default:'info' }} d-flex align-items-center" role="alert">
+                {% if message.tags == 'success' %}<i class="fas fa-check-circle me-2"></i>
+                {% elif message.tags == 'error' or message.tags == 'warning' %}<i class="fas fa-exclamation-triangle me-2"></i>
+                {% else %}<i class="fas fa-info-circle me-2"></i>{% endif %}
+                <div>{{ message }}</div>
+            </div>
         {% endfor %}
     {% endif %}
 
-    <div class="card shadow-sm">
-        <div class="card-body">
-            {% if solicitacoes %}
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Usuário Alvo</th>
-                            <th>Solicitado Por</th>
-                            <th>Data</th>
-                            <th>Justificativa</th>
-                            <th class="text-center">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for despromocao in solicitacoes %}
-                        <tr>
-                            <td><strong>{{ despromocao.usuario_alvo.username }}</strong></td>
-                            <td>{{ despromocao.solicitado_por.username }}</td>
-                            <td>{{ despromocao.data_solicitacao|date:"d/m/Y H:i" }}</td>
-                            <td>{{ despromocao.justificativa|truncatewords:15 }}</td>
-                            <td class="text-center">
+    {% if solicitacoes %}
+        <div class="row g-4">
+            {% for despromocao in solicitacoes %}
+            <div class="col-12" id="despromocao-item-{{ despromocao.id }}">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-4 mb-3 mb-md-0">
+                                <h5 class="card-title mb-1">
+                                    <i class="fas fa-user-shield me-2 text-danger"></i>
+                                    {{ despromocao.usuario_alvo.username }}
+                                </h5>
+                                <p class="card-text text-muted mb-2">
+                                    <small>Solicitado por: {{ despromocao.solicitado_por.username }} em {{ despromocao.data_solicitacao|date:"d/m/Y" }}</small>
+                                </p>
+                            </div>
+                            <div class="col-md-5 mb-3 mb-md-0">
+                                <p class="mb-0"><strong>Justificativa:</strong> {{ despromocao.justificativa }}</p>
+                            </div>
+                            <div class="col-md-3 text-center text-md-end">
                                 {% if despromocao.solicitado_por == request.user %}
-                                    <!-- Solicitante vê o botão de cancelar -->
+                                    {# O solicitante SEMPRE vê o botão de cancelar #}
                                     <form id="form-cancelar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:cancelar_despromocao_superuser' despromocao.id %}">
                                         {% csrf_token %}
                                         <button type="button" class="btn btn-sm btn-outline-secondary btn-confirm-action"
                                                 data-form-id="form-cancelar-despromocao-{{ despromocao.id }}"
                                                 data-modal-title="Confirmar Cancelamento"
-                                                data-modal-body="Tem certeza que deseja cancelar sua solicitação?">
-                                            <i class="fas fa-times me-2"></i>Cancelar
+                                                data-modal-body="Tem certeza que deseja cancelar sua solicitação de despromoção?">
+                                            <i class="fas fa-times me-2"></i>Cancelar Solicitação
+                                        </button>
+                                    </form>
+                                {% elif despromocao.usuario_alvo == request.user and despromocao.get_quorum_necessario == 1 %}
+                                    {# CASO ESPECIAL: O usuário-alvo é o único que pode aprovar #}
+                                    <form id="form-aprovar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:aprovar_despromocao_superuser' despromocao.id %}">
+                                        {% csrf_token %}
+                                        <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action"
+                                                data-form-id="form-aprovar-despromocao-{{ despromocao.id }}"
+                                                data-modal-title="Confirmar Sua Própria Despromoção"
+                                                data-modal-body="Uma solicitação foi feita para remover suas permissões. Como não há outros superusuários para votar, a decisão final é sua. Deseja confirmar sua despromoção?">
+                                            <i class="fas fa-exclamation-triangle me-2"></i>Confirmar Despromoção
                                         </button>
                                     </form>
                                 {% else %}
-                                    <!-- Outros superusuários veem o botão de aprovar -->
+                                    {# CASO NORMAL: Outros superusuários aprovam #}
                                     <form id="form-aprovar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:aprovar_despromocao_superuser' despromocao.id %}">
                                         {% csrf_token %}
-                                        <button type="button" class="btn btn-sm btn-danger btn-confirm-action"
+                                        <button type="button" class="btn btn-sm btn-warning btn-confirm-action"
                                                 data-form-id="form-aprovar-despromocao-{{ despromocao.id }}"
                                                 data-modal-title="Confirmar Aprovação de Despromoção"
                                                 data-modal-body="Você confirma a necessidade de despromover este usuário? Esta ação pode requerer mais aprovações.">
-                                            <i class="fas fa-check me-2"></i>Aprovar Despromoção
+                                            <i class="fas fa-check me-2"></i>Aprovar
                                         </button>
                                     </form>
                                 {% endif %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            {% else %}
-            <div class="text-center p-5">
-                <h5 class="text-muted">Não há solicitações de despromoção pendentes.</h5>
-            </div>
-            {% endif %}
+            {% endfor %}
         </div>
-    </div>
+    {% else %}
+        <div class="card card-body text-center p-5">
+            <i class="fas fa-check-double fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">Não há solicitações de despromoção pendentes no momento.</h5>
+        </div>
+    {% endif %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Script genérico para usar o modal de confirmação antes de submeter um formulário
+    // A lógica de JS para o modal de confirmação é a mesma e já está aqui.
     document.querySelectorAll('.btn-confirm-action').forEach(button => {
         button.addEventListener('click', function() {
             const formId = this.dataset.formId;
@@ -96,6 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     form.submit();
                 });
             } else {
+                // Fallback para o confirm do navegador
                 if (confirm(modalBody)) {
                     form.submit();
                 }
