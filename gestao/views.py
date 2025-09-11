@@ -212,7 +212,7 @@ def questoes_acoes_em_massa(request):
         action = data.get('action')
 
         # Proteção para evitar a exclusão de um número excessivo de itens de uma só vez
-        LIMITE_MAXIMO_POR_ACAO = 10
+        LIMITE_MAXIMO_POR_ACAO = 15
         if len(questao_ids) > LIMITE_MAXIMO_POR_ACAO:
             criar_log(
                 ator=request.user,
