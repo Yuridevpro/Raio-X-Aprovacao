@@ -1,5 +1,3 @@
-<!-- pratica/listar_questoes.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %} 
@@ -8,11 +6,22 @@
 {% block title %}Praticar Questões{% endblock %}
 
 {% block head %}
+<!-- Google Fonts: Inter -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
     /* ========================================================================= */
-    /* ESTILOS GERAIS DA PÁGINA DE PRÁTICA
+    /* ESTILOS GLOBAIS COM VARIÁVEIS ORIGINAIS
     /* ========================================================================= */
+    body {
+        /* Nova cor de fundo da página para destacar os cards */
+        background-color: #f4f7fa; 
+        font-family: 'Inter', sans-serif;
+    }
+
     .enunciado-imagem {
         max-width: 100%;
         max-height: 450px;
@@ -22,8 +31,17 @@
         border-radius: var(--raio-borda);
         box-shadow: var(--sombra-caixa);
     }
+
+    /* ========================================================================= */
+    /* CARD DE FILTROS
+    /* ========================================================================= */
+    .filtros-card {
+        background-color: var(--cor-fundo-claro);
+        border: none;
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-caixa);
+    }
     
-    /* Botões de filtro por status (Ex: Resolvidas, Acertei, Errei) */
     .btn-status-filter {
         border-radius: 20px !important;
         font-weight: 500;
@@ -35,7 +53,7 @@
     }
     .btn-status-filter:hover {
         background-color: #e9ecef;
-        border-color: #e9e7e0;
+        border-color: #ced4da;
     }
     .btn-status-filter.active {
         background-color: var(--cor-primaria);
@@ -95,157 +113,209 @@
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
-    
+
     /* ========================================================================= */
     /* ESTILOS PARA A SEÇÃO DE COMENTÁRIOS
     /* ========================================================================= */
-    .comentarios-section {
-        background-color: #f8f9fa;
-        border-radius: 0 0 var(--raio-borda) var(--raio-borda);
-    }
-    
-    .comment-wrapper {
-        position: relative;
-        padding-left: 60px; /* Espaço para o avatar (40px) + gap (20px) */
-        margin-bottom: 1.5rem;
-    }
-    
-    .comment-card {
-        background-color: var(--cor-fundo-claro);
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--raio-borda);
-        padding: 1rem 1.5rem;
-        position: relative; /* Contexto para a seta do balão */
-        box-shadow: none;
-    }
-    
-    /* Seta do balão (simula um balão de fala) */
-    .comment-card::before, .comment-card::after {
-        content: '';
-        position: absolute;
-        top: 14px;
-        left: -22px; 
-        width: 0; height: 0;
-        border: 11px solid transparent;
-        border-right-color: var(--cor-borda);
-    }
-    .comment-card::after {
-        left: -19px;
-        top: 15px;
-        border-width: 10px;
-        border-right-color: var(--cor-fundo-claro);
-    }
-    
-    .comment-wrapper .comment-avatar {
-        position: absolute;
-        left: 0; top: 0;
-    }
-    
-    .new-comment-form-container {
-        display: flex;
-        gap: 1rem;
-        align-items: flex-start;
-    }
-    
-    .comment-avatar .avatar-icon {
-        width: 40px; height: 40px;
-        background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-        color: var(--cor-texto-claro);
-        display: flex;
-        align-items: center; justify-content: center;
-        border-radius: 50%;
-        font-weight: bold; font-size: 1.1rem;
-    }
-    
+    .comentarios-section { background-color: #f8f9fa; border-radius: 0 0 var(--raio-borda) var(--raio-borda); }
+    .comment-wrapper { position: relative; padding-left: 60px; margin-bottom: 1.5rem; }
+    .comment-card { background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); padding: 1rem 1.5rem; position: relative; box-shadow: none; }
+    .comment-avatar .avatar-icon { width: 40px; height: 40px; background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); color: var(--cor-texto-claro); display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; font-size: 1.1rem; }
+    .comment-wrapper .comment-avatar { position: absolute; left: 0; top: 0; }
     .comment-user { font-weight: 600; color: var(--cor-texto-escuro); }
     .comment-date { font-size: 0.8rem; color: var(--cor-secundaria); }
-    
-    .comment-footer {
-        margin-top: 1rem;
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-    }
-    .comment-footer a {
-        text-decoration: none;
-        color: var(--cor-secundaria);
-        font-weight: 500;
-        font-size: 0.85rem;
-    }
+    .comment-footer { margin-top: 1rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
+    .comment-footer a { text-decoration: none; color: var(--cor-secundaria); font-weight: 500; font-size: 0.85rem; }
     .comment-footer a:hover { color: var(--cor-primaria); }
     .btn-like.liked { color: var(--cor-primaria); font-weight: bold; }
-    
-    .comment-replies {
-        margin-left: 4.5rem;
-        padding-left: 1rem;
-        border-left: 2px solid var(--cor-borda);
-        margin-top: 1.5rem;
-    }
+    .comment-replies { margin-left: 4.5rem; padding-left: 1rem; border-left: 2px solid var(--cor-borda); margin-top: 1.5rem; }
     
     /* ========================================================================= */
-    /* ESTILOS UNIFICADOS PARA CONTEÚDO (MARKDOWN)
-    /* ========================================================================= */
-    .enunciado-formatado, .explicacao, .tiptap, .comment-body {
-        font-size: 1rem;
-        line-height: 1.7;
-        color: var(--cor-texto-escuro);
-    }
-    
-    .enunciado-formatado p, .explicacao p, .tiptap p, .comment-body p { margin-bottom: 1rem; }
-    .enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul { padding-left: 1.5rem; margin-bottom: 1rem; }
-    .enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
-        font-style: italic; color: var(--cor-secundaria);
-        padding-left: 1.5rem; border-left: 4px solid var(--cor-borda);
-        margin: 1rem 0;
-    }
-
-    /* ========================================================================= */
-    /* ESTILOS ESPECÍFICOS DO CARD DA QUESTÃO
+    /* ESTILOS DO CARD DA QUESTÃO (REDESENHADO)
     /* ========================================================================= */
     .card-questao {
         background-color: var(--cor-fundo-claro);
-        border: none;
+        border: 1px solid var(--cor-borda);
         border-radius: var(--raio-borda);
         box-shadow: var(--sombra-caixa);
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         overflow: hidden;
+        /* A transição foi removida para desativar a animação no hover */
     }
-    
+    .card-questao:hover {
+        /* Efeitos de hover foram removidos */
+        box-shadow: var(--sombra-caixa); /* Mantém a mesma sombra do estado normal */
+        transform: none; /* Garante que não haverá nenhuma transformação */
+    }
+
+    .card-questao .card-header {
+        background-color: transparent;
+        border-bottom: 1px solid var(--cor-borda);
+        padding: 1rem 1.5rem;
+        font-weight: 500;
+        color: var(--cor-secundaria);
+    }
+    .card-questao .card-header strong {
+        color: var(--cor-texto-escuro);
+    }
+    .card-questao .card-header .q-code {
+        background-color: #e9ecef;
+        color: var(--cor-secundaria);
+        padding: 0.2rem 0.6rem;
+        border-radius: 5px;
+        font-size: 0.8em;
+        font-weight: 600;
+    }
+
     .card-questao .fa-star {
         font-size: 1.25rem; cursor: pointer; color: #ced4da;
     }
-    .card-questao .fa-star.fas.text-warning {
+    .card-questao .fa-star.fas {
         color: var(--cor-aviso) !important;
     }
-    
-    /* Feedback de Resposta */
-    .alternativas .form-check-label.text-success { color: var(--cor-sucesso) !important; font-weight: bold; }
-    .alternativas .form-check-label.text-danger { color: var(--cor-erro) !important; }
-    .alternativas .form-check-label.text-danger::after {
-        content: " (Sua resposta)"; font-style: italic; font-weight: normal;
+
+    .card-body {
+        padding: 2rem;
+    }
+
+    .enunciado-formatado, .explicacao-conteudo, .comment-body {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: var(--cor-texto-escuro);
+    }
+    .enunciado-formatado p:last-child {
+        margin-bottom: 0;
+    }
+
+    /* ========================================================================= */
+    /* NOVO DESIGN DAS ALTERNATIVAS
+    /* ========================================================================= */
+    .alternativas {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 2rem;
     }
     
+    .alternativa-item .form-check-input {
+        display: none; /* Esconde o radio button original */
+    }
+
+    .alternativa-item .form-check-label {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        cursor: pointer;
+        transition: var(--transicao-padrao);
+        width: 100%;
+    }
+    .alternativa-item .form-check-label:hover {
+        border-color: var(--cor-primaria);
+        background-color: #f8f9fa;
+    }
+
+    .alternativa-letra {
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        border-radius: 50%;
+        border: 1px solid var(--cor-borda);
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        margin-right: 1rem;
+        transition: var(--transicao-padrao);
+    }
+
+    .alternativa-texto {
+        line-height: 1.6;
+    }
+
+    /* Estilo da alternativa SELECIONADA (antes de responder) */
+    .alternativa-item .form-check-input:checked + .form-check-label {
+        border-color: var(--cor-primaria);
+        background-color: #eef5ff; /* Tom de azul bem claro */
+    }
+    .alternativa-item .form-check-input:checked + .form-check-label .alternativa-letra {
+        background-color: var(--cor-primaria);
+        border-color: var(--cor-primaria);
+        color: var(--cor-texto-claro);
+    }
+
+    /* Feedback de Resposta */
+    .alternativas.respondido .form-check-label {
+        cursor: default;
+        background-color: transparent !important;
+    }
+     .alternativas.respondido .form-check-label:hover {
+        border-color: var(--cor-borda);
+     }
+    .alternativas.respondido .label-correta {
+        border-color: var(--cor-sucesso) !important;
+    }
+    .alternativas.respondido .label-correta .alternativa-letra {
+        background-color: var(--cor-sucesso) !important;
+        border-color: var(--cor-sucesso) !important;
+        color: var(--cor-texto-claro) !important;
+    }
+    .alternativas.respondido .label-errada {
+        border-color: var(--cor-erro) !important;
+    }
+     .alternativas.respondido .label-errada .alternativa-letra {
+        background-color: var(--cor-erro) !important;
+        border-color: var(--cor-erro) !important;
+        color: var(--cor-texto-claro) !important;
+    }
+
     .explicacao {
         background-color: #f8f9fa;
         border-radius: var(--raio-borda);
         border-left: 4px solid var(--cor-primaria);
     }
+    
+    .card-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid var(--cor-borda);
+    }
 
     /* ========================================================================= */
-    /* AJUSTES PARA TELAS MOBILE (ATÉ 768px)
+    /* AJUSTES PARA MOBILE (ATÉ 768px)
     /* ========================================================================= */
     @media (max-width: 768px) {
-        .container { max-width: 100%; padding: 0; }
+        /* Garante que o container não tenha paddings laterais que atrapalhem o 100% de largura */
+        .container {
+            padding-left: 0;
+            padding-right: 0;
+        }
+        
+        .card-body, .card-header, .card-footer, .comentarios-section { 
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
         .filtros-card, .card-questao {
             width: 100%;
             border-radius: 0;
-            margin: 0 0 1rem 0;
+            margin-bottom: 0.5rem;
             box-shadow: none;
-            border-bottom: 1px solid var(--cor-borda); 
+            border-left: none;
+            border-right: none;
+            border-top: 1px solid var(--cor-borda);
         }
-        .card-body, .card-header, .card-footer, .comentarios-section { padding: 1.25rem; }
-        .comment-wrapper { padding-left: 55px; }
-        .comment-replies { margin-left: 1.25rem; padding-left: 1rem; }
+
+        /* AJUSTES PARA COMENTÁRIOS NO MOBILE */
+        .comment-wrapper {
+            /* Reduz o espaçamento para o avatar, dando mais espaço ao conteúdo */
+            padding-left: 55px; 
+        }
+
+        .comment-replies {
+            /* Reduz drasticamente a indentação da resposta para não espremer o texto */
+            margin-left: 1.25rem; 
+            padding-left: 0.75rem;
+        }
     }
 </style>
 {% endblock %}
@@ -264,14 +334,9 @@
                 </button>
             </div>
         </div>
-
-        <!-- Filtros rápidos por STATUS -->
         <div class="mb-4 text-center">
             <div class="btn-group flex-wrap" role="group" aria-label="Filtros de status">
-                <!-- O botão "TODAS" agora remove o parâmetro 'status' da URL -->
                 <a href="?{% url_replace status='' %}" class="btn btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
-                
-                <!-- Os outros botões definem o parâmetro 'status' para o valor correto -->
                 <a href="?{% url_replace status='respondidas' %}" class="btn btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
                 <a href="?{% url_replace status='nao_respondidas' %}" class="btn btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
                 <a href="?{% url_replace status='acertei' %}" class="btn btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
@@ -279,10 +344,7 @@
                 <a href="?{% url_replace status='favoritas' %}" class="btn btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
             </div>
         </div>
-
-        <!-- INCLUSÃO DO COMPONENTE DE FILTROS REUTILIZÁVEL -->
         {% include 'includes/_filtros_questoes.html' with form_action_url=request.path status_param=status_param %}
-        
         <div class="text-center mt-3">
             <button type="button" class="btn btn-link text-secondary" data-bs-toggle="modal" data-bs-target="#salvarFiltroModal">
                 <i class="fas fa-save me-2"></i>Salvar Filtros Atuais
@@ -299,44 +361,48 @@
         
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <span class="badge bg-dark me-2">{{ forloop.counter0|add:questoes.start_index }}.</span>
-                <span class="badge bg-primary me-2">{{ questao.codigo }}</span>
-                <strong>{{ questao.disciplina.nome }}</strong> - {{ questao.assunto.nome }}
-                {% if questao.is_inedita %}
-                    <span class="badge bg-info ms-2">Inédita</span>
-                {% elif questao.banca and questao.ano %}
-                    <span class="text-muted ms-2">({{ questao.banca.nome }} - {{ questao.ano }})</span>
-                {% endif %}
+                <!-- CONTAGEM ADICIONADA AQUI -->
+                <strong class="me-2">{{ forloop.counter0|add:questoes.start_index }}.</strong>
+
+                <span class="q-code">{{ questao.codigo }}</span>
+                <span class="ms-2">
+                    <strong>{{ questao.disciplina.nome }}</strong> › {{ questao.assunto.nome }}
+                    {% if questao.banca and questao.ano %}
+                        <span class="text-muted ms-2"> ({{ questao.banca.nome }} - {{ questao.ano }})</span>
+                    {% endif %}
+                </span>
             </div>
-            <i class="fa-star {% if questao.id in favoritas_ids %}fas text-warning{% else %}far{% endif %}"
-               style="cursor: pointer;"
-               data-questao-id="{{ questao.id }}"
-               title="Marcar como favorita"></i>
+            <i class="fa-star {% if questao.id in favoritas_ids %}fas{% else %}far{% endif %}"
+               title="Marcar como favorita"
+               data-questao-id="{{ questao.id }}"></i>
         </div>
 
-        <div class="card-body p-4">
+        <div class="card-body">
             {% if questao.imagem_enunciado %}
                 <img src="{{ questao.imagem_enunciado.url }}" class="enunciado-imagem mb-4" alt="Imagem da questão">
             {% endif %}
 
-            <div class="card-text enunciado-formatado mb-4">
+            <div class="enunciado-formatado">
                 {{ questao.enunciado|render_markdown|safe }}
             </div>
             
-            <hr>
-
             <div class="alternativas mt-4" data-questao-id="{{ questao.id }}">
                 {% for key, value in questao.get_alternativas_dict.items %}
-                <div class="form-check">
+                <div class="alternativa-item">
                     <input class="form-check-input" type="radio" name="alternativa-{{ questao.id }}" id="q{{ questao.id }}-{{ key }}" value="{{ key }}">
-                    <label class="form-check-label w-100" for="q{{ questao.id }}-{{ key }}">
-                        <strong>{{ key }})</strong> {{ value }}
+                    <label class="form-check-label" for="q{{ questao.id }}-{{ key }}">
+                        <span class="alternativa-letra">{{ key }}</span>
+                        <span class="alternativa-texto">{{ value }}</span>
                     </label>
                 </div>
                 {% endfor %}
             </div>
             
-            <button type="button" class="btn btn-success mt-4 w-100 btn-responder" data-questao-id="{{ questao.id }}">Responder</button>
+            <div class="mt-4">
+                <button type="button" class="btn btn-primary w-100 p-2 btn-responder" data-questao-id="{{ questao.id }}">
+                    <i class="fas fa-check-circle me-2"></i>Responder
+                </button>
+            </div>
 
             <div class="feedback mt-4" style="display: none;">
                 <div class="alert"></div>
@@ -347,7 +413,7 @@
             </div>
         </div>
 
-        <div class="card-footer bg-white d-flex justify-content-center gap-2">
+        <div class="card-footer d-flex justify-content-center gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-explicacao d-none" data-questao-id="{{ questao.id }}">
                 <i class="fas fa-graduation-cap me-1"></i> Gabarito Comentado
             </button>
@@ -461,7 +527,7 @@
         }
     
         // =======================================================================
-        // DELEGAÇÃO DE EVENTOS CENTRALIZADA (CORRIGIDA)
+        // DELEGAÇÃO DE EVENTOS CENTRALIZADA
         // =======================================================================
         document.body.addEventListener('click', function(e) {
             const target = e.target;
@@ -515,7 +581,6 @@
         // HANDLERS DE AÇÕES (lógica principal da página)
         // =======================================================================
     
-        /** Lida com o salvamento de um novo conjunto de filtros. */
         function handleSalvarFiltro() {
             const inputNome = document.getElementById('input-nome-filtro');
             if (!inputNome.value.trim()) { inputNome.classList.add('is-invalid'); return; }
@@ -543,7 +608,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível salvar. Tente novamente.', 'error'));
         }
     
-        /** Lida com a exclusão de um filtro salvo. */
         function handleDeletarFiltro(filtroId) {
             fetch("{% url 'pratica:deletar_filtro' %}", {
                 method: 'POST',
@@ -558,11 +622,12 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível deletar. Tente novamente.', 'error'));
         }
     
-        /** Lida com o envio de uma resposta de questão. */
+        /** Lida com o envio de uma resposta de questão. (VERSÃO MODIFICADA PARA NOVO DESIGN) */
         function handleResponder(button) {
             const questaoId = button.dataset.questaoId;
             const questaoCard = document.getElementById(`questao-${questaoId}`);
             const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+            
             if (!alternativaSelecionada) { 
                 showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
                 return; 
@@ -577,17 +642,27 @@
             .then(result => {
                 const feedbackDiv = questaoCard.querySelector('.feedback');
                 const alertDiv = feedbackDiv.querySelector('.alert');
+                const alternativasDiv = questaoCard.querySelector('.alternativas');
                 
+                // Desabilitar interação futura
+                alternativasDiv.classList.add('respondido');
                 questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
                 button.style.display = 'none';
     
+                // Configurar o alerta de feedback
                 alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
                 alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
                 
-                questaoCard.querySelectorAll('.form-check-label').forEach(label => {
-                    const key = label.getAttribute('for').split('-')[1];
-                    if (key === result.gabarito) label.classList.add('text-success');
-                    if (!result.correta && key === alternativaSelecionada.value) label.classList.add('text-danger');
+                // Aplicar classes de feedback visual às alternativas
+                questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
+                    const input = item.querySelector('input');
+                    const label = item.querySelector('label');
+                    
+                    if (input.value === result.gabarito) {
+                        label.classList.add('label-correta');
+                    } else if (input.checked && !result.correta) {
+                        label.classList.add('label-errada');
+                    }
                 });
     
                 if (result.explicacao) {
@@ -598,7 +673,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta.', 'error'));
         }
     
-        /** Alterna a visibilidade da explicação da questão. */
         function handleToggleExplicacao(button) {
             const questaoId = button.dataset.questaoId;
             const explicacaoDiv = document.getElementById(`questao-${questaoId}`).querySelector('.explicacao');
@@ -608,7 +682,6 @@
             }
         }
     
-        /** Lida com o clique no ícone de favoritar. */
         function handleFavoritar(icon) {
             fetch("{% url 'pratica:favoritar_questao' %}", {
                 method: 'POST',
@@ -620,12 +693,10 @@
                 if (result.status === 'success') {
                     icon.classList.toggle('far');
                     icon.classList.toggle('fas');
-                    icon.classList.toggle('text-warning');
                 } else { showNotificationModal('Erro', result.message, 'error'); }
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível favoritar.', 'error'));
         }
     
-        /** Alterna a seção de comentários e carrega-os se for a primeira vez. */
         function handleToggleComentarios(button) {
             const questaoId = button.dataset.questaoId;
             const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
@@ -633,7 +704,7 @@
             comentariosSection.style.display = isHidden ? 'block' : 'none';
     
             if (isHidden) {
-                if (!tiptapEditors[questaoId]) { // Inicializa o editor de novo comentário
+                if (!tiptapEditors[questaoId]) {
                     const form = comentariosSection.querySelector('.form-comentario');
                     if (form) {
                         tiptapEditors[questaoId] = initializeTiptapEditor({
@@ -649,7 +720,6 @@
             }
         }
     
-        /** Envia um novo comentário ou resposta. */
         function handleAdicionarComentario(form) {
             const questaoId = form.dataset.questaoId;
             const parentId = form.dataset.parentId;
@@ -664,18 +734,17 @@
             .then(r => r.json())
             .then(result => {
                 if (result.status === 'success') {
-                    carregarComentarios(questaoId); // Recarrega os comentários para mostrar o novo
+                    carregarComentarios(questaoId);
                     if (!parentId && tiptapEditors[questaoId]) {
                         tiptapEditors[questaoId].commands.clearContent();
                     } else {
                         const formContainer = form.closest('.reply-form-container');
-                        if (formContainer) formContainer.innerHTML = ''; // Limpa o formulário de resposta
+                        if (formContainer) formContainer.innerHTML = '';
                     }
                 } else { showNotificationModal('Erro ao Comentar', result.message, 'error'); }
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível enviar o comentário.', 'error'));
         }
     
-        /** Lida com a exclusão de um comentário. */
         function handleExcluirComentario(comentarioId) {
             const questaoId = document.getElementById(`comment-wrapper-${comentarioId}`).closest('.card-questao').id.replace('questao-', '');
             fetch("{% url 'pratica:excluir_comentario' %}", {
@@ -691,7 +760,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível excluir.', 'error'));
         }
         
-        /** Lida com o like/unlike de um comentário. */
         function handleLikeComentario(link) {
             fetch("{% url 'pratica:toggle_like_comentario' %}", {
                 method: 'POST',
@@ -707,7 +775,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível registrar o like.', 'error'));
         }
     
-        /** Alterna a visibilidade das respostas e insere o formulário de resposta. */
         function handleToggleReplies(link) {
             const comentarioId = link.dataset.comentarioId;
             const questaoId = link.closest('.card-questao').id.replace('questao-', '');
@@ -735,14 +802,12 @@
             }
         }
     
-        /** Lida com a mudança na ordenação dos comentários. */
         function handleSortClick(link) {
             const questaoId = link.dataset.questaoId;
             document.getElementById(`sort-label-${questaoId}`).textContent = link.textContent;
             carregarComentarios(questaoId, link.dataset.sort);
         }
     
-        /** Abre o formulário de edição para um comentário. */
         function handleAbrirEdicao(button) {
             const comentarioId = button.dataset.comentarioId;
             const commentCard = document.getElementById(`comentario-${comentarioId}`);
@@ -772,7 +837,6 @@
             editFormDiv.style.display = 'block';
         }
     
-        /** Envia a edição de um comentário. */
         function handleSalvarEdicao(button) {
             const comentarioId = button.dataset.comentarioId;
             const novoConteudo = editTiptapEditor.storage.markdown.getMarkdown();
@@ -793,7 +857,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível salvar a edição.', 'error'));
         }
     
-        /** Cancela o modo de edição de um comentário. */
         function cancelarEdicao(editFormDiv) {
             if (!editFormDiv) return;
             const contentDiv = editFormDiv.closest('.comment-card').querySelector('.comment-content');
@@ -802,7 +865,6 @@
             editFormDiv.innerHTML = '';
         }
     
-        /** Carrega e renderiza os comentários de uma questão. */
         function carregarComentarios(questaoId, sortBy = 'recent') {
             const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
             comentariosList.innerHTML = '<p class="text-center text-muted py-4">Carregando...</p>';
@@ -824,7 +886,6 @@
                 });
         }
     
-        /** Gera um ELEMENTO DOM para um comentário. */
         function criarElementoComentario(c) {
             const template = document.createElement('template');
             template.innerHTML = `
@@ -875,7 +936,6 @@
             return commentElement;
         }
         
-        /** Lida com o envio do formulário de notificação de erro. */
         function handleNotificarErro(form) {
             const tipoErroSelecionado = form.querySelector('#botoes-tipo-erro button.active')?.dataset.tipo;
             if (!tipoErroSelecionado) {
@@ -908,7 +968,6 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível enviar a notificação.', 'error'));
         }
     
-        // Listener para o modal de notificação de erro (setup inicial)
         const modalNotificarErroEl = document.getElementById('modalNotificarErro');
         if (modalNotificarErroEl) {
             modalNotificarErroEl.addEventListener('show.bs.modal', function (event) {
@@ -922,5 +981,5 @@
             });
         }
     });
-    </script>
+</script>
 {% endblock %}
