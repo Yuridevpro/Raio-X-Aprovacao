@@ -1,151 +1,63 @@
+<!-- gestao/templates/gestao/listar_logs_atividade.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load log_extras %}
-{% load gestao_extras %}  <!-- ADICIONE ESTA LINHA AQUI -->
+{% load gestao_extras %}
 
 {% block title %}Registro de Atividades{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
-
 <style>
-:root {
-    --app-bg: #f8f9fa;
-    --card-bg: #ffffff;
-    --border-color: #dee2e6;
-    --border-radius: 0.5rem;
-    --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
-    --primary-light: #eef5ff;
-    --primary-border: #a3c9fe;
-}
-body {
-    background-color: var(--app-bg);
-}
 .fade-out { 
     transition: opacity 0.5s ease-out, transform 0.5s ease-out, max-height 0.5s ease-out; 
-    opacity: 0;
-    transform: scale(0.95);
-    max-height: 0 !important;
-    padding-top: 0 !important;
-    padding-bottom: 0 !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    border-width: 0 !important;
+    opacity: 0; transform: scale(0.95); max-height: 0 !important;
+    padding: 0 !important; margin: 0 !important; border-width: 0 !important;
     overflow: hidden;
 }
-.filter-form-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    align-items: flex-end;
-}
-.filter-field {
-    flex: 1 1 250px;
-    min-width: 200px;
-}
-.filter-actions {
-    display: flex;
-    gap: 0.5rem;
-    flex: 1 1 150px;
-}
-.filter-actions .btn {
-    flex-grow: 1;
-}
-.activity-log-list { 
-    display: flex; 
-    flex-direction: column; 
-    gap: 1rem; 
-}
 .log-item { 
-    display: flex; 
-    align-items: flex-start; 
-    gap: 1rem; 
-    padding: 1rem; 
-    background-color: var(--card-bg); 
-    border-radius: var(--border-radius); 
-    border: 1px solid var(--border-color); 
-    box-shadow: var(--shadow-sm);
+    display: flex; align-items: flex-start; gap: 1rem; padding: 1rem;
+    background-color: var(--cor-fundo-claro); border-radius: var(--raio-borda);
+    border: 1px solid var(--cor-borda); box-shadow: var(--sombra-caixa);
     transition: box-shadow 0.2s ease-in-out, border-color 0.2s ease-in-out; 
 }
-.log-item:hover { 
-    box-shadow: var(--shadow-md); 
-    border-color: #cdd4da;
-}
 .log-item.selected { 
-    background-color: var(--primary-light); 
-    border-color: var(--primary-border); 
+    background-color: #eef5ff; border-color: #a3c9fe; 
 }
-.log-selection { padding-top: 0.2rem; }
-.log-icon { 
-    font-size: 1.5rem; 
-    flex-shrink: 0; 
-    width: 30px; 
-    text-align: center;
-    padding-top: 0.1rem;
-    color: #6c757d;
-}
-.log-content-wrapper { flex-grow: 1; }
-.log-main-info { 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: flex-start; 
-    flex-wrap: wrap; 
-    gap: 0.5rem 1rem; 
-}
+.log-icon { font-size: 1.5rem; width: 30px; text-align: center; color: #6c757d; }
 .log-message { margin: 0; font-size: 1rem; color: #343a40; }
-.log-message strong { color: #000; font-weight: 500; }
-.log-meta { 
-    font-size: 0.8rem; 
-    color: #6c757d; 
-    white-space: nowrap; 
-    padding-top: 0.15rem;
+.log-meta { font-size: 0.8rem; color: #6c757d; }
+
+.log-reason-details {
+    border-left: 4px solid #0d6efd; /* Barra azul vertical */
+    padding-left: 1rem;            /* Espaçamento interno à esquerda */
+    margin: 0.5rem 0 0 0;          /* Margem para separar do texto acima */
+    color: #6c757d;                /* Cor do texto */
+    font-size: 0.9em;              /* Tamanho da fonte um pouco menor */
+    font-style: italic;            /* Estilo da fonte em itálico */
 }
-.log-details-reason { margin-top: 0.75rem; }
-.log-reason-quote { 
-    font-size: 0.875rem; 
-    padding: 0.5rem 1rem; 
-    border-left: 3px solid #e9ecef; 
-    background-color: #f8f9fa; 
-    color: #495057; 
-    margin: 0; 
-    white-space: pre-wrap; 
-    word-break: break-word; 
-    border-radius: 0 0.25rem 0.25rem 0;
-}
-.log-actions { margin-left: auto; padding-left: 1rem; }
-#bulk-actions-bar {
-    display: none;
-    top: 10px;
-    z-index: 1020;
-    background-color: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(5px);
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-md);
-}
+
+/* Estilos para Mobile */
 @media (max-width: 767.98px) {
-    .container {
-        padding-top: 1rem !important;
-        padding-bottom: 1rem !important;
-    }
     .page-header {
         flex-direction: column;
         align-items: flex-start !important;
         gap: 0.75rem;
     }
     .log-item {
-        padding: 0.75rem;
-        position: relative;
+        padding: 1rem 0.75rem; /* Aumenta o respiro vertical */
+        gap: 0.75rem;         /* Reduz o espaço entre ícone e texto */
     }
     .log-main-info {
         flex-direction: column;
         align-items: flex-start;
-        gap: 0.25rem;
+        gap: 0.5rem; /* Aumenta o espaço entre a mensagem e a data */
     }
     .log-message {
         font-size: 0.95rem;
-        padding-right: 2.5rem; 
+        padding-right: 2.5rem; /* Espaço para o botão posicionado absolutamente */
+        line-height: 1.4;      /* Melhora a legibilidade */
     }
     .log-actions {
         position: absolute;
@@ -154,6 +66,9 @@ body {
         padding-left: 0;
         margin-left: 0;
     }
+    .log-reason-details {
+        margin-top: 0.75rem; /* Garante um bom espaçamento superior */
+    }
 }
 </style>
 {% endblock %}
@@ -161,403 +76,164 @@ body {
 {% block content %}
 <div class="container py-4 py-lg-5">
     <!-- CABEÇALHO DA PÁGINA -->
-    <div class="d-flex justify-content-between align-items-center mb-4 page-header">
+    <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="h3 mb-0">Registro de Atividades</h1>
-        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Voltar
-        </a>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
     </div>
 
-
-
-                <!-- CARD DE FILTROS - RECOLHÍVEL -->
-                <div class="card mb-4 shadow-sm filter-card">
-                    <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Registros</h5>
-                            <span class="icon-toggle"></span>
-                        </div>
-                    </div>
-                    <div class="collapse" id="collapseFilters">
-                        <div class="card-body">
-                            <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
-                                <div class="filter-form-container">
-                                    <div class="filter-form-container">
-                                        <div class="filter-field">
-                                            <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
-                                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
-                                        </div>
-                                        <div class="filter-field">
-                                            <label for="acao" class="form-label">Tipo de Ação</label>
-                                            <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
-                                                <option value="">Todas as Ações</option>
-                                                <optgroup label="Usuários e Permissões">
-                                                    <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
-                                                    <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
-                                                </optgroup>
-                                                <optgroup label="Solicitações (Superusuários)">
-                                                    <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Promovido a Superuser</option>
-                                                    <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Despromovido de Superuser</option>
-                                                    <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
-                                                    <option value="SOLICITACAO_DESPROMOCAO_CRIADA" {% if "SOLICITACAO_DESPROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Despromoção Criada</option>
-                                                    <!-- INÍCIO DA ADIÇÃO -->
-                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
-                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA" == filtro_acao %}selected{% endif %}>Aprovação de Exclusão Registrada</option>
-                                                    <option value="SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Cancelada</option>
-                                                    <!-- FIM DA ADIÇÃO -->
-                                                </optgroup>
-                                                 <optgroup label="Solicitações de Exclusão (Comum)">
-                                                    <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação Criada</option>
-                                                    <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação Aprovada</option>
-                                                    <option value="SOLICITACAO_EXCLUSAO_REJEITADA" {% if "SOLICITACAO_EXCLUSAO_REJEITADA" == filtro_acao %}selected{% endif %}>Solicitação Rejeitada</option>
-                                                    <option value="SOLICITACAO_EXCLUSAO_CANCELADA" {% if "SOLICITACAO_EXCLUSAO_CANCELADA" == filtro_acao %}selected{% endif %}>Solicitação Cancelada</option>
-                                                </optgroup>
-                                                <optgroup label="Questões">
-                                                    <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
-                                                    <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
-                                                    <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
-                                                </optgroup>
-                                                <optgroup label="Entidades & Assuntos">
-                                                    <option value="ENTIDADE_CRIADA" {% if "ENTIDADE_CRIADA" == filtro_acao %}selected{% endif %}>Entidade Criada</option>
-                                                    <option value="ASSUNTO_CRIADO" {% if "ASSUNTO_CRIADO" == filtro_acao %}selected{% endif %}>Assunto Criado</option>
-                                                </optgroup>
-                                                 <optgroup label="Notificações de Erro">
-                                                    <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
-                                                    <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
-                                                    <option value="NOTIFICACOES_DELETADAS" {% if "NOTIFICACOES_DELETADAS" == filtro_acao %}selected{% endif %}>Notificações Deletadas</option>
-                                                </optgroup>
-                                            </select>
-                                        </div>
-                                        <div class="filter-field">
-                                            <label class="form-label">Período</label>
-                                            <div class="input-group">
-                                                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}" title="Data de Início">
-                                                <span class="input-group-text">até</span>
-                                                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
-                                            </div>
-                                        </div>
-                                        <div class="filter-actions">
-                                            <button type="submit" class="btn btn-primary">Filtrar</button>
-                                            <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary">Limpar</a>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-
-
-
-
-    <!-- ======================================================================= -->
-    <!-- INÍCIO DA MODIFICAÇÃO: Card de Ferramentas com Dropdown -->
-    <!-- ======================================================================= -->
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header bg-light border-bottom">
-            <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Ferramentas de Logs</h5>
-        </div>
-        <div class="card-body">
-            <!-- Limpeza de Logs (Mover para Lixeira) -->
-            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
-                <div>
-                    <p class="mb-1 fw-bold">Limpar Logs Antigos</p>
-                    <small class="text-muted">Move logs com uma certa idade para a lixeira para manter esta lista organizada.</small>
-                </div>
-                <div class="btn-group ms-md-auto">
-                    <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="fas fa-broom me-2"></i>Limpar Logs com mais de...
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        {% for days in "30,60,90,180"|split:',' %}
-                        <li>
-                            <form id="form-limpar-logs-{{ days }}" action="{% url 'gestao:mover_logs_antigos_para_lixeira' %}" method="POST">
-                                {% csrf_token %}
-                                <input type="hidden" name="days" value="{{ days }}">
-                                <button type="button" class="dropdown-item btn-confirm-action" 
-                                        data-form-id="form-limpar-logs-{{ days }}"
-                                        data-modal-title="Confirmar Limpeza"
-                                        data-modal-body="Tem certeza? Isso moverá todos os logs com mais de {{ days }} dias para a lixeira.">
-                                    {{ days }} dias
-                                </button>
-                            </form>
-                        </li>
-                        {% endfor %}
-                    </ul>
-                </div>
+    <!-- CARD DE FILTROS RECOLHÍVEL -->
+    <div class="card mb-4 shadow-sm filter-card">
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Registros</h5>
+                <span class="icon-toggle"></span>
             </div>
-            
-            <hr>
-            
-            <!-- Acesso à Lixeira (Inalterado) -->
-            <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3">
-                <div>
-                    <p class="mb-1 fw-bold">Lixeira de Logs</p>
-                    <small class="text-muted">Consulte os registros que já foram movidos para a lixeira.</small>
-                </div>
-                <a href="{% url 'gestao:listar_logs_deletados' %}" class="btn btn-outline-info btn-sm ms-md-auto">
-                    <i class="fas fa-trash-restore me-2"></i>Ver Lixeira
-                </a>
+        </div>
+        <div class="collapse" id="collapseFilters">
+            <div class="card-body">
+                <form method="GET" action="{% url 'gestao:listar_logs_atividade' %}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-3 col-md-6">
+                            <label for="q" class="form-label">Ator (usuário ou e-mail)</label>
+                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q }}">
+                        </div>
+                        <div class="col-lg-4 col-md-6">
+                            <label for="acao" class="form-label">Tipo de Ação</label>
+                            <select name="acao" id="acao" class="form-select" placeholder="Selecione um tipo de ação...">
+                                {% include 'gestao/includes/_options_filtro_log_acoes.html' %}
+                            </select>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label">Período</label>
+                            <div class="input-group">
+                                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio }}" title="Data de Início">
+                                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim }}" title="Data de Fim">
+                            </div>
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                                <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-secondary w-100">Limpar</a>
+                            </div>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
-    <!-- ======================================================================= -->
-    <!-- FIM DA MODIFICAÇÃO -->
-    <!-- ======================================================================= -->
 
+    <!-- FERRAMENTAS DE LOGS -->
+    {% include 'gestao/includes/_ferramentas_logs.html' %}
+
+    <!-- CONTROLES, PAGINAÇÃO E AÇÕES EM MASSA -->
     {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
-
-    <!-- ======================================================================= -->
-    <!-- INÍCIO DA MODIFICAÇÃO: Card de Ferramentas com Modal de Confirmação -->
-    <!-- ======================================================================= -->
+    {% include 'gestao/includes/_barra_acoes_em_massa_logs.html' %}
     
-    <!-- BARRA DE AÇÕES EM MASSA -->
-    <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top">
-        <div class="d-flex justify-content-between align-items-center">
-            <div class="form-check">
-                <input class="form-check-input" type="checkbox" id="select-all-checkbox" value="">
-                <label class="form-check-label" for="select-all-checkbox">
-                    <span id="selected-count" class="fw-bold">0</span> selecionado(s)
-                </label>
-            </div>
-            <div class="dropdown">
-                <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown" id="bulk-action-dropdown-btn">
-                    <span class="spinner-border spinner-border-sm me-1" style="display: none;" role="status" aria-hidden="true"></span>
-                    <span class="btn-text">Ações em Massa</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li>
-                        <a class="dropdown-item text-danger bulk-action-btn" href="#" data-action="delete">
-                            <i class="fas fa-trash-alt fa-fw me-2"></i>Mover para a Lixeira
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-
     <!-- LISTA DE LOGS -->
-    <div class="activity-log-list">
+    <div class="d-flex flex-column gap-3">
         {% for log in logs %}
-        <div class="log-item" id="log-item-{{ log.id }}">
-            <div class="log-selection">
-                {% if log.ator != request.user %}
-                    <input class="form-check-input log-checkbox" type="checkbox" data-id="{{ log.id }}" 
-                           aria-label="Selecionar log {{ log.id }}">
-                {% endif %}
-            </div>
-            <div class="log-icon">
-                <i class="{{ log|get_log_icon }}"></i>
-            </div>
-            <div class="log-content-wrapper">
-                <div class="log-main-info">
-                    <p class="log-message">{{ log|generate_log_message|safe }}</p>
-                    <div class="log-meta">
-                        <span class="log-timestamp" title="{{ log.data_criacao|date:'d/m/Y H:i:s' }}">
-                            <i class="far fa-clock me-1"></i>{{ log.data_criacao|date:"d/m/Y, H:i" }}
-                        </span>
-                    </div>
-                </div>
-                {% with reason=log.detalhes|format_log_reason %}
-                    {% if reason %}
-                        <div class="log-details-reason">
-                            <blockquote class="log-reason-quote">{{ reason }}</blockquote>
-                        </div>
-                    {% endif %}
-                {% endwith %}
-            </div>
-            <div class="log-actions">
-                {% if log.ator != request.user %}
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-delete-log" data-log-id="{{ log.id }}" title="Mover este registro para a lixeira">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                {% else %}
-                    <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="left" title="Você não pode excluir seus próprios registros.">
-                        <button type="button" class="btn btn-sm btn-secondary" disabled style="pointer-events: none;">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
-                    </span>
-                {% endif %}
-            </div>
-        </div>
+            {% include 'gestao/includes/_item_log_atividade.html' %}
         {% empty %}
             <div class="card card-body text-center p-5">
                 <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
                 <h5 class="text-muted mb-0">Nenhum registro de atividade encontrado.</h5>
-                <p class="text-muted">Tente ajustar os filtros ou limpar a busca.</p>
             </div>
         {% endfor %}
     </div>
 
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=logs %}
+    </div>
 </div>
-
-<!-- PAGINAÇÃO -->
-<nav aria-label="Paginação dos logs" class="mt-4">
-    {% include 'includes/_paginacao.html' with paginated_object=logs page_numbers=page_numbers %}
-</nav>
 {% endblock %}
 
 {% block scripts %}
-<!-- JS do Tom Select via CDN -->
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
-
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ===================================================================
-    // INICIALIZAÇÃO DE PLUGINS E FUNÇÕES GLOBAIS
-    // ===================================================================
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
+    new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });
     new TomSelect('#acao',{ create: false, sortField: { field: "text", direction: "asc" } });
 
-    // ===================================================================
-    // INÍCIO DA MODIFICAÇÃO: Listener de eventos genérico para confirmações
-    // ===================================================================
-    document.addEventListener('click', function(event) {
-        const confirmButton = event.target.closest('.btn-confirm-action');
-        if (confirmButton) {
-            event.preventDefault();
-            const formId = confirmButton.dataset.formId;
-            const modalTitle = confirmButton.dataset.modalTitle;
-            const modalBody = confirmButton.dataset.modalBody;
-            const formToSubmit = document.getElementById(formId);
+    const performLogAction = (action, ids, successCallback) => {
+        const url = action === 'delete_single' ? `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', ids[0]) : "{% url 'gestao:logs_acoes_em_massa' %}";
+        const body = action === 'delete_single' ? null : JSON.stringify({ ids: ids, action: 'delete' });
+        
+        fetch(url, {
+            method: 'POST',
+            body: body,
+            headers: body ? {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'} : {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(response => response.json().then(data => ({ok: response.ok, data})))
+        .then(({ok, data}) => {
+            if (ok) {
+                showNotificationModal('Sucesso!', data.message, 'success');
+                if (successCallback) successCallback(data);
+            } else { throw new Error(data.message); }
+        })
+        .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível concluir a ação.', 'error'));
+    };
 
-            if (formToSubmit && typeof showConfirmationModal === 'function') {
-                showConfirmationModal(modalTitle, modalBody, () => {
-                    formToSubmit.submit();
-                });
-            } else if (formToSubmit) {
-                if (confirm(modalBody)) {
-                    formToSubmit.submit();
-                }
-            }
+    document.body.addEventListener('click', function(e) {
+        const confirmBtn = e.target.closest('.btn-confirm-action');
+        const deleteBtn = e.target.closest('.btn-delete-log:not([disabled])');
+        const bulkActionBtn = e.target.closest('.bulk-action-btn');
+
+        if (confirmBtn) {
+            e.preventDefault();
+            const form = document.getElementById(confirmBtn.dataset.formId);
+            showConfirmationModal(confirmBtn.dataset.modalTitle, confirmBtn.dataset.modalBody, () => form.submit());
         }
-    });
-    // ===================================================================
-    // FIM DA MODIFICAÇÃO
-    // ===================================================================
-
-
-    // ===================================================================
-    // DELETAR LOG INDIVIDUAL
-    // ===================================================================
-    document.querySelectorAll('.btn-delete-log:not([disabled])').forEach(button => {
-        button.addEventListener('click', function() {
-            const logId = this.dataset.logId;
-            const url = `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', logId);
-            
+        
+        // =======================================================
+        // INÍCIO DA ALTERAÇÃO: Recarregar página ao deletar
+        // =======================================================
+        if (deleteBtn) {
             showConfirmationModal('Confirmar Exclusão', 'Deseja mover este registro para a lixeira?', () => {
-                fetch(url, { method: 'POST', headers: {'X-CSRFToken': '{{ csrf_token }}'} })
-                .then(response => response.json().then(data => ({ok: response.ok, data})))
-                .then(({ok, data}) => {
-                    if (ok) {
-                        showNotificationModal('Sucesso!', data.message, 'success');
-                        const item = document.getElementById(`log-item-${data.deleted_log_id}`);
-                        if (item) {
-                            item.classList.add('fade-out');
-                            item.addEventListener('transitionend', () => item.remove());
-                        }
-                    } else { throw new Error(data.message); }
-                })
-                .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível mover o registro.', 'error'));
+                performLogAction('delete_single', [deleteBtn.dataset.logId], () => {
+                    setTimeout(() => window.location.reload(), 1500); // Recarrega após 1.5s
+                });
             });
-        });
+        }
+
+        if (bulkActionBtn) {
+            e.preventDefault();
+            const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
+            if (selectedIds.length === 0) {
+                showNotificationModal('Atenção', 'Nenhum registro selecionado.', 'info');
+                return;
+            }
+            showConfirmationModal('Confirmar Ação em Massa', `Mover ${selectedIds.length} registro(s) para a lixeira?`, () => {
+                performLogAction('delete_bulk', selectedIds, () => {
+                    setTimeout(() => window.location.reload(), 1500); // Recarrega após 1.5s
+                });
+            });
+        }
+        // =======================================================
+        // FIM DA ALTERAÇÃO
+        // =======================================================
     });
 
-    // ===================================================================
-    // LÓGICA DE AÇÕES EM MASSA
-    // ===================================================================
-    const bulkActionsBar = document.getElementById('bulk-actions-bar');
+    // Lógica da barra de seleção em massa
     const selectAllCheckbox = document.getElementById('select-all-checkbox');
     const logCheckboxes = document.querySelectorAll('.log-checkbox');
+    const bulkActionsBar = document.getElementById('bulk-actions-bar');
     const selectedCountSpan = document.getElementById('selected-count');
-    const bulkActionDropdownBtn = document.getElementById('bulk-action-dropdown-btn');
-    const bulkActionLinks = document.querySelectorAll('.dropdown-menu a.bulk-action-btn');
 
     function updateBulkActionBar() {
         if (!bulkActionsBar) return;
-        const selectedCheckboxes = document.querySelectorAll('.log-checkbox:checked');
-        const count = selectedCheckboxes.length;
+        const count = document.querySelectorAll('.log-checkbox:checked').length;
         selectedCountSpan.textContent = count;
         bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
-        logCheckboxes.forEach(cb => {
-            cb.closest('.log-item').classList.toggle('selected', cb.checked);
-        });
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
-        }
-    }
-
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            logCheckboxes.forEach(checkbox => { checkbox.checked = this.checked; });
-            updateBulkActionBar();
-        });
+        logCheckboxes.forEach(cb => cb.closest('.log-item').classList.toggle('selected', cb.checked));
+        if (selectAllCheckbox) selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
     }
     
-    logCheckboxes.forEach(checkbox => {
-        checkbox.addEventListener('change', updateBulkActionBar)
+    if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', () => {
+        logCheckboxes.forEach(checkbox => checkbox.checked = selectAllCheckbox.checked);
+        updateBulkActionBar();
     });
-
-    bulkActionLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const action = this.dataset.action;
-            const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
-
-            if (selectedIds.length === 0) {
-                showNotificationModal('Atenção', 'Nenhum registro foi selecionado.', 'info');
-                return;
-            }
-
-            const confirmationMessage = `Tem certeza que deseja MOVER PARA A LIXEIRA ${selectedIds.length} registro(s)?`;
-
-            showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
-                const spinner = bulkActionDropdownBtn.querySelector('.spinner-border');
-                const btnText = bulkActionDropdownBtn.querySelector('.btn-text');
-                
-                bulkActionDropdownBtn.disabled = true;
-                spinner.style.display = 'inline-block';
-                btnText.textContent = 'Processando...';
-
-                fetch("{% url 'gestao:logs_acoes_em_massa' %}", {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                    body: JSON.stringify({ ids: selectedIds, action: action })
-                })
-                .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => { 
-                    if (ok) {
-                        showNotificationModal('Sucesso!', data.message, 'success');
-                        if (data.deleted_ids && Array.isArray(data.deleted_ids)) {
-                            data.deleted_ids.forEach(id => {
-                                const item = document.getElementById(`log-item-${id}`);
-                                if (item) {
-                                    item.classList.add('fade-out');
-                                    item.addEventListener('transitionend', () => item.remove());
-                                }
-                            });
-                        }
-                    } else {
-                        throw new Error(data.message || 'Ocorreu um erro ao processar a solicitação.');
-                    }
-                })
-                .catch(err => {
-                    showNotificationModal('Erro', err.message, 'error');
-                })
-                .finally(() => {
-                    bulkActionDropdownBtn.disabled = false;
-                    spinner.style.display = 'none';
-                    btnText.textContent = 'Ações em Massa';
-                    if (selectAllCheckbox) selectAllCheckbox.checked = false;
-                    logCheckboxes.forEach(cb => cb.checked = false);
-                    updateBulkActionBar();
-                });
-            });
-        });
-    });
-
+    logCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
     updateBulkActionBar();
 });
 </script>

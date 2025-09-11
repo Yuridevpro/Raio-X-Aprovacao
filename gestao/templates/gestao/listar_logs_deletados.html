@@ -1,4 +1,4 @@
-<!-- gestao/templates/gestao/listar_logs_deletados.html (VERSÃO FINAL COM DROPDOWN ORGANIZADO) -->
+<!-- gestao/templates/gestao/listar_logs_deletados.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load log_extras %}
@@ -21,7 +21,7 @@
         <i class="fas fa-info-circle fa-2x me-3"></i>
         <div>
             <h5 class="alert-heading">Você está na Lixeira</h5>
-            Esta página exibe registros de atividade que foram movidos para a lixeira. A restauração de um item é uma operação crítica que deve ser solicitada ao administrador do sistema.
+            Esta página exibe registros de atividade que foram movidos para a lixeira. A restauração não é permitida através desta interface.
         </div>
     </div>
 
@@ -33,19 +33,17 @@
         </a>
     </div>
 
-
-    <!-- CARD DE FILTROS - RECOLHÍVEL -->
-<div class="card mb-4 shadow-sm filter-card">
-    <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-        <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Lixeira</h5>
-            <span class="icon-toggle"></span>
+    <!-- CARD DE FILTROS RECOLHÍVEL -->
+    <div class="card mb-4 shadow-sm filter-card">
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Lixeira</h5>
+                <span class="icon-toggle"></span>
+            </div>
         </div>
-    </div>
-    <div class="collapse" id="collapseFilters">
-        <div class="card-body">
-            <form method="GET" action="{% url 'gestao:listar_logs_deletados' %}">
-                <div class="row g-3 align-items-end">
+        <div class="collapse" id="collapseFilters">
+            <div class="card-body">
+                <form method="GET" action="{% url 'gestao:listar_logs_deletados' %}">
                     <div class="row g-3 align-items-end">
                         <div class="col-md-4">
                             <label for="q" class="form-label">Ator (usuário)</label>
@@ -53,45 +51,12 @@
                         </div>
                         <div class="col-md-3">
                             <label for="acao" class="form-label">Tipo de Ação</label>
-                            <!-- ======================================================================= -->
-                            <!-- INÍCIO DA MODIFICAÇÃO: Dropdown organizado com Optgroup -->
-                            <!-- ======================================================================= -->
                             <select name="acao" id="acao" class="form-select" placeholder="Todas as ações...">
-                                <option value="">Todas as Ações</option>
-                                <optgroup label="Gerenciamento de Usuários">
-                                    <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
-                                    <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Usuário Promovido</option>
-                                    <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Usuário Despromovido</option>
-                                    <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
-                                </optgroup>
-                                <optgroup label="Solicitações">
-                                    <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
-                                    <option value="SOLICITACAO_PROMOCAO_APROVADA" {% if "SOLICITACAO_PROMOCAO_APROVADA" == filtro_acao %}selected{% endif %}>Aprovação de Promoção Registrada</option>
-                                    <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
-                                    <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Aprovada</option>
-                                </optgroup>
-                                <optgroup label="Gerenciamento de Conteúdo">
-                                    <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
-                                    <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
-                                    <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
-                                    <option value="ENTIDADE_CRIADA" {% if "ENTIDADE_CRIADA" == filtro_acao %}selected{% endif %}>Entidade Criada</option>
-                                    <option value="ASSUNTO_CRIADO" {% if "ASSUNTO_CRIADO" == filtro_acao %}selected{% endif %}>Assunto Criado</option>
-                                </optgroup>
-                                <optgroup label="Moderação">
-                                    <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
-                                    <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
-                                    <option value="NOTIFICACOES_DELETADAS" {% if "NOTIFICACOES_DELETADAS" == filtro_acao %}selected{% endif %}>Notificações Deletadas</option>
-                                </optgroup>
-                                 <optgroup label="Auditoria">
-                                    <option value="LOG_DELETADO" {% if "LOG_DELETADO" == filtro_acao %}selected{% endif %}>Log Deletado</option>
-                                </optgroup>
+                                {% include 'gestao/includes/_options_filtro_log_acoes.html' %}
                             </select>
-                            <!-- ======================================================================= -->
-                            <!-- FIM DA MODIFICAÇÃO -->
-                            <!-- ======================================================================= -->
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label">Período de Criação do Log</label>
+                            <label class="form-label">Período de Criação</label>
                             <div class="input-group">
                                 <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio|default:'' }}" title="Data de Início">
                                 <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim|default:'' }}" title="Data de Fim">
@@ -104,16 +69,15 @@
                             </div>
                         </div>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 
-    <!-- INCLUSÃO DOS CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
-{% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
+    <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
 
-    <!-- Card Principal com a Tabela -->
+    <!-- TABELA DE LOGS DELETADOS -->
     <div class="card shadow-sm">
         <div class="card-body p-0">
             {% if logs %}
@@ -131,16 +95,10 @@
                         <tr>
                             <td class="log-message-cell">
                                 {{ log|generate_log_message|safe }}
-                                <div class="text-muted small">
-                                    (Criado em: {{ log.data_criacao|date:"d/m/y H:i" }})
-                                </div>
+                                <div class="text-muted small">(Criado em: {{ log.data_criacao|date:"d/m/y H:i" }})</div>
                             </td>
                             <td>
-                                {% if log.deleted_by %}
-                                    <i class="fas fa-user me-1 text-muted"></i>{{ log.deleted_by.username }}
-                                {% else %}
-                                    <span class="text-muted fst-italic">Não registrado</span>
-                                {% endif %}
+                                <i class="fas fa-user me-1 text-muted"></i>{{ log.deleted_by.username|default:"Não registrado" }}
                             </td>
                             <td title="{{ log.deleted_at|date:'d/m/Y H:i:s' }}">
                                 {{ log.deleted_at|date:"d/m/Y H:i" }}
@@ -154,36 +112,26 @@
             <div class="text-center p-5">
                 <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">A lixeira está vazia ou nenhum resultado foi encontrado.</h5>
-                <p class="text-muted small">Tente limpar os filtros para ver todos os itens na lixeira.</p>
             </div>
             {% endif %}
         </div>
     </div>
-    
-   
 
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=logs %}
+    </div>
 </div>
-
- <!-- Paginação -->
- 
- <div class="mt-4">
-     {% include 'includes/_paginacao.html' with paginated_object=logs page_numbers=page_numbers %}
- </div>
-
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Inicializa o Tom Select para o filtro de ações na lixeira
         new TomSelect('#acao',{ 
             create: false,
-            // Adicionado para renderizar os optgroups corretamente
             render: {
-                optgroup_header: function(data, escape) {
-                    return '<div class="optgroup-header">' + escape(data.label) + '</div>';
-                }
+                optgroup_header: (data, escape) => `<div class="optgroup-header">${escape(data.label)}</div>`
             }
         });
     });

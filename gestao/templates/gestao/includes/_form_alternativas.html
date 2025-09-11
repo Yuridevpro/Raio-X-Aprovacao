@@ -1,0 +1,16 @@
+<!-- gestao/templates/gestao/includes/_form_alternativas.html -->
+<div class="mb-4">
+    <label for="bulk-alternativas" class="form-label">Alternativas em Bloco (Opcional)</label>
+    <textarea id="bulk-alternativas" class="form-control" rows="6" placeholder="Cole as alternativas aqui para preenchimento automático. Ex:&#10;A) Texto da alternativa A&#10;B) Texto da alternativa B"></textarea>
+    <div class="form-text">O sistema preencherá os campos abaixo automaticamente.</div>
+</div>
+
+<div class="d-flex flex-column gap-2">
+    {% for field in form.get_alternativas_fields %}
+        <div class="alternativa-item">
+            <div class="alternativa-letra">{{ field.name|slice:"-1:"|upper }}</div>
+            <div class="flex-grow-1">{{ field }}</div>
+        </div>
+        {% if field.errors %}<div class="invalid-feedback d-block ps-5">{{ field.errors.as_text }}</div>{% endif %}
+    {% endfor %}
+</div>

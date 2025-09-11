@@ -1,0 +1,7 @@
+<!-- Carga inicial (quando nenhum assunto foi carregado) -->
+<option value="">---------</option>
+
+<!-- Loop que gera as opções com base nos dados da view -->
+{% for assunto in assuntos %}
+<option value="{{ assunto.id }}">{{ assunto.nome }}</option>
+{% endfor %}

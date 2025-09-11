@@ -8,4 +8,7 @@ app_name = 'questoes'
 urlpatterns = [
     # Rota da API para buscar assuntos
     path('api/get-assuntos-por-disciplina/', views.get_assuntos_por_disciplina, name='get_assuntos_por_disciplina'),
+    path('api/get-assuntos/<int:disciplina_id>/', views.get_assuntos, name='get_assuntos'),
+
+    
 ]

@@ -1,0 +1,25 @@
+<!-- gestao/templates/gestao/includes/_barra_acoes_em_massa_notificacoes.html -->
+
+<div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
+    <div class="d-flex justify-content-between align-items-center">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="select-all-checkbox">
+            <label class="form-check-label" for="select-all-checkbox">
+                <span id="selected-count" class="fw-bold">0</span> selecionada(s)
+            </label>
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown">
+                Aplicar Ação
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% if status_ativo == 'PENDENTE' %}
+                    <li><a class="dropdown-item bulk-action-btn" href="#" data-action="resolver"><i class="fas fa-check-circle text-success fa-fw me-2"></i>Corrigir Selecionados</a></li>
+                    <li><a class="dropdown-item bulk-action-btn" href="#" data-action="rejeitar"><i class="fas fa-times-circle text-danger fa-fw me-2"></i>Rejeitar Selecionados</a></li>
+                {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
+                    <li><a class="dropdown-item bulk-action-btn" href="#" data-action="excluir"><i class="fas fa-trash-alt text-danger fa-fw me-2"></i>Excluir Permanentemente</a></li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</div>

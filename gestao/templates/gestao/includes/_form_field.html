@@ -1,0 +1,13 @@
+<!-- gestao/templates/gestao/includes/_form_field.html -->
+<div class="{{ col_class|default:'col-12' }}">
+    {{ field.label_tag }}
+    {{ field }}
+    {% if field.errors %}
+        <div class="invalid-feedback d-block">
+            {{ field.errors.as_text }}
+        </div>
+    {% endif %}
+    {% if field.help_text %}
+        <div class="form-text">{{ field.help_text|safe }}</div>
+    {% endif %}
+</div>

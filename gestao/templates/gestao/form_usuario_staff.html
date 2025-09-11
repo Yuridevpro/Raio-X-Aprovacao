@@ -1,17 +1,8 @@
-<!-- gestao/templates/gestao/form_usuario_staff.html (VERSÃO CORRIGIDA) -->
+<!-- gestao/templates/gestao/form_usuario_staff.html -->
 {% extends 'base.html' %}
 {% load gestao_extras %}
 
 {% block title %}Editar Permissões de {{ usuario_alvo.username }}{% endblock %}
-
-{% block head %}
-<style>
-    .disabled-field {
-        background-color: #e9ecef;
-        opacity: 1;
-    }
-</style>
-{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -30,11 +21,11 @@
                         {% csrf_token %}
                         <div class="mb-3">
                             <label class="form-label">Usuário</label>
-                            <input type="text" class="form-control disabled-field" value="{{ usuario_alvo.username }}" disabled>
+                            <input type="text" class="form-control" value="{{ usuario_alvo.username }}" disabled readonly>
                         </div>
                         <div class="mb-4">
-                            <label class="form-label">Endereço de email</label>
-                            <input type="email" class="form-control disabled-field" value="{{ usuario_alvo.email }}" disabled>
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" value="{{ usuario_alvo.email }}" disabled readonly>
                         </div>
                         <hr>
                         <div class="form-check form-switch mb-4 mt-4">
@@ -43,9 +34,9 @@
                                 <strong>Membro da equipe</strong>
                             </label>
                             {% if usuario_alvo.is_superuser %}
-                                <div class="form-text mt-1 text-info"><i class="fas fa-info-circle me-1"></i>Superusuários devem ser sempre membros da equipe.</div>
+                                <div class="form-text mt-1 text-info"><i class="fas fa-info-circle me-1"></i>Superusuários são sempre membros da equipe.</div>
                             {% else %}
-                                <div class="form-text mt-1">Marque esta opção para conceder acesso ao painel de gestão a este usuário.</div>
+                                <div class="form-text mt-1">Concede acesso ao painel de gestão.</div>
                             {% endif %}
                         </div>
 
@@ -75,7 +66,8 @@
                                 <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary">Cancelar</a>
                                 <button id="save-button" type="submit" class="btn btn-primary ms-2">
                                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-                                    <i class="fas fa-save me-2 icon"></i>Salvar Alterações
+                                    <i class="fas fa-save me-2 icon"></i>
+                                    <span class="btn-text">Salvar Alterações</span>
                                 </button>
                             </div>
                         </div>
@@ -91,79 +83,47 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     
-    // =======================================================================
-    // INÍCIO DA ADIÇÃO: Lógica para o envio do formulário principal via AJAX
-    // =======================================================================
+    // Lógica para o envio do formulário principal via AJAX
     const form = document.getElementById('staff-edit-form');
-    const saveButton = document.getElementById('save-button');
-
-    if (form && saveButton) {
+    if (form) {
         form.addEventListener('submit', function(event) {
-            event.preventDefault(); // Impede o envio tradicional do formulário
-
+            event.preventDefault();
+            const saveButton = this.querySelector('#save-button');
             const spinner = saveButton.querySelector('.spinner-border');
-            const icon = saveButton.querySelector('.icon');
+            const btnText = saveButton.querySelector('.btn-text');
 
             saveButton.disabled = true;
             spinner.style.display = 'inline-block';
-            if(icon) icon.style.display = 'none';
-
-            const formData = new FormData(form);
+            btnText.style.display = 'none';
 
             fetch(form.action, {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
-                }
+                body: new FormData(form),
+                headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
             })
             .then(response => response.json().then(data => ({ ok: response.ok, data })))
             .then(({ ok, data }) => {
                 if (ok) {
-                    // Supondo que você tenha uma função global showNotificationModal
-                    if (typeof showNotificationModal === 'function') {
-                        showNotificationModal('Sucesso!', data.message, 'success');
-                    } else {
-                        alert(data.message); // Fallback
-                    }
+                    showNotificationModal('Sucesso!', data.message, 'success');
                 } else {
                     throw new Error(data.message || 'Ocorreu um erro ao salvar.');
                 }
             })
-            .catch(error => {
-                if (typeof showNotificationModal === 'function') {
-                    showNotificationModal('Erro', error.message, 'error');
-                } else {
-                    alert(error.message); // Fallback
-                }
-            })
+            .catch(error => showNotificationModal('Erro', error.message, 'error'))
             .finally(() => {
                 saveButton.disabled = false;
                 spinner.style.display = 'none';
-                if(icon) icon.style.display = 'inline-block';
+                btnText.style.display = 'inline-block';
             });
         });
     }
-    // =======================================================================
-    // FIM DA ADIÇÃO
-    // =======================================================================
 
-    // Lógica para confirmação de Ações via Modal (permanece a mesma)
+    // Lógica genérica para confirmação de Ações via Modal
     document.querySelectorAll('.btn-confirm-action').forEach(button => {
         button.addEventListener('click', function() {
-            const formId = this.dataset.formId;
-            const modalTitle = this.dataset.modalTitle;
-            const modalBody = this.dataset.modalBody;
-            const formToSubmit = document.getElementById(formId);
-
-            if (formToSubmit && typeof showConfirmationModal === 'function') {
-                showConfirmationModal(modalTitle, modalBody, () => {
-                    formToSubmit.submit();
-                });
-            } else {
-                if (confirm(modalBody)) {
-                    formToSubmit.submit();
-                }
+            const formToSubmit = document.getElementById(this.dataset.formId);
+            if (formToSubmit) {
+                showConfirmationModal(this.dataset.modalTitle, this.dataset.modalBody, () => formToSubmit.submit());
             }
         });
     });

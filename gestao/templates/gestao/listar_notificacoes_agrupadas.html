@@ -1,512 +1,205 @@
 <!-- gestao/templates/gestao/listar_notificacoes_agrupadas.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
+
 {% block title %}Gerenciar Notificações{% endblock %}
 
-
 {% block head %}
-
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
-<!-- Todos os links de CSS e Fonts que você já tinha -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-
-
 <style>
     :root {
-        --cor-primaria: #0d6efd;
-        --bs-body-font-family: 'Inter', sans-serif;
-        --bs-border-color-translucent: rgba(0, 0, 0, 0.08);
         --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         --card-shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.1);
-        --card-border-radius: 0.75rem;
     }
-    body { 
-        background-color: #f9fafb; 
-    }
-    .page-header h2 { 
-        font-weight: 700; color: #111827; 
-    }
-    .summary-card { 
-        border-radius: var(--card-border-radius); border: 1px solid var(--bs-border-color-translucent); background-color: #fff; box-shadow: var(--card-shadow); transition: all 0.3s ease-in-out; 
-    }
-    .summary-card:hover { 
-        transform: translateY(-5px); box-shadow: var(--card-shadow-hover); 
-    }
-    .nav-pills .nav-link { 
-        color: #4b5563; font-weight: 600; 
-    }
-    .nav-pills .nav-link.active { background-color: var(--cor-primaria); color: #fff; }
-    .filters-card { background-color: #fff; border: 1px solid var(--bs-border-color-translucent); border-radius: var(--card-border-radius); padding: 1.5rem; box-shadow: var(--card-shadow); }
+    .summary-card { transition: all 0.3s ease-in-out; }
+    .summary-card:hover { transform: translateY(-5px); box-shadow: var(--card-shadow-hover); }
     
-    .card-notification-group { transition: all 0.2s ease-in-out; border-radius: var(--card-border-radius); box-shadow: var(--card-shadow); }
+    .card-notification-group { transition: all 0.2s ease-in-out, opacity 0.5s ease; border-radius: var(--raio-borda); box-shadow: var(--card-shadow); }
     .card-notification-group:hover { transform: translateY(-4px); box-shadow: var(--card-shadow-hover); }
-    .card-notification-group.status-PENDENTE { border-left: 5px solid #ffc107; }
-    .card-notification-group.status-EM_ANALISE { border-left: 5px solid #0dcaf0; }
-    .card-notification-group.status-RESOLVIDO { border-left: 5px solid #198754; }
-    .card-notification-group.status-REJEITADO { border-left: 5px solid #dc3545; }
-    .card-notification-group.status-ARQUIVADO { border-left: 5px solid #6c757d; }
+    .card-notification-group.status-PENDENTE { border-left: 5px solid var(--cor-aviso); }
+    .card-notification-group.status-RESOLVIDO { border-left: 5px solid var(--cor-sucesso); }
+    .card-notification-group.status-REJEITADO { border-left: 5px solid var(--cor-erro); }
     
-    .reporter-list-item { font-size: 0.9rem; padding: 0.5rem 0.75rem; }
-    .enunciado-formatado p:last-child { margin-bottom: 0; }
-
-
-    .card-notification-group {
-        transition: all 0.3s ease-in-out, opacity 0.5s ease;
-    }
-
-    .card-notification-group.removing {
-        transform: scale(0.95);
-        opacity: 0;
-    }
-
-    @media (min-width: 768px) {
-        .actions-column {
-            border-left: 1px solid var(--bs-border-color-translucent);
-        }
-    }
-    
-    @media (max-width: 767.98px) {
-        .page-header h2 {
-            font-size: 1.9rem;
-        }
-
-        .actions-column {
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--bs-border-color-translucent);
-        }
-        
-        .header-resultados-agrupados {
-            flex-direction: column;
-            align-items: flex-start !important;
-            gap: 0.25rem;
-        }
-    }
-
-    /* INÍCIO DO BLOCO: Estilos para a lista de reports escalável */
-    .report-item-extra {
-        display: none; /* Esconde os reports extras por padrão */
-    }
+    .card-notification-group.removing { transform: scale(0.95); opacity: 0; }
 
     .reports-container.is-expanded {
-        max-height: 250px; /* Altura máxima da lista quando expandida */
-        overflow-y: auto;  /* Adiciona a barra de rolagem vertical */
+        max-height: 250px;
+        overflow-y: auto;
         border-radius: 0.5rem;
-        border: 1px solid var(--bs-border-color-translucent);
-        padding: 0.5rem; /* Um pouco de espaço interno */
+        border: 1px solid var(--cor-borda);
+        padding: 0.5rem;
     }
-    /* FIM DO BLOCO: Estilos para a lista de reports escalável */
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container py-4 py-md-5">
-    <div class="mb-4"><a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar ao Painel de Gestão</a></div>
+    <div class="mb-4"><a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar ao Painel</a></div>
     
-    <div class="row justify-content-center">
-        <div class="col-lg-11 col-xl-10">
-            <div class="text-center mb-5 page-header">
-                <h2 class="display-6">Gerenciamento de Notificações</h2>
-                <p class="text-muted fs-5">Revise e gerencie os erros reportados pelos usuários.</p>
-            </div>
-            
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-
-            <div class="row g-4 mb-5">
-                <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-danger">{{ stats.pendentes_total }}</h5><p class="card-text text-muted mb-0">Pendentes</p></div></div></div>
-                <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-success">{{ stats.resolvidas_total }}</h5><p class="card-text text-muted mb-0">Corrigidos</p></div></div></div>
-                <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title">{{ stats.rejeitadas_total }}</h5><p class="card-text text-muted mb-0">Rejeitados</p></div></div></div>
-            </div>
-
-            <ul class="nav nav-pills justify-content-center border-bottom pb-3 mb-4">
-                <li class="nav-item"><a class="nav-link {% if status_ativo == 'PENDENTE' %}active{% endif %}" href="?status=PENDENTE">Pendentes</a></li>
-                <li class="nav-item"><a class="nav-link {% if status_ativo == 'RESOLVIDO' %}active{% endif %}" href="?status=RESOLVIDO">Corrigidos</a></li>
-                <li class="nav-item"><a class="nav-link {% if status_ativo == 'REJEITADO' %}active{% endif %}" href="?status=REJEITADO">Rejeitados</a></li>
-                <li class="nav-item"><a class="nav-link {% if status_ativo == 'TODAS' %}active{% endif %}" href="?status=TODAS">Todos</a></li>
-            </ul>
-
-            <!-- INCLUSÃO DOS CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
-            <div class="my-4">
-                {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes_agrupadas sort_options=sort_options sort_by=sort_by per_page=per_page %}
-            </div>
-
-            {% if status_ativo != 'TODAS' %}
-            <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
-                <div class="d-flex justify-content-between align-items-center">
-                <div class="form-check"><input class="form-check-input" type="checkbox" id="select-all-checkbox"><label class="form-check-label" for="select-all-checkbox"><span id="selected-count" class="fw-bold">0</span> selecionada(s)</label></div>
-                <div class="dropdown">
-                    <button class="btn btn-dark dropdown-toggle btn-sm" type="button" data-bs-toggle="dropdown" id="bulk-action-dropdown-btn">
-                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-                        <span class="btn-text">Aplicar Ação</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        {% if status_ativo == 'PENDENTE' %}
-                        <li><a class="dropdown-item bulk-action-btn" href="#" data-action="resolver"><i class="fas fa-check-circle text-success fa-fw me-2"></i>Corrigir Selecionados</a></li>
-                        <li><a class="dropdown-item bulk-action-btn" href="#" data-action="rejeitar"><i class="fas fa-times-circle text-danger fa-fw me-2"></i>Rejeitar Selecionados</a></li>
-                        {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
-                        <li><a class="dropdown-item bulk-action-btn" href="#" data-action="excluir"><i class="fas fa-trash-alt text-danger fa-fw me-2"></i>Excluir Permanentemente</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-            </div>
-            {% endif %}
-
-            <div class="d-flex justify-content-between align-items-center mb-3 header-resultados-agrupados">
-                <h3 class="h5 mb-0 fw-bold">Resultados Agrupados</h3>
-                <span class="text-muted">{{ questoes_agrupadas.paginator.count }} quest{{ questoes_agrupadas.paginator.count|pluralize:"ão,ões" }} com reports</span>
-            </div>
-            
-            {% for questao in questoes_agrupadas %}
-            <div class="card mb-4 card-notification-group status-{{ status_ativo }}" id="card-group-{{ questao.id }}">
-                <div class="card-header bg-white py-3">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                        
-                        <div class="d-flex align-items-center gap-3">
-                            {% if status_ativo != 'TODAS' %}
-                            <input class="form-check-input notification-checkbox" type="checkbox" value="" data-id="{{ questao.id }}">
-                            {% endif %}
-                            <div>
-                                <h5 class="mb-0">Questão: <a href="{% url 'gestao:editar_questao' questao.id %}" target="_blank">{{ questao.codigo }}</a><button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 btn-visualizar-questao" data-questao-id="{{ questao.id }}" title="Visualização Rápida"><i class="fas fa-eye"></i></button></h5>
-                                {% if questao.ultima_notificacao %}<small class="text-muted">Último report em: {{ questao.ultima_notificacao|date:"d/m/Y H:i" }}</small>{% endif %}
-                            </div>
-                        </div>
-            
-                        <span class="badge bg-warning text-dark fs-6 rounded-pill"><i class="fas fa-flag me-1"></i>{{ questao.num_reports }} Report{{ questao.num_reports|pluralize:"s" }}</span>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <!-- INÍCIO DO BLOCO: Lista de Reports Escalável -->
-                        <div class="col-md-8">
-                            <h6 class="mb-2 small text-uppercase fw-bold">Detalhes dos Reports:</h6>
-                            
-                            <div class="reports-container" id="reports-container-{{ questao.id }}">
-                                <ul class="list-group list-group-flush">
-                                    {% for report in questao.reports_filtrados %}
-                                        <li class="list-group-item px-0 py-2 {% if forloop.counter > 3 %}report-item-extra{% endif %}">
-                                            <div class="d-flex justify-content-between align-items-center reporter-list-item">
-                                                <div><strong>{{ report.usuario_reportou.userprofile.nome|default:"N/A" }}</strong><span class="text-muted ms-2">({{ report.get_tipo_erro_display }})</span></div>
-                                                <small class="text-muted">{{ report.data_criacao|date:"d/m H:i" }}</small>
-                                            </div>
-                                            <p class="ms-3 mt-1 mb-0 fst-italic text-muted">"{{ report.descricao }}"</p>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-
-                            {% if questao.reports_filtrados|length > 3 %}
-                                <div class="mt-2 text-center">
-                                    <a href="#" class="btn btn-outline-secondary btn-sm toggle-reports-visibility" 
-                                       data-target="#reports-container-{{ questao.id }}" 
-                                       data-total="{{ questao.num_reports }}">
-                                        Ver todos os {{ questao.num_reports }} reports
-                                    </a>
-                                </div>
-                            {% endif %}
-                        </div>
-                        <!-- FIM DO BLOCO: Lista de Reports Escalável -->
-                        <div class="col-md-4 d-flex flex-column justify-content-center align-items-center actions-column">
-                            <h6 class="mb-3 small text-uppercase fw-bold">Ações</h6>
-                            <div class="d-grid gap-2 w-100 w-md-75 mx-auto">
-                                {% if status_ativo == 'PENDENTE' %}
-                                <button type="button" class="btn btn-success w-100 individual-action-btn" data-action="resolver" data-questao-id="{{ questao.id }}" data-confirm-message="Corrigir todos os {{ questao.num_reports }} reports?">
-                                    <span class="spinner-border spinner-border-sm" style="display: none;"></span><span class="btn-text"><i class="fas fa-check me-2"></i>Marcar Como Corrigido</span>
-                                </button>
-                                <button type="button" class="btn btn-danger w-100 individual-action-btn" data-action="rejeitar" data-questao-id="{{ questao.id }}" data-confirm-message="Rejeitar todos os reports da questão?">
-                                    <span class="spinner-border spinner-border-sm" style="display: none;"></span><span class="btn-text"><i class="fas fa-times me-2"></i>Marcar Como Rejeitado</span>
-                                </button>
-                                {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
-                                <button type="button" class="btn btn-outline-danger w-100 individual-action-btn" data-action="excluir" data-questao-id="{{ questao.id }}" data-confirm-message="EXCLUIR PERMANENTEMENTE todos os {{ questao.num_reports }} reports? Esta ação não pode ser desfeita.">
-                                    <span class="spinner-border spinner-border-sm" style="display: none;"></span><span class="btn-text"><i class="fas fa-trash me-2"></i>Excluir</span>
-                                </button>
-                                {% else %}
-                                <p class="text-muted text-center small">Nenhuma ação disponível.</p>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-                <div class="text-center p-5 border rounded bg-light mt-4"><h4 class="h5">Nenhuma notificação encontrada</h4><p class="text-muted mb-0">Não há notificações com os filtros aplicados.</p></div>
-            {% endfor %}
-        </div>
+    <div class="text-center mb-5">
+        <h2 class="display-6">Gerenciamento de Notificações</h2>
+        <p class="text-muted fs-5">Revise e gerencie os erros reportados pelos usuários.</p>
     </div>
-</div>
+    
+    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
 
-<div class="mt-4">
-    {% include 'includes/_paginacao.html' with paginated_object=questoes_agrupadas page_numbers=page_numbers %}
+    <!-- CARDS DE RESUMO -->
+    <div class="row g-4 mb-5">
+        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-danger">{{ stats.pendentes_total }}</h5><p class="card-text text-muted mb-0">Pendentes</p></div></div></div>
+        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-success">{{ stats.resolvidas_total }}</h5><p class="card-text text-muted mb-0">Corrigidos</p></div></div></div>
+        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title">{{ stats.rejeitadas_total }}</h5><p class="card-text text-muted mb-0">Rejeitados</p></div></div></div>
+    </div>
+
+    <!-- NAVEGAÇÃO POR STATUS -->
+    <ul class="nav nav-pills justify-content-center border-bottom pb-3 mb-4">
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'PENDENTE' %}active{% endif %}" href="?status=PENDENTE">Pendentes</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'RESOLVIDO' %}active{% endif %}" href="?status=RESOLVIDO">Corrigidos</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'REJEITADO' %}active{% endif %}" href="?status=REJEITADO">Rejeitados</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'TODAS' %}active{% endif %}" href="?status=TODAS">Todos</a></li>
+    </ul>
+
+    <!-- CONTROLES E AÇÕES EM MASSA -->
+    <div class="my-4">
+        {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes_agrupadas sort_options=sort_options sort_by=sort_by per_page=per_page %}
+    </div>
+    {% if status_ativo != 'TODAS' %}
+        {% include 'gestao/includes/_barra_acoes_em_massa_notificacoes.html' %}
+    {% endif %}
+
+    <!-- LISTA DE NOTIFICAÇÕES AGRUPADAS -->
+    {% for questao in questoes_agrupadas %}
+        {% include 'gestao/includes/_card_notificacao_agrupada.html' %}
+    {% empty %}
+        <div class="text-center p-5 border rounded bg-light mt-4">
+            <h4 class="h5">Nenhuma notificação encontrada</h4>
+            <p class="text-muted mb-0">Não há notificações com os filtros aplicados.</p>
+        </div>
+    {% endfor %}
+
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=questoes_agrupadas %}
+    </div>
 </div>
 {% include 'gestao/includes/_modais_notificacoes.html' %}
 {% endblock %}
 
-
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // =======================================================================
-        // 1. INICIALIZAÇÃO DOS MODAIS (Busca os elementos do DOM)
-        // =======================================================================
-        const confirmationModalEl = document.getElementById('confirmationModal');
-        const confirmationModal = confirmationModalEl ? new bootstrap.Modal(confirmationModalEl) : null;
-        const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
+document.addEventListener('DOMContentLoaded', function() {
     
-        // =======================================================================
-        // 2. FUNÇÃO HELPER PARA MODAL DE CONFIRMAÇÃO
-        // =======================================================================
-        function showConfirmationModal(title, message, onConfirmCallback) {
-            if (!confirmationModal || !confirmationModalEl) {
-                if (confirm(message)) onConfirmCallback();
+    // Função genérica para realizar uma ação (individual ou em massa)
+    const performAction = (action, ids, status, successCallback) => {
+        const url = (ids.length === 1) ? `/gestao/notificacoes/${ids[0]}/acao-agrupada/` : "{% url 'gestao:notificacoes_acoes_em_massa' %}";
+        const isBulk = ids.length > 1;
+        const body = isBulk ? JSON.stringify({ ids, action, status_original: status }) : new FormData();
+        if (!isBulk) {
+            body.append('action', action);
+            body.append('status_original', status);
+        }
+
+        fetch(url, {
+            method: 'POST',
+            body: body,
+            headers: isBulk ? {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'} : {'X-CSRFToken': '{{ csrf_token }}'}
+        })
+        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+        .then(({ ok, data }) => {
+            if (ok) {
+                showNotificationModal('Sucesso!', data.message, 'success', () => {
+                    if (isBulk) window.location.reload();
+                });
+                if (successCallback) successCallback(data);
+            } else {
+                throw new Error(data.message || 'Ocorreu um erro.');
+            }
+        })
+        .catch(err => showNotificationModal('Erro', err.message, 'error'));
+    };
+    
+    // Delegação de eventos para ações
+    document.body.addEventListener('click', function(e) {
+        const individualBtn = e.target.closest('.individual-action-btn');
+        const bulkBtn = e.target.closest('.bulk-action-btn');
+        const toggleReportsBtn = e.target.closest('.toggle-reports-visibility');
+
+        if (individualBtn) {
+            e.preventDefault();
+            showConfirmationModal('Confirmar Ação', individualBtn.dataset.confirmMessage, () => {
+                performAction(individualBtn.dataset.action, [individualBtn.dataset.questaoId], '{{ status_ativo }}', (data) => {
+                    const card = document.getElementById(data.removed_card_id);
+                    if (card) {
+                        card.classList.add('removing');
+                        setTimeout(() => card.remove(), 500);
+                    }
+                });
+            });
+        }
+
+        if (bulkBtn) {
+            e.preventDefault();
+            const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.dataset.id);
+            if (selectedIds.length === 0) {
+                showNotificationModal('Atenção', 'Nenhuma questão selecionada.', 'info');
                 return;
             }
-            confirmationModalEl.querySelector('.modal-title').textContent = title;
-            confirmationModalEl.querySelector('.modal-body').textContent = message;
-            const confirmBtn = confirmationModalEl.querySelector('#btn-confirm-action');
-            
-            const newConfirmBtn = confirmBtn.cloneNode(true);
-            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
-    
-            newConfirmBtn.addEventListener('click', () => {
-                onConfirmCallback();
-                confirmationModal.hide();
-            }, { once: true });
-    
-            confirmationModal.show();
-        }
-    
-        // =======================================================================
-        // 3. LÓGICA DAS AÇÕES INDIVIDUAIS (Botões em cada card)
-        // =======================================================================
-        document.querySelectorAll('.individual-action-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const action = this.dataset.action;
-                const questaoId = this.dataset.questaoId;
-                const message = this.dataset.confirmMessage;
-    
-                const spinner = this.querySelector('.spinner-border');
-                const btnText = this.querySelector('.btn-text');
-    
-                showConfirmationModal('Confirmar Ação', message, () => {
-                    this.disabled = true;
-                    if(spinner) spinner.style.display = 'inline-block';
-                    if(btnText) btnText.style.display = 'none';
-    
-                    const formData = new FormData();
-                    formData.append('action', action);
-                    formData.append('status_original', '{{ status_ativo }}');
-                    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-    
-                    fetch(`/gestao/notificacoes/${questaoId}/acao-agrupada/`, {
-                        method: 'POST',
-                        body: formData,
-                        headers: {'X-CSRFToken': '{{ csrf_token }}'}
-                    })
-                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                    .then(({ ok, data }) => {
-                        if (ok && data.status === 'success') {
-                            showNotificationModal('Sucesso!', data.message, 'success');
-                            const cardToRemove = document.getElementById(data.removed_card_id);
-                            if (cardToRemove) {
-                                cardToRemove.classList.add('removing');
-                                setTimeout(() => cardToRemove.remove(), 500);
-                            }
-                        } else {
-                            throw new Error(data.message || 'Ocorreu um erro desconhecido no servidor.');
-                        }
-                    })
-                    .catch(err => {
-                        showNotificationModal('Erro', err.message, 'error');
-                    })
-                    .finally(() => {
-                        this.disabled = false;
-                        if(spinner) spinner.style.display = 'none';
-                        if(btnText) btnText.style.display = 'inline-block';
-                    });
-                });
-            });
-        });
-    
-        // =======================================================================
-        // 4. LÓGICA DAS AÇÕES EM MASSA (Barra de Checkboxes)
-        // =======================================================================
-        const bulkActionDropdownBtn = document.getElementById('bulk-action-dropdown-btn');
-        const bulkActionsBar = document.getElementById('bulk-actions-bar');
-        const selectAllCheckbox = document.getElementById('select-all-checkbox');
-        const notificationCheckboxes = document.querySelectorAll('.notification-checkbox');
-        const selectedCountSpan = document.getElementById('selected-count');
-    
-        function updateBulkActionBar() {
-            if (!bulkActionsBar) return;
-            const selectedCheckboxes = document.querySelectorAll('.notification-checkbox:checked');
-            const count = selectedCheckboxes.length;
-            if (count > 0) {
-                bulkActionsBar.style.display = 'block';
-                selectedCountSpan.textContent = count;
-            } else {
-                bulkActionsBar.style.display = 'none';
-            }
-            if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === notificationCheckboxes.length;
-        }
-    
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                notificationCheckboxes.forEach(checkbox => { checkbox.checked = this.checked; });
-                updateBulkActionBar();
+            showConfirmationModal('Confirmar Ação em Massa', `Aplicar esta ação para ${selectedIds.length} questão(ões)?`, () => {
+                performAction(bulkBtn.dataset.action, selectedIds, '{{ status_ativo }}');
             });
         }
-        notificationCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
-    
-        document.querySelectorAll('.bulk-action-btn').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-                const action = this.dataset.action;
-                const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.dataset.id);
-                if (selectedIds.length === 0) {
-                    showNotificationModal('Atenção', 'Nenhuma questão foi selecionada.', 'info');
-                    return;
-                }
-                let confirmationMessage = `Tem certeza que deseja aplicar a ação '${action}' para ${selectedIds.length} questão(ões)?`;
-                if (action === 'excluir') confirmationMessage += " Esta ação é PERMANENTE.";
-    
-                showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
-                    const spinner = bulkActionDropdownBtn.querySelector('.spinner-border');
-                    const btnText = bulkActionDropdownBtn.querySelector('.btn-text');
-                    
-                    bulkActionDropdownBtn.disabled = true;
-                    if(spinner) spinner.style.display = 'inline-block';
-                    if(btnText) btnText.style.display = 'none';
-    
-                    fetch("{% url 'gestao:notificacoes_acoes_em_massa' %}", {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                        body: JSON.stringify({ ids: selectedIds, action: action, status_original: '{{ status_ativo }}' })
-                    })
-                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                    .then(({ ok, data }) => { 
-                        if (ok && data.status === 'success') {
-                            showNotificationModal('Sucesso!', 'Ação em massa aplicada. A página será recarregada.', 'success');
-                            setTimeout(() => location.reload(), 2000);
-                        } else {
-                            throw new Error(data.message || 'Ocorreu um erro desconhecido.');
-                        }
-                    })
-                    .catch(err => {
-                        showNotificationModal('Erro', err.message, 'error');
-                    })
-                    .finally(() => {
-                        bulkActionDropdownBtn.disabled = false;
-                        if(spinner) spinner.style.display = 'none';
-                        if(btnText) btnText.style.display = 'inline-block';
-                    });
-                });
-            });
-        });
-    
-        /* INÍCIO DO BLOCO: Lógica para expandir/recolher lista de reports */
-        // =======================================================================
-        // 5. LÓGICA PARA EXPANDIR/RECOLHER LISTA DE REPORTS
-        // =======================================================================
-        document.querySelectorAll('.toggle-reports-visibility').forEach(button => {
-            button.addEventListener('click', function(e) {
-                e.preventDefault();
-
-                const targetId = this.dataset.target;
-                const totalReports = this.dataset.total;
-                const container = document.querySelector(targetId);
-
-                if (!container) return;
-
-                const isExpanded = container.classList.contains('is-expanded');
-
-                if (isExpanded) {
-                    // Recolher a lista
-                    container.classList.remove('is-expanded');
-                    container.querySelectorAll('.report-item-extra').forEach(item => {
-                        item.style.display = 'none';
-                    });
-                    this.textContent = `Ver todos os ${totalReports} reports`;
-                } else {
-                    // Expandir a lista
-                    container.querySelectorAll('.report-item-extra').forEach(item => {
-                        item.style.display = 'list-item';
-                    });
-                    container.classList.add('is-expanded');
-                    this.textContent = 'Ver menos';
-                }
-            });
-        });
-        /* FIM DO BLOCO: Lógica para expandir/recolher lista de reports */
-
-        // =======================================================================
-        // 6. LÓGICA DO MODAL DE VISUALIZAÇÃO RÁPIDA
-        // =======================================================================
-        if (visualizarQuestaoModalEl) {
-            const visualizarQuestaoModal = new bootstrap.Modal(visualizarQuestaoModalEl);
-            const modalCodigo = visualizarQuestaoModalEl.querySelector('#modalQuestaoCodigo');
-            const modalEnunciado = visualizarQuestaoModalEl.querySelector('#modalQuestaoEnunciado');
-            const modalAlternativas = visualizarQuestaoModalEl.querySelector('#modalQuestaoAlternativas');
-            const modalSpinner = visualizarQuestaoModalEl.querySelector('#modalQuestaoSpinner');
-            const modalContent = visualizarQuestaoModalEl.querySelector('#modalQuestaoContent');
-    
-            document.querySelectorAll('.btn-visualizar-questao').forEach(button => {
-                button.addEventListener('click', function() {
-                    const questaoId = this.dataset.questaoId;
-                    modalContent.style.display = 'none';
-                    modalSpinner.style.display = 'block';
-                    modalCodigo.textContent = '...';
-                    visualizarQuestaoModal.show();
-    
-                    fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
-                        .then(response => {
-                            if (!response.ok) throw new Error(`Erro de servidor: ${response.status}`);
-                            return response.json();
-                        })
-                        .then(data => {
-                            if (data.status === 'success') {
-                                modalCodigo.textContent = data.codigo;
-                                modalEnunciado.innerHTML = data.enunciado;
-                                modalAlternativas.innerHTML = '';
-                                for (const [key, value] of Object.entries(data.alternativas)) {
-                                    const listItem = document.createElement('li');
-                                    listItem.classList.add('list-group-item');
-                                    if (key === data.gabarito) {
-                                        listItem.classList.add('list-group-item-success', 'fw-bold');
-                                    }
-                                    listItem.innerHTML = `<strong>${key})</strong> ${value}`;
-                                    modalAlternativas.appendChild(listItem);
-                                }
-                            } else {
-                                throw new Error(data.message || 'Não foi possível carregar os dados da questão.');
-                            }
-                        })
-                        .catch(error => {
-                            modalEnunciado.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-                        })
-                        .finally(() => {
-                            modalSpinner.style.display = 'none';
-                            modalContent.style.display = 'block';
-                        });
-                });
-            });
+        
+        if (toggleReportsBtn) {
+            e.preventDefault();
+            const container = document.querySelector(toggleReportsBtn.dataset.target);
+            const isExpanded = container.classList.toggle('is-expanded');
+            toggleReportsBtn.textContent = isExpanded ? 'Ver menos' : `Ver todos os ${toggleReportsBtn.dataset.total} reports`;
         }
     });
+    
+    // Lógica para checkboxes e barra de ações em massa
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const checkboxes = document.querySelectorAll('.notification-checkbox');
+    const bulkActionsBar = document.getElementById('bulk-actions-bar');
+    const selectedCountSpan = document.getElementById('selected-count');
+
+    const updateBulkActionBar = () => {
+        if (!bulkActionsBar) return;
+        const count = document.querySelectorAll('.notification-checkbox:checked').length;
+        bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+        selectedCountSpan.textContent = count;
+        if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === checkboxes.length;
+    };
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', () => {
+            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+            updateBulkActionBar();
+        });
+    }
+    checkboxes.forEach(cb => cb.addEventListener('change', updateBulkActionBar));
+
+    // Script do modal de visualização rápida (reutilizado)
+    const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
+    if (visualizarQuestaoModalEl) {
+        visualizarQuestaoModalEl.addEventListener('show.bs.modal', function(event) {
+            const questaoId = event.relatedTarget.dataset.questaoId;
+            const content = this.querySelector('#modalQuestaoContent');
+            const spinner = this.querySelector('#modalQuestaoSpinner');
+            content.style.display = 'none';
+            spinner.style.display = 'block';
+
+            fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
+                .then(r => r.ok ? r.json() : Promise.reject('Erro'))
+                .then(data => {
+                    this.querySelector('#modalQuestaoCodigo').textContent = data.codigo;
+                    this.querySelector('#modalQuestaoEnunciado').innerHTML = data.enunciado;
+                    this.querySelector('#modalQuestaoAlternativas').innerHTML = Object.entries(data.alternativas).map(([k, v]) => `<li class="list-group-item ${k===data.gabarito ? 'list-group-item-success fw-bold':''}">${k}) ${v}</li>`).join('');
+                })
+                .catch(err => this.querySelector('#modalQuestaoEnunciado').innerHTML = `<div class="alert alert-danger">Erro ao carregar.</div>`)
+                .finally(() => { spinner.style.display = 'none'; content.style.display = 'block'; });
+        });
+    }
+});
 </script>
 {% endblock %}

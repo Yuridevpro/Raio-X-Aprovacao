@@ -1,0 +1,25 @@
+<!-- gestao/templates/gestao/includes/_options_filtro_log_acoes.html -->
+<option value="">Todas as Ações</option>
+<optgroup label="Gerenciamento de Usuários">
+    <option value="PERMISSOES_ALTERADAS" {% if "PERMISSOES_ALTERADAS" == filtro_acao %}selected{% endif %}>Permissões Alteradas</option>
+    <option value="USUARIO_PROMOVIDO_SUPERUSER" {% if "USUARIO_PROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Usuário Promovido</option>
+    <option value="USUARIO_DESPROMOVIDO_SUPERUSER" {% if "USUARIO_DESPROMOVIDO_SUPERUSER" == filtro_acao %}selected{% endif %}>Usuário Despromovido</option>
+    <option value="USUARIO_DELETADO" {% if "USUARIO_DELETADO" == filtro_acao %}selected{% endif %}>Usuário Deletado</option>
+</optgroup>
+<optgroup label="Solicitações">
+    <option value="SOLICITACAO_PROMOCAO_CRIADA" {% if "SOLICITACAO_PROMOCAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Promoção Criada</option>
+    <option value="SOLICITACAO_EXCLUSAO_CRIADA" {% if "SOLICITACAO_EXCLUSAO_CRIADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Criada</option>
+    <option value="SOLICITACAO_EXCLUSAO_APROVADA" {% if "SOLICITACAO_EXCLUSAO_APROVADA" == filtro_acao %}selected{% endif %}>Solicitação de Exclusão Aprovada</option>
+</optgroup>
+<optgroup label="Gerenciamento de Conteúdo">
+    <option value="QUESTAO_CRIADA" {% if "QUESTAO_CRIADA" == filtro_acao %}selected{% endif %}>Questão Criada</option>
+    <option value="QUESTAO_EDITADA" {% if "QUESTAO_EDITADA" == filtro_acao %}selected{% endif %}>Questão Editada</option>
+    <option value="QUESTAO_DELETADA" {% if "QUESTAO_DELETADA" == filtro_acao %}selected{% endif %}>Questão Deletada</option>
+</optgroup>
+<optgroup label="Moderação">
+    <option value="NOTIFICACOES_RESOLVIDAS" {% if "NOTIFICACOES_RESOLVIDAS" == filtro_acao %}selected{% endif %}>Notificações Resolvidas</option>
+    <option value="NOTIFICACOES_REJEITADAS" {% if "NOTIFICACOES_REJEITADAS" == filtro_acao %}selected{% endif %}>Notificações Rejeitadas</option>
+</optgroup>
+ <optgroup label="Auditoria">
+    <option value="LOG_DELETADO" {% if "LOG_DELETADO" == filtro_acao %}selected{% endif %}>Log Deletado</option>
+</optgroup>

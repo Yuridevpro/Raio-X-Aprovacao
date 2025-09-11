@@ -4,30 +4,34 @@
 
 {% block title %}Revisar Solicitações de Exclusão{% endblock %}
 
-
 {% block head %}
     <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 {% endblock %}
 
 {% block content %}
+<div class="">
+<a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
+    <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
+</a>
+</div>
 <div class="container my-5">
-    <div class="d-flex justify-content-end mb-4">
-        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Voltar ao Dashboard
-        </a>
-    </div>
     <div class="d-flex justify-content-between align-items-center mb-4">
+
         <div class="d-flex align-items-center">
             <h2 class="h3 mb-0 me-3">Solicitações de Exclusão</h2>
-            {% if total_solicitacoes > 0 %}
+            {% if paginated_object.paginator.count > 0 %}
             <span class="badge rounded-pill text-bg-danger fs-6 fw-normal">
-                {{ total_solicitacoes }} {% if total_solicitacoes == 1 %}pendente{% else %}pendentes{% endif %}
+                {{ paginated_object.paginator.count }} pendente{{ paginated_object.paginator.count|pluralize }}
             </span>
             {% endif %}
         </div>
+      
     </div>
 
     <div id="message-container"></div>
+
+    <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=solicitacoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
 
     <div id="solicitacoes-list">
         {% for solicitacao in solicitacoes %}
@@ -35,27 +39,29 @@
             <div class="card-header bg-light d-flex justify-content-between align-items-center flex-wrap">
                 <div>
                     <strong>Usuário a Excluir:</strong> 
-                    <a href="{% url 'gestao:editar_usuario_staff' solicitacao.usuario_a_ser_excluido.id %}">{{ solicitacao.usuario_a_ser_excluido.username }}</a>
+                    <!-- ======================================================= -->
+                    <!-- INÍCIO DA CORREÇÃO: Link condicional para o nome do usuário -->
+                    <!-- ======================================================= -->
+                    {% if user.is_superuser %}
+                        <a href="{% url 'gestao:editar_usuario_staff' solicitacao.usuario_a_ser_excluido.id %}">{{ solicitacao.usuario_a_ser_excluido.username }}</a>
+                    {% else %}
+                        <span>{{ solicitacao.usuario_a_ser_excluido.username }}</span>
+                    {% endif %}
+                    <!-- ======================================================= -->
+                    <!-- FIM DA CORREÇÃO                                         -->
+                    <!-- ======================================================= -->
                 </div>
                 <small class="text-muted">Solicitado em: {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}</small>
             </div>
             <div class="card-body">
                 <h6 class="card-subtitle mb-2 text-muted">
-                    Solicitado por: 
-                    {% if solicitacao.solicitado_por %}
-                        {{ solicitacao.solicitado_por.username }}
-                    {% else %}
-                        <span class="fst-italic">(Usuário deletado)</span>
-                    {% endif %}
+                    Solicitado por: {{ solicitacao.solicitado_por.username|default:"(Usuário deletado)" }}
                 </h6>
-                <p class="card-text"><strong>Justificativa Fornecida:</strong></p>
+                <p class="card-text mb-1"><strong>Justificativa Fornecida:</strong></p>
                 <blockquote class="blockquote bg-light p-3 rounded border-start border-4 border-warning">
                     <p class="mb-0 fst-italic">"{{ solicitacao.motivo|linebreaksbr }}"</p>
                 </blockquote>
             </div>
-            <!-- ======================================================================= -->
-            <!-- INÍCIO DO BLOCO MODIFICADO: Lógica condicional para os botões -->
-            <!-- ======================================================================= -->
             <div class="card-footer text-end bg-white">
                 {% if user.is_superuser %}
                     <!-- Botões para Superusuários -->
@@ -76,9 +82,6 @@
                     </button>
                 {% endif %}
             </div>
-            <!-- ======================================================================= -->
-            <!-- FIM DO BLOCO MODIFICADO -->
-            <!-- ======================================================================= -->
         </div>
         {% endfor %}
     </div>
@@ -86,12 +89,12 @@
     <div class="card card-body text-center p-5" id="empty-state-message" style="display: none;">
         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
         <h5 class="text-muted">Não há solicitações de exclusão pendentes.</h5>
-        <p class="text-muted mb-0">Bom trabalho!</p>
     </div>
-</div>
 
-<div class="mt-4">
-    {% include 'includes/_paginacao.html' with paginated_object=solicitacoes page_numbers=page_numbers %}
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=solicitacoes %}
+    </div>
 </div>
 {% endblock %}
 
@@ -113,30 +116,29 @@ document.addEventListener('DOMContentLoaded', function() {
             const solicitacaoId = this.dataset.solicitacaoId;
             const username = this.dataset.username || '';
             
-            let confirmationMessage = '';
-            let confirmTitle = 'Confirmar Ação';
-            let url = '';
+            // Mapeia ações para mensagens e URLs
+            const actionsConfig = {
+                rejeitar: {
+                    title: 'Confirmar Rejeição',
+                    message: 'Tem certeza que deseja REJEITAR esta solicitação?',
+                    url: `{% url 'gestao:rejeitar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId)
+                },
+                aprovar: {
+                    title: 'Aprovar Exclusão Permanente',
+                    message: `ATENÇÃO! Você está prestes a APROVAR e EXCLUIR o usuário ${username} permanentemente. Esta ação não pode ser desfeita. Deseja continuar?`,
+                    url: `{% url 'gestao:aprovar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId)
+                },
+                cancelar: {
+                    title: 'Cancelar Solicitação',
+                    message: 'Tem certeza que deseja cancelar e remover sua solicitação de exclusão?',
+                    url: `{% url 'gestao:cancelar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId)
+                }
+            };
 
-            if (action === 'rejeitar') {
-                confirmationMessage = 'Tem certeza que deseja REJEITAR esta solicitação?';
-                url = `{% url 'gestao:rejeitar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId);
-            } else if (action === 'aprovar') {
-                confirmTitle = 'Aprovar Exclusão Permanente';
-                confirmationMessage = `ATENÇÃO!\n\nVocê está prestes a APROVAR e EXCLUIR o usuário ${username} permanentemente. Esta ação não pode ser desfeita. Deseja continuar?`;
-                url = `{% url 'gestao:aprovar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId);
-            // =======================================================================
-            // INÍCIO DO BLOCO NOVO: Lógica para o botão de cancelar
-            // =======================================================================
-            } else if (action === 'cancelar') {
-                confirmTitle = 'Cancelar Solicitação';
-                confirmationMessage = 'Tem certeza que deseja cancelar e remover sua solicitação de exclusão?';
-                url = `{% url 'gestao:cancelar_solicitacao_exclusao' 0 %}`.replace('0', solicitacaoId);
-            }
-            // =======================================================================
-            // FIM DO BLOCO NOVO
-            // =======================================================================
+            const config = actionsConfig[action];
+            if (!config) return;
 
-            showConfirmationModal(confirmTitle, confirmationMessage, () => {
+            showConfirmationModal(config.title, config.message, () => {
                 const spinner = this.querySelector('.spinner-border');
                 const btnText = this.querySelector('.btn-text');
 
@@ -144,7 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 spinner.style.display = 'inline-block';
                 btnText.style.display = 'none';
 
-                fetch(url, {
+                fetch(config.url, {
                     method: 'POST',
                     headers: {'X-CSRFToken': '{{ csrf_token }}'}
                 })
@@ -152,18 +154,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(({ ok, data }) => {
                     if (ok) {
                         showNotificationModal('Sucesso!', data.message, 'success');
-                        const cardToRemove = document.getElementById(`solicitacao-card-${data.solicitacao_id}`);
-                        if(cardToRemove) {
-                            cardToRemove.remove();
-                        }
+                        document.getElementById(`solicitacao-card-${data.solicitacao_id}`)?.remove();
                         checkEmptyState();
                     } else {
                         throw new Error(data.message || 'Ocorreu um erro.');
                     }
                 })
-                .catch(error => {
-                    showNotificationModal('Erro', error.message, 'error');
-                })
+                .catch(error => showNotificationModal('Erro', error.message, 'error'))
                 .finally(() => {
                     this.disabled = false;
                     spinner.style.display = 'none';
@@ -173,7 +170,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    checkEmptyState();
+    checkEmptyState(); // Verifica o estado inicial ao carregar a página
 });
 </script>
 {% endblock %}

@@ -1,0 +1,61 @@
+<!-- gestao/templates/gestao/includes/_card_notificacao_agrupada.html -->
+
+<div class="card mb-4 card-notification-group status-{{ status_ativo }}" id="card-group-{{ questao.id }}">
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                {% if status_ativo != 'TODAS' %}
+                    <input class="form-check-input notification-checkbox" type="checkbox" data-id="{{ questao.id }}">
+                {% endif %}
+                <div>
+                    <h5 class="mb-0">
+                        Questão: <a href="{% url 'gestao:editar_questao' questao.id %}" target="_blank">{{ questao.codigo }}</a>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 btn-visualizar-questao" data-questao-id="{{ questao.id }}" title="Visualização Rápida"><i class="fas fa-eye"></i></button>
+                    </h5>
+                    <small class="text-muted">Último report: {{ questao.ultima_notificacao|date:"d/m/Y H:i" }}</small>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark fs-6 rounded-pill"><i class="fas fa-flag me-1"></i>{{ questao.num_reports }} Report{{ questao.num_reports|pluralize:"s" }}</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="mb-2 small text-uppercase fw-bold">Detalhes dos Reports:</h6>
+                <div class="reports-container" id="reports-container-{{ questao.id }}">
+                    <ul class="list-group list-group-flush">
+                        {% for report in questao.reports_filtrados %}
+                            <li class="list-group-item px-0 py-2 {% if forloop.counter > 3 %}d-none{% endif %}">
+                                <div class="d-flex justify-content-between">
+                                    <span><strong>{{ report.usuario_reportou.userprofile.nome|default:"N/A" }}</strong><span class="text-muted ms-2">({{ report.get_tipo_erro_display }})</span></span>
+                                    <small class="text-muted">{{ report.data_criacao|date:"d/m H:i" }}</small>
+                                </div>
+                                <p class="ms-3 mt-1 mb-0 fst-italic text-muted">"{{ report.descricao }}"</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% if questao.reports_filtrados|length > 3 %}
+                    <div class="mt-2 text-center">
+                        <a href="#" class="btn btn-outline-secondary btn-sm toggle-reports-visibility" data-target="#reports-container-{{ questao.id }}" data-total="{{ questao.num_reports }}">
+                            Ver todos os {{ questao.num_reports }} reports
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md-4 d-flex flex-column justify-content-center align-items-center border-top border-md-start mt-3 mt-md-0 pt-3 pt-md-0">
+                <h6 class="mb-3 small text-uppercase fw-bold">Ações</h6>
+                <div class="d-grid gap-2 w-100 w-md-75 mx-auto">
+                    {% if status_ativo == 'PENDENTE' %}
+                        <button type="button" class="btn btn-success individual-action-btn" data-action="resolver" data-questao-id="{{ questao.id }}" data-confirm-message="Corrigir todos os {{ questao.num_reports }} reports?"><i class="fas fa-check me-2"></i>Marcar Como Corrigido</button>
+                        <button type="button" class="btn btn-danger individual-action-btn" data-action="rejeitar" data-questao-id="{{ questao.id }}" data-confirm-message="Rejeitar todos os reports da questão?"><i class="fas fa-times me-2"></i>Marcar Como Rejeitado</button>
+                    {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
+                        <button type="button" class="btn btn-outline-danger individual-action-btn" data-action="excluir" data-questao-id="{{ questao.id }}" data-confirm-message="EXCLUIR PERMANENTEMENTE todos os {{ questao.num_reports }} reports?"><i class="fas fa-trash me-2"></i>Excluir</button>
+                    {% else %}
+                        <p class="text-muted text-center small">Nenhuma ação disponível.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

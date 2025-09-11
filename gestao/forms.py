@@ -2,7 +2,7 @@
 
 from django import forms
 from django.contrib.auth.models import User
-from django.db import models # <-- MUDANÇA 1: Importar o módulo 'models'
+# from django.db import models <-- CORREÇÃO: Removido import desnecessário. 'Choices' em forms.Form não usam models.
 from .models import SolicitacaoExclusao
 
 # =======================================================================
@@ -28,20 +28,26 @@ class StaffUserForm(forms.ModelForm):
         self.fields['email'].disabled = True
 
 # =======================================================================
-# INÍCIO DO BLOCO NOVO: O Formulário de Exclusão Unificado e Inteligente
+# INÍCIO DO BLOCO CORRIGIDO: O Formulário de Exclusão Unificado
 # =======================================================================
 class ExclusaoUsuarioForm(forms.Form):
-    # As opções de motivo agora são compartilhadas
-    class MotivoExclusao(models.TextChoices):
-        TERMOS_DE_SERVICO = 'TERMOS_DE_SERVICO', 'Violação dos Termos de Serviço'
-        CONDUTA_INADEQUADA = 'CONDUTA_INADEQUADA', 'Conduta Inadequada / Abusiva'
-        INATIVIDADE = 'INATIVIDADE', 'Conta Inativa por Longo Período'
-        SEGURANCA = 'SEGURANCA', 'Atividade Suspeita / Risco de Segurança'
-        SOLICITACAO_USUARIO = 'SOLICITACAO_USUARIO', 'A Pedido do Próprio Usuário'
-        OUTRO = 'OUTRO', 'Outro (detalhar abaixo)'
+    """
+    Formulário unificado para capturar o motivo da exclusão de um usuário.
+    Usado tanto para exclusão direta (superuser) quanto para sugestão (staff).
+    """
+    # <-- CORREÇÃO: Em forms.Form, a prática padrão é definir 'choices' como uma lista de tuplas, não usando models.TextChoices.
+    MOTIVO_CHOICES = [
+        ('', '---------'), # Adicionado para ter uma opção vazia
+        ('TERMOS_DE_SERVICO', 'Violação dos Termos de Serviço'),
+        ('CONDUTA_INADEQUADA', 'Conduta Inadequada / Abusiva'),
+        ('INATIVIDADE', 'Conta Inativa por Longo Período'),
+        ('SEGURANCA', 'Atividade Suspeita / Risco de Segurança'),
+        ('SOLICITACAO_USUARIO', 'A Pedido do Próprio Usuário'),
+        ('OUTRO', 'Outro (detalhar abaixo)'),
+    ]
 
     motivo_predefinido = forms.ChoiceField(
-        choices=MotivoExclusao.choices,
+        choices=MOTIVO_CHOICES, # <-- CORREÇÃO: Usando a lista de tuplas definida acima.
         label="Selecione o motivo principal",
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True

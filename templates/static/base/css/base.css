@@ -1,52 +1,134 @@
 /* static/base/css/base.css */
 
-/* 1. Importação da Fonte e Definição de Variáveis de Design */
+/* ========================================================================= */
+/* 1. VARIÁVEIS GLOBAIS DE DESIGN (DESIGN TOKENS)
+/* ========================================================================= */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Paleta de Cores Refinada */
-    --primary-color: #4A90E2; /* Um azul mais moderno e suave */
-    --primary-color-dark: #357ABD;
-    --secondary-color: #5A6978; /* Cinza azulado para texto secundário */
-    --dark-bg: #2c3e50; /* Um fundo escuro mais suave que o preto puro */
-    --light-bg: #FFFFFF;
-    --body-bg: #F8F9FC; /* Fundo do corpo da página, ligeiramente acinzentado */
-    --border-color: #EAECEF; /* Cor de borda sutil */
-    --success-color: #28a745;
-    --danger-color: #dc3545;
+    /* Paleta de Cores Primárias */
+    --cor-primaria: #4A90E2;       /* Azul moderno para botões e links principais */
+    --cor-primaria-escura: #357ABD; /* Para hover de botões primários */
+    --cor-secundaria: #5A6978;    /* Cinza azulado para textos secundários e bordas */
+    --cor-fundo-escuro: #2c3e50;  /* Fundo da navbar e footer */
+    --cor-fundo-claro: #FFFFFF;     /* Fundo de cards e modais */
+    --cor-fundo-body: #F8F9FC;    /* Fundo principal da página (cinza muito claro) */
 
-    /* Tipografia e Cores de Texto */
-    --text-dark: #343a40;
-    --text-light: #ffffff;
-    --font-family: 'Poppins', sans-serif;
+    /* Cores de Feedback Semântico */
+    --cor-sucesso: #28a745;
+    --cor-erro: #dc3545;
+    --cor-aviso: #ffc107;
+    --cor-info: #0dcaf0;
+
+    /* Cores de Texto */
+    --cor-texto-escuro: #343a40;
+    --cor-texto-claro: #ffffff;
+    --cor-texto-muted: #6c757d;
+
+    /* Tipografia */
+    --fonte-principal: 'Poppins', sans-serif;
+    --tamanho-fonte-base: 1rem;
+    --peso-fonte-normal: 400;
+    --peso-fonte-medio: 500;
+    --peso-fonte-bold: 700;
 
     /* Estilos de Componentes */
-    --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra mais suave */
-    --border-radius: 12px; /* Bordas mais arredondadas */
+    --sombra-caixa: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra suave para cards e modais */
+    --raio-borda: 12px;                            /* Bordas mais arredondadas */
+    --cor-borda: #EAECEF;                           /* Cor padrão para bordas sutis */
+    --transicao-padrao: all 0.3s ease-in-out;        /* Transição suave para interações */
 }
 
-/* 2. Estilos Globais e Tipografia */
+/* ========================================================================= */
+/* 2. ESTILOS GLOBAIS E TIPOGRAFIA
+/* ========================================================================= */
 body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--body-bg);
-    font-family: var(--font-family);
-    color: var(--text-dark);
+    background-color: var(--cor-fundo-body);
+    font-family: var(--fonte-principal);
+    color: var(--cor-texto-escuro);
+    font-size: var(--tamanho-fonte-base);
+    /* ======================================================= */
+    /* INÍCIO DA CORREÇÃO: Remover rolagem horizontal          */
+    /* ======================================================= */
+    overflow-x: hidden;
+    /* ======================================================= */
+    /* FIM DA CORREÇÃO                                         */
+    /* ======================================================= */
 }
 
 main {
-    flex: 1;
+    flex: 1; /* Garante que o main ocupe o espaço restante, empurrando o footer para baixo */
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-weight: 700;
+    font-weight: var(--peso-fonte-bold);
+    color: var(--cor-texto-escuro);
 }
 
-/* 3. Estilos da Navbar Customizada */
+a {
+    color: var(--cor-primaria);
+    text-decoration: none;
+    transition: var(--transicao-padrao);
+}
+
+a:hover {
+    color: var(--cor-primaria-escura);
+    text-decoration: underline;
+}
+
+/* ========================================================================= */
+/* 3. COMPONENTES REUTILIZÁVEIS (CARDS, BOTÕES, MODAIS)
+/* ========================================================================= */
+
+/* Botões */
+.btn {
+    border-radius: 8px;
+    font-weight: var(--peso-fonte-medio);
+    transition: var(--transicao-padrao);
+}
+
+.btn-primary {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: var(--cor-texto-claro);
+}
+
+.btn-primary:hover {
+    background-color: var(--cor-primaria-escura);
+    border-color: var(--cor-primaria-escura);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Cards */
+.card {
+    border: 1px solid var(--cor-borda);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    border-radius: var(--raio-borda);
+    background-color: var(--cor-fundo-claro);
+}
+
+/* Dropdowns */
+.dropdown-menu {
+    border: 1px solid var(--cor-borda);
+    box-shadow: var(--sombra-caixa);
+    border-radius: var(--raio-borda);
+}
+
+.dropdown-item i {
+    width: 20px; /* Alinha os ícones no menu dropdown */
+}
+
+/* ========================================================================= */
+/* 4. NAVBAR E FOOTER
+/* ========================================================================= */
+
+/* Navbar */
 .navbar-custom {
-    background-color: var(--dark-bg);
-    transition: background-color 0.3s ease;
+    background-color: var(--cor-fundo-escuro);
 }
 
 .navbar-custom .navbar-brand {
@@ -61,62 +143,29 @@ h1, h2, h3, h4, h5, h6 {
 
 .navbar-custom .nav-link:hover,
 .navbar-custom .nav-link.active {
-    color: var(--text-light);
+    color: var(--cor-texto-claro);
 }
 
-.dropdown-menu {
-    border: 1px solid var(--border-color);
-    box-shadow: var(--box-shadow);
-    border-radius: var(--border-radius);
-}
-
-.dropdown-item i {
-    width: 20px;
-}
-
-/* 4. Estilos de Componentes Comuns */
-.btn {
-    border-radius: 8px;
-}
-
-.btn-primary {
-    background-color: var(--primary-color);
-    border-color: var(--primary-color);
-    color: var(--text-light);
-    transition: all 0.2s ease-in-out;
-    font-weight: 500;
-}
-
-.btn-primary:hover {
-    background-color: var(--primary-color-dark);
-    border-color: var(--primary-color-dark);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-.card {
-    border: 1px solid var(--border-color);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-    border-radius: var(--border-radius);
-}
-
-/* 5. Estilos do Rodapé Customizado */
+/* Footer */
 .footer-custom {
-    background-color: var(--dark-bg);
+    background-color: var(--cor-fundo-escuro);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-custom h5 {
+    color: var(--cor-texto-claro);
+    font-weight: var(--peso-fonte-medio);
+    opacity: 0.9;
 }
 
 .footer-link {
-    color: rgba(255, 255, 255, 0.7);
+    color: rgba(255, 255, 255, 0.8);
     text-decoration: none;
     transition: color 0.2s ease-in-out;
 }
 
 .footer-link:hover {
-    color: var(--text-light);
-}
-
-.footer-custom .text-muted {
-    color: rgba(255, 255, 255, 0.7) !important;
+    color: var(--cor-texto-claro);
 }
 
 .footer-custom .border-secondary {
@@ -127,91 +176,80 @@ h1, h2, h3, h4, h5, h6 {
     font-size: 1.5rem;
 }
 
-
 /* ========================================================================= */
-/* ========================================================================= */
-/* ======================== 6. ESTILOS RESPONSIVOS E MELHORIAS PARA MOBILE ====================== */
-/* ========================================================================= */
+/* 5. CLASSES UTILITÁRIAS E ESPECÍFICAS
 /* ========================================================================= */
 
-/* As regras abaixo serão aplicadas apenas em telas com largura máxima de 991.98px (tablets e celulares) */
-@media (max-width: 991.98px) {
-
-    /* ======== MELHORIAS NA NAVBAR MOBILE ======== */
-    
-    /* Adiciona padding interno ao menu expandido para não colar nas bordas */
-    .navbar-collapse {
-        padding: 1rem;
-        margin-top: 0.5rem;
-    }
-
-    /* Estiliza cada item de link no menu */
-    .navbar-custom .navbar-nav .nav-item {
-        /* Adiciona uma linha sutil para separar os itens */
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .navbar-custom .navbar-nav .nav-item:last-child {
-        border-bottom: none; /* Remove a borda do último item */
-    }
-
-    /* Estiliza os links do menu */
-    .navbar-custom .navbar-nav .nav-link {
-        /* Centraliza os links e adiciona espaçamento vertical generoso */
-        text-align: center;
-        padding: 0.8rem 1rem;
-        font-size: 1.1rem; /* Aumenta a fonte para melhor legibilidade */
-        font-weight: 500;
-    }
-    
-    /* Dá um destaque especial para o dropdown do usuário */
-    .navbar-custom .navbar-nav .nav-item.dropdown {
-        background-color: rgba(255, 255, 255, 0.05);
-        border-radius: var(--border-radius);
-        margin-top: 1rem;
-        border-bottom: none; /* Remove a linha de separação para este item */
-    }
-
-    /* Garante que o menu dropdown ocupe toda a largura disponível */
-    .navbar-custom .navbar-nav .dropdown-menu {
-        width: 100%;
-        text-align: center;
-    }
-
-
-    /* ======== MELHORIAS NO RODAPÉ MOBILE ======== */
-    
-    /* Centraliza todo o conteúdo das colunas do rodapé no mobile */
-    .footer-custom .row > div {
-        text-align: center;
-    }
-
-    /* Ajusta a lista de navegação para o alinhamento central */
-    .footer-custom .list-unstyled {
-        padding-left: 0;
-    }
-    
-    /* Garante que os ícones de redes sociais fiquem centralizados */
-    .footer-social {
-        display: flex;
-        justify-content: center;
-        gap: 1.5rem;
-    }
-
-   
+/* Card de Filtros Recolhível */
+.filter-card .card-header {
+    cursor: pointer;
 }
 
 .filter-card .card-header .icon-toggle::before {
-    content: '\f078'; /* FontAwesome down arrow */
+    content: '\f078';
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     transition: transform 0.3s ease;
     display: inline-block;
 }
 
-.filter-card .card-header.collapsed .icon-toggle::before {
-    transform: rotate(0deg);
-}
-
 .filter-card .card-header:not(.collapsed) .icon-toggle::before {
     transform: rotate(-180deg);
+}
+
+
+/* ========================================================================= */
+/* 6. ESTILOS RESPONSIVOS (MOBILE-FIRST APPROACH)
+/* ========================================================================= */
+@media (max-width: 991.98px) {
+
+    /* --- Navbar Mobile --- */
+    .navbar-collapse {
+        padding: 1rem;
+        margin-top: 0.5rem;
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: var(--raio-borda);
+    }
+
+    .navbar-custom .navbar-nav .nav-item {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .navbar-custom .navbar-nav .nav-item:last-child {
+        border-bottom: none;
+    }
+
+    .navbar-custom .navbar-nav .nav-link {
+        text-align: center;
+        padding: 0.8rem 1rem;
+        font-size: 1.1rem;
+        font-weight: var(--peso-fonte-medio);
+    }
+    
+    .navbar-custom .navbar-nav .nav-item.dropdown {
+        background-color: rgba(255, 255, 255, 0.05);
+        border-radius: var(--raio-borda);
+        margin-top: 1rem;
+        border-bottom: none;
+    }
+
+    .navbar-custom .navbar-nav .dropdown-menu {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* --- Footer Mobile --- */
+    .footer-custom .row > div {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .footer-custom .list-unstyled {
+        padding-left: 0;
+    }
+    
+    .footer-social {
+        display: flex;
+        justify-content: center;
+        gap: 1.5rem;
+    }
 }

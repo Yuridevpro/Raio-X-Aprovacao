@@ -1,96 +1,84 @@
-<!-- pratica/listar_questoes.html novo-->
+<!-- pratica/listar_questoes.html -->
 
 {% extends 'base.html' %}
 {% load static %}
-{% load questoes_extras %} <!-- ESTA LINHA É ESSENCIAL E CORRIGE O ERRO -->
+{% load questoes_extras %} 
 {% load pratica_extras %} 
+
 {% block title %}Praticar Questões{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
-
-<!-- pratica/listar_questoes.html -->
-
 <style>
-    
-    body {
-        background-color: var(--body-bg);
-        font-family: var(--font-family);
-    }
-    
-    .container {
-        max-width: 960px; /* Limita a largura para melhor legibilidade em telas grandes */
-    }
-    
+    /* ========================================================================= */
+    /* ESTILOS GERAIS DA PÁGINA DE PRÁTICA
+    /* ========================================================================= */
     .enunciado-imagem {
         max-width: 100%;
         max-height: 450px;
         display: block;
         margin-left: auto;
         margin-right: auto;
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-caixa);
     }
     
-    /* Transições suaves para interações */
-    a, .btn {
-        transition: all 0.2s ease-in-out;
-    }
-
-    /* Estilos específicos para os botões de STATUS desta página */
+    /* Botões de filtro por status (Ex: Resolvidas, Acertei, Errei) */
     .btn-status-filter {
         border-radius: 20px !important;
         font-weight: 500;
         padding: 0.5rem 1.25rem;
         margin: 0.25rem;
-        border: 1px solid var(--border-color);
-        color: var(--secondary-color);
+        border: 1px solid var(--cor-borda);
+        color: var(--cor-secundaria);
+        transition: var(--transicao-padrao);
     }
     .btn-status-filter:hover {
         background-color: #e9ecef;
         border-color: #e9e7e0;
     }
     .btn-status-filter.active {
-        background-color: var(--primary-color);
-        color: var(--text-light);
-        border-color: var(--primary-color);
+        background-color: var(--cor-primaria);
+        color: var(--cor-texto-claro);
+        border-color: var(--cor-primaria);
         box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
     }
     
     /* ========================================================================= */
-    /* ================= INÍCIO: ESTILOS PARA O EDITOR TIPTAP ================== */
+    /* ESTILOS PARA O EDITOR DE TEXTO TIPTAP (Comentários)
     /* ========================================================================= */
-    
     .tiptap-toolbar {
-        border: 1px solid var(--border-color);
+        border: 1px solid var(--cor-borda);
         border-bottom: none;
         padding: .5rem;
-        border-top-left-radius: var(--border-radius);
-        border-top-right-radius: var(--border-radius);
+        border-top-left-radius: var(--raio-borda);
+        border-top-right-radius: var(--raio-borda);
         background-color: #f8f9fa;
     }
     .tiptap-toolbar button {
         border: none;
         background-color: transparent;
         border-radius: 4px;
+        transition: var(--transicao-padrao);
     }
     .tiptap-toolbar button:hover {
-        background-color: var(--text-dark);
+        background-color: var(--cor-texto-escuro);
+        color: var(--cor-texto-claro);
     }
     .tiptap-toolbar button.active {
-        background-color: var(--primary-color);
-        color: var(--text-light);
+        background-color: var(--cor-primaria);
+        color: var(--cor-texto-claro);
     }
     
     .tiptap {
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
         padding: .75rem 1rem;
         min-height: 150px;
-        background-color: var(--light-bg);
+        background-color: var(--cor-fundo-claro);
     }
-    .tiptap:focus-within { /* Usar focus-within para aplicar ao container */
-        border-color: var(--primary-color);
+    .tiptap:focus-within { /* Aplica ao container quando o editor interno ganha foco */
+        border-color: var(--cor-primaria);
         outline: 0;
         box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
     }
@@ -107,17 +95,15 @@
         border-top-left-radius: 0;
         border-top-right-radius: 0;
     }
-    /* ========================================================================= */
-    /* ================ INÍCIO: ESTILOS PARA A ÁREA DE COMENTÁRIOS ============= */
-    /* ========================================================================= */
     
-    
+    /* ========================================================================= */
+    /* ESTILOS PARA A SEÇÃO DE COMENTÁRIOS
+    /* ========================================================================= */
     .comentarios-section {
         background-color: #f8f9fa;
-        border-radius: 0 0 var(--border-radius) var(--border-radius);
+        border-radius: 0 0 var(--raio-borda) var(--raio-borda);
     }
     
-    /* Container para posicionamento relativo do avatar e do card */
     .comment-wrapper {
         position: relative;
         padding-left: 60px; /* Espaço para o avatar (40px) + gap (20px) */
@@ -125,89 +111,54 @@
     }
     
     .comment-card {
-        /* Remove o flex layout e transforma no balão de fala */
-        background-color: var(--light-bg);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
+        background-color: var(--cor-fundo-claro);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
         padding: 1rem 1.5rem;
-        position: relative; /* Contexto para a seta */
+        position: relative; /* Contexto para a seta do balão */
         box-shadow: none;
     }
     
-    /* Seta do balão (borda) */
-    .comment-card::before {
+    /* Seta do balão (simula um balão de fala) */
+    .comment-card::before, .comment-card::after {
         content: '';
         position: absolute;
         top: 14px;
-        left: -22px; /* Largura da borda da seta (11px * 2) */
-        width: 0;
-        height: 0;
+        left: -22px; 
+        width: 0; height: 0;
         border: 11px solid transparent;
-        border-right-color: var(--border-color);
+        border-right-color: var(--cor-borda);
     }
-    /* Seta do balão (preenchimento) */
     .comment-card::after {
-        content: '';
-        position: absolute;
-        top: 15px; /* 1px para dentro da borda */
-        left: -19px; /* 1px para dentro da borda */
-        width: 0;
-        height: 0;
-        border: 10px solid transparent;
-        border-right-color: var(--light-bg);
+        left: -19px;
+        top: 15px;
+        border-width: 10px;
+        border-right-color: var(--cor-fundo-claro);
     }
     
-    
-    /* 1. Torna a regra de posicionamento absoluto específica para avatares DENTRO de um .comment-wrapper */
     .comment-wrapper .comment-avatar {
-        /* Posiciona o avatar absolutamente à esquerda do wrapper */
         position: absolute;
-        left: 0;
-        top: 0;
+        left: 0; top: 0;
     }
     
-    /* 2. Adiciona um layout flex para o container do formulário de novo comentário */
     .new-comment-form-container {
         display: flex;
         gap: 1rem;
-        align-items: flex-start; /* Alinha o avatar no topo do formulário */
+        align-items: flex-start;
     }
     
     .comment-avatar .avatar-icon {
-        width: 40px;
-        height: 40px;
+        width: 40px; height: 40px;
         background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
-        color: var(--text-light);
+        color: var(--cor-texto-claro);
         display: flex;
-        align-items: center;
-        justify-content: center;
+        align-items: center; justify-content: center;
         border-radius: 50%;
-        font-weight: bold;
-        font-size: 1.1rem;
+        font-weight: bold; font-size: 1.1rem;
     }
     
-    .comment-header {
-        margin-bottom: 0.5rem;
-    }
-    .comment-user-info .comment-user {
-        font-weight: 600;
-        color: var(--text-dark);
-    }
-    .comment-user-info .comment-date {
-        font-size: 0.8rem;
-        color: var(--secondary-color);
-    }
-    .comment-actions .btn {
-        background-color: transparent;
-        color: var(--secondary-color);
-    }
-    .comment-actions .btn:hover {
-        background-color: var(--border-color);
-    }
-    .dropdown-menu {
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
-    }
+    .comment-user { font-weight: 600; color: var(--cor-texto-escuro); }
+    .comment-date { font-size: 0.8rem; color: var(--cor-secundaria); }
     
     .comment-footer {
         margin-top: 1rem;
@@ -217,275 +168,85 @@
     }
     .comment-footer a {
         text-decoration: none;
-        color: var(--secondary-color);
+        color: var(--cor-secundaria);
         font-weight: 500;
         font-size: 0.85rem;
     }
-    .comment-footer a:hover {
-        color: var(--primary-color);
-    }
-    .comment-footer .fas, .comment-footer .far {
-        margin-right: 0.35rem;
-    }
+    .comment-footer a:hover { color: var(--cor-primaria); }
+    .btn-like.liked { color: var(--cor-primaria); font-weight: bold; }
     
-    .btn-like.liked {
-        color: var(--primary-color);
-        font-weight: bold;
-    }
-    
-    /* Estilos para as respostas aninhadas */
     .comment-replies {
-        margin-left: 4.5rem; /* Ajustado para alinhar com o balão */
+        margin-left: 4.5rem;
         padding-left: 1rem;
-        border-left: 2px solid var(--border-color);
+        border-left: 2px solid var(--cor-borda);
         margin-top: 1.5rem;
     }
     
     /* ========================================================================= */
-    /* ======== INÍCIO: ESTILOS UNIFICADOS PARA CONTEÚDO (MARKDOWN) ============ */
+    /* ESTILOS UNIFICADOS PARA CONTEÚDO (MARKDOWN)
     /* ========================================================================= */
-    .enunciado-formatado,
-    .explicacao,
-    .tiptap,
-    .comment-body {
+    .enunciado-formatado, .explicacao, .tiptap, .comment-body {
         font-size: 1rem;
         line-height: 1.7;
-        color: var(--text-dark);
+        color: var(--cor-texto-escuro);
     }
     
-    .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1,
-    .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2,
-    .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 {
-        margin-top: 1.5rem;
-        margin-bottom: 1rem;
-        font-weight: 600;
-        line-height: 1.4;
-    }
-    .enunciado-formatado h1, .explicacao h1, .tiptap h1, .comment-body h1 { font-size: 1.5rem !important; }
-    .enunciado-formatado h2, .explicacao h2, .tiptap h2, .comment-body h2 { font-size: 1.25rem !important; }
-    .enunciado-formatado h3, .explicacao h3, .tiptap h3, .comment-body h3 { font-size: 1.1rem !important; }
-    
-    .enunciado-formatado p, .explicacao p, .tiptap p, .comment-body p {
-        margin-bottom: 1rem;
-    }
-    .enunciado-formatado p:last-child, .explicacao p:last-child, .tiptap p:last-child, .comment-body p:last-child {
-        margin-bottom: 0;
-    }
-    
-    .enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul,
-    .enunciado-formatado ol, .explicacao ol, .tiptap ol, .comment-body ol {
-        padding-left: 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .enunciado-formatado li, .explicacao li, .tiptap li, .comment-body li {
-        margin-bottom: 0.5rem;
-    }
-    
+    .enunciado-formatado p, .explicacao p, .tiptap p, .comment-body p { margin-bottom: 1rem; }
+    .enunciado-formatado ul, .explicacao ul, .tiptap ul, .comment-body ul { padding-left: 1.5rem; margin-bottom: 1rem; }
     .enunciado-formatado blockquote, .explicacao blockquote, .tiptap blockquote, .comment-body blockquote {
-        font-style: italic;
-        color: var(--secondary-color);
-        padding-left: 1.5rem;
-        border-left: 4px solid var(--border-color);
+        font-style: italic; color: var(--cor-secundaria);
+        padding-left: 1.5rem; border-left: 4px solid var(--cor-borda);
         margin: 1rem 0;
     }
-    
-    .enunciado-formatado code, .explicacao code, .tiptap code, .comment-body code {
-        background-color: #e9ecef;
-        color: #c7254e;
-        padding: .2rem .4rem;
-        border-radius: .25rem;
-        font-size: 90%;
-    }
-    
-    .enunciado-formatado hr, .explicacao hr, .tiptap hr, .comment-body hr {
-        border: none;
-        border-top: 1px solid var(--border-color);
-        margin: 2rem 0;
-    }
-    
+
     /* ========================================================================= */
-    /* =================== ESTILOS ESPECÍFICOS DA QUESTÃO ====================== */
+    /* ESTILOS ESPECÍFICOS DO CARD DA QUESTÃO
     /* ========================================================================= */
-    
     .card-questao {
-        background-color: var(--light-bg);
+        background-color: var(--cor-fundo-claro);
         border: none;
-        border-radius: var(--border-radius);
-        box-shadow: var(--box-shadow);
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-caixa);
         margin-bottom: 2rem;
-        overflow: hidden; /* Garante que os cantos arredondados sejam aplicados */
-    }
-    
-    .card-questao .card-header {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid var(--border-color);
-        font-weight: 500;
+        overflow: hidden;
     }
     
     .card-questao .fa-star {
-        font-size: 1.25rem;
-        cursor: pointer;
-        color: #ced4da; /* Cor padrão da estrela vazia */
+        font-size: 1.25rem; cursor: pointer; color: #ced4da;
     }
     .card-questao .fa-star.fas.text-warning {
-        color: #FFC107 !important; /* Cor da estrela cheia */
+        color: var(--cor-aviso) !important;
     }
     
-    .card-questao .alternativas .form-check {
-        padding: 0.75rem 1rem;
-        border-radius: 8px;
-        margin-bottom: 0.5rem;
-        border: 1px solid transparent;
-        transition: background-color 0.2s ease, border-color 0.2s ease;
-    }
-    .card-questao .alternativas .form-check:hover {
-        background-color: #f8f9fa;
-    }
-    .card-questao .alternativas .form-check-input {
-        margin-top: 0.4em;
-    }
-    
-    /* Estilos para feedback de resposta */
-    .alternativas .form-check-label.text-success {
-        color: var(--success-color) !important;
-        font-weight: bold;
-    }
-    .alternativas .form-check-label.text-danger {
-        color: var(--danger-color) !important;
-    }
+    /* Feedback de Resposta */
+    .alternativas .form-check-label.text-success { color: var(--cor-sucesso) !important; font-weight: bold; }
+    .alternativas .form-check-label.text-danger { color: var(--cor-erro) !important; }
     .alternativas .form-check-label.text-danger::after {
-        content: " (Sua resposta)";
-        font-style: italic;
-        font-weight: normal;
+        content: " (Sua resposta)"; font-style: italic; font-weight: normal;
     }
-    
     
     .explicacao {
         background-color: #f8f9fa;
-        border-radius: var(--border-radius);
-        border-left: 4px solid var(--primary-color);
-    }
-    
-    .card-questao .card-footer {
-        background-color: var(--light-bg);
-        border-top: 1px solid var(--border-color);
+        border-radius: var(--raio-borda);
+        border-left: 4px solid var(--cor-primaria);
     }
 
-/* ========================================================================= */
-/* ============= AJUSTES PARA TELAS MOBILE (ATÉ 768px) ===================== */
-/* ========================================================================= */
-@media (max-width: 768px) {
-
-/* 🔒 Garante que não sobre espaço lateral nem scroll horizontal */
-html, body {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    overflow-x: hidden;
-}
-
-/* 1. Container ocupa 100% sem padding lateral */
-.container {
-    max-width: 100%;
-    width: 100%;
-    padding: 0;
-    margin: 0;
-}
-
-/* 2. Cards ocupando 100% da largura da tela */
-.filtros-card,
-.card-questao {
-    width: 100%;
-    border-radius: 0;
-    margin: 0 0 1rem 0; /* apenas margem inferior para separar */
-    box-shadow: none;
-    border-bottom: 1px solid var(--border-color); 
-    background: var(--light-bg);
-}
-
-/* 3. Conteúdo interno com respiro */
-.filtros-card,
-.card-questao .card-body,
-.card-questao .card-header,
-.card-questao .card-footer,
-.comentarios-section {
-    padding: 1.25rem;
-}
-
-/* 4. Títulos e textos mais legíveis */
-.card-questao h4,
-.card-questao h5 {
-    margin-bottom: 0.75rem;
-    line-height: 1.4;
-}
-
-.card-questao p {
-    line-height: 1.6;
-    margin-bottom: 0.75rem;
-}
-
-/* 5. Ícone da estrela */
-.card-questao .fa-star {
-    font-size: 1.6rem;
-    margin-left: 0.5rem;
-}
-
-/* ======================================================= */
-/* ======== AJUSTES NA ÁREA DE COMENTÁRIOS (MOBILE) ====== */
-/* ======================================================= */
-
-.comment-wrapper {
-    padding-left: 55px;
-    margin-bottom: 1rem;
-}
-
-.comment-avatar .avatar-icon {
-    width: 40px;
-    height: 40px;
-    font-size: 1.1rem;
-}
-
-.comment-card {
-    padding: 1rem;
-    border-radius: 0.75rem;
-    line-height: 1.5;
-}
-
-.comment-card::before {
-    left: -20px; 
-    border-width: 10px;
-    border-right-color: var(--border-color);
-}
-
-.comment-card::after {
-    top: 15px;
-    left: -17px; 
-    border-width: 9px;
-    border-right-color: var(--light-bg);
-}
-
-.comment-footer {
-    flex-direction: row;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-top: 0.75rem;
-}
-
-.comment-replies {
-    margin-left: 1.25rem;
-    padding-left: 1rem;
-    border-left: 2px solid var(--border-color);
-}
-
-/* 6. Proteção extra: imagens e tabelas nunca ultrapassam a tela */
-img, table {
-    max-width: 100%;
-    height: auto;
-}
-}
-
-
-    
+    /* ========================================================================= */
+    /* AJUSTES PARA TELAS MOBILE (ATÉ 768px)
+    /* ========================================================================= */
+    @media (max-width: 768px) {
+        .container { max-width: 100%; padding: 0; }
+        .filtros-card, .card-questao {
+            width: 100%;
+            border-radius: 0;
+            margin: 0 0 1rem 0;
+            box-shadow: none;
+            border-bottom: 1px solid var(--cor-borda); 
+        }
+        .card-body, .card-header, .card-footer, .comentarios-section { padding: 1.25rem; }
+        .comment-wrapper { padding-left: 55px; }
+        .comment-replies { margin-left: 1.25rem; padding-left: 1rem; }
+    }
 </style>
 {% endblock %}
 
@@ -493,10 +254,8 @@ img, table {
 {% block content %}
 <div class="container mt-5">
 
-    <!-- =================================================================== -->
     <!-- CABEÇALHO E FILTROS -->
-    <!-- =================================================================== -->
-    <div class="filtros-card p-4">
+    <div class="filtros-card p-4 mb-5">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="mb-0 h4">Filtrar Questões</h2>
             <div>
@@ -506,42 +265,38 @@ img, table {
             </div>
         </div>
 
-        <!-- Filtros rápidos por STATUS (funcionalidade exclusiva da área de prática) -->
+        <!-- Filtros rápidos por STATUS -->
         <div class="mb-4 text-center">
             <div class="btn-group flex-wrap" role="group" aria-label="Filtros de status">
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=" class="btn btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=respondidas" class="btn btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=nao_respondidas" class="btn btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=acertei" class="btn btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=errei" class="btn btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
-                <a href="?{{ request.GET.urlencode|remove_page_param }}&status=favoritas" class="btn btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
+                <!-- O botão "TODAS" agora remove o parâmetro 'status' da URL -->
+                <a href="?{% url_replace status='' %}" class="btn btn-status-filter {% if not request.GET.status %}active{% endif %}">TODAS</a>
+                
+                <!-- Os outros botões definem o parâmetro 'status' para o valor correto -->
+                <a href="?{% url_replace status='respondidas' %}" class="btn btn-status-filter {% if request.GET.status == 'respondidas' %}active{% endif %}">RESOLVIDAS</a>
+                <a href="?{% url_replace status='nao_respondidas' %}" class="btn btn-status-filter {% if request.GET.status == 'nao_respondidas' %}active{% endif %}">NÃO RESOLVIDAS</a>
+                <a href="?{% url_replace status='acertei' %}" class="btn btn-status-filter {% if request.GET.status == 'acertei' %}active{% endif %}">ACERTEI</a>
+                <a href="?{% url_replace status='errei' %}" class="btn btn-status-filter {% if request.GET.status == 'errei' %}active{% endif %}">ERREI</a>
+                <a href="?{% url_replace status='favoritas' %}" class="btn btn-status-filter {% if request.GET.status == 'favoritas' %}active{% endif %}">FAVORITAS</a>
             </div>
         </div>
 
         <!-- INCLUSÃO DO COMPONENTE DE FILTROS REUTILIZÁVEL -->
         {% include 'includes/_filtros_questoes.html' with form_action_url=request.path status_param=status_param %}
         
-        <!-- Botão para salvar a combinação de filtros atual -->
         <div class="text-center mt-3">
             <button type="button" class="btn btn-link text-secondary" data-bs-toggle="modal" data-bs-target="#salvarFiltroModal">
                 <i class="fas fa-save me-2"></i>Salvar Filtros Atuais
             </button>
         </div>
     </div>
-    <!-- FIM DO CABEÇALHO E FILTROS -->
 
-
-    <!-- =================================================================== -->
-    <!-- LISTAGEM DE QUESTÕES -->
-    <!-- =================================================================== -->
-
-
+    <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
     {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
    
+    <!-- LISTAGEM DE QUESTÕES -->
     {% for questao in questoes %}
     <div class="card card-questao mb-4" id="questao-{{ questao.id }}">
         
-        <!-- ADIÇÃO: Cabeçalho do Card da Questão REVERTIDO para o layout original -->
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <span class="badge bg-dark me-2">{{ forloop.counter0|add:questoes.start_index }}.</span>
@@ -559,7 +314,6 @@ img, table {
                title="Marcar como favorita"></i>
         </div>
 
-        <!-- Corpo do Card da Questão -->
         <div class="card-body p-4">
             {% if questao.imagem_enunciado %}
                 <img src="{{ questao.imagem_enunciado.url }}" class="enunciado-imagem mb-4" alt="Imagem da questão">
@@ -593,7 +347,6 @@ img, table {
             </div>
         </div>
 
-        <!-- Rodapé do Card da Questão -->
         <div class="card-footer bg-white d-flex justify-content-center gap-2">
             <button type="button" class="btn btn-outline-secondary btn-sm btn-toggle-explicacao d-none" data-questao-id="{{ questao.id }}">
                 <i class="fas fa-graduation-cap me-1"></i> Gabarito Comentado
@@ -608,42 +361,7 @@ img, table {
 
         <!-- Seção de Comentários (Oculta) -->
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4 px-3">
-                <h4 class="h6 mb-0">Comentários</h4>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                        <span id="sort-label-{{ questao.id }}">Mais Recentes</span>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="recent" data-questao-id="{{ questao.id }}">Mais Recentes</a></li>
-                        <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="likes" data-questao-id="{{ questao.id }}">Mais Curtidos</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}"></div>
-            <div class="p-3">
-                <hr>
-                <h5 class="h6 mb-3 text-center">Deixe seu comentário</h5>
-                <div class="new-comment-form-container">
-                    <div class="comment-avatar">
-                        <div class="avatar-icon"><i class="fas fa-user"></i></div>
-                    </div>
-                    <form class="form-comentario flex-grow-1" data-questao-id="{{ questao.id }}">
-                        <div class="tiptap-toolbar">
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
-                        </div>
-                        <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
-                        <textarea name="conteudo" class="d-none" required></textarea>
-                        <div class="d-flex d-flex justify-content-center mt-2">
-                            <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            {% include 'pratica/includes/_secao_comentarios.html' %}
         </div>
     </div>
     {% empty %}
@@ -653,136 +371,18 @@ img, table {
         <p class="text-muted">Tente ajustar seus filtros ou buscar por outros termos.</p>
     </div>
     {% endfor %}
-    <!-- FIM DA LISTAGEM DE QUESTÕES -->
+
+    <!-- COMPONENTE DE PAGINAÇÃO -->
+    {% include 'includes/_paginacao.html' with paginated_object=questoes %} 
 
 </div>
 
-<!-- INCLUSÃO DO COMPONENTE DE PAGINAÇÃO REUTILIZÁVEL -->
-{% include 'includes/_paginacao.html' with paginated_object=questoes %} 
-
-<!-- MODAIS (com código completo) -->
-<div class="modal fade" id="salvarFiltroModal" tabindex="-1" aria-labelledby="salvarFiltroModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="salvarFiltroModalLabel">Salvar Novo Filtro</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p>Digite um nome para o conjunto de filtros atual.</p>
-          <input type="text" class="form-control" id="input-nome-filtro" placeholder="Nome do novo filtro">
-          <div class="invalid-feedback">Por favor, insira um nome.</div>
-        </div>
-        <div class="modal-footer d-flex justify-content-center">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-filtro">Salvar</button>
-          </div>
-      </div>
-    </div>
-</div>
-  
-<div class="modal fade" id="filtrosSalvosModal" tabindex="-1" aria-labelledby="filtrosSalvosModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filtrosSalvosModalLabel">Meus Filtros Salvos</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <ul class="list-group" id="lista-modal-filtros-salvos">
-                    {% for filtro in filtros_salvos %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-{{ filtro.id }}">
-                            <a href="?{{ filtro.parametros_url }}" class="text-decoration-none text-dark flex-grow-1">{{ filtro.nome }}</a>
-                            <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="{{ filtro.id }}">&times;</button>
-                        </li>
-                    {% empty %}
-                        <p id="sem-filtros-salvos-msg" class="text-center text-muted">Nenhum filtro salvo.</p>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
-  
-<div class="modal fade" id="confirmarExclusaoModal" tabindex="-1" aria-labelledby="confirmarExclusaoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="confirmarExclusaoModalLabel">Confirmar Exclusão</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p id="corpo-modal-exclusao">Deseja realmente excluir este item?</p>
-        </div>
-        <div class="modal-footer d-flex justify-content-center">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="button" class="btn btn-danger" id="btn-confirmar-exclusao">Sim, Excluir</button>
-        </div>
-      </div>
-    </div>
-</div>
-
-<!-- =================================================================== -->
-<!-- NOVO: MODAL DE NOTIFICAÇÃO GENÉRICO -->
-<!-- =================================================================== -->
-<div class="modal fade" id="notificationModal" tabindex="-1" aria-labelledby="notificationModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header text-white" id="notificationModalHeader">
-                <h5 class="modal-title" id="notificationModalLabel">Aviso</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body" id="notificationModalBody">
-                <!-- O conteúdo da mensagem será inserido aqui via JS -->
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendi</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-<!-- =================================================================== -->
-<!-- MODAL PARA NOTIFICAR ERRO -->
-<!-- =================================================================== -->
-<div class="modal fade" id="modalNotificarErro" tabindex="-1" aria-labelledby="modalNotificarErroLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalNotificarErroLabel">Qual o tipo do erro encontrado?</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <form id="form-notificar-erro">
-              {% csrf_token %}
-              <input type="hidden" name="questao_id" id="notificar-erro-questao-id">
-              
-              <div class.mb-4 id="botoes-tipo-erro">
-                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="ENUNCIADO_ALTERNATIVA">Enunciado/alternativa errada</button>
-                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="DISCIPLINA_ASSUNTO">Disciplina ou assunto errado</button>
-                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_ANULADA">Questão anulada</button>
-                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DESATUALIZADA">Questão desatualizada</button>
-                  <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DUPLICADA">Questão duplicada</button>
-              </div>
-              
-              <div class="mb-3">
-                  <textarea class="form-control" name="descricao" rows="4" placeholder="Comente sobre o erro encontrado (Obrigatório)" required></textarea>
-              </div>
-              
-              <div class="d-grid">
-                   <button type="submit" class="btn btn-primary">Enviar Notificação</button>
-              </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- INCLUSÃO DOS MODAIS REUTILIZÁVEIS -->
+{% include 'pratica/includes/_modais_pratica.html' %}
 
 {% endblock %}
 
 {% block scripts %}
-
 <!-- Importação dos Módulos do Tiptap -->
 <script type="module">
     import { Editor } from 'https://esm.sh/@tiptap/core';
@@ -791,799 +391,536 @@ img, table {
     import Underline from 'https://esm.sh/@tiptap/extension-underline';
     import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder';
    
+    // Disponibiliza globalmente para o script inline
     window.TipTap = { Editor, StarterKit, Markdown, Underline, Placeholder };
 </script>
 
-<!-- ======================================================= -->
-<!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
-<!-- ======================================================= -->
+<!-- SCRIPT DE FILTROS -->
 <script src="{% static 'js/filtros-questoes.js' %}"></script>
 
-<!-- Lógica JS específica da página (Tiptap, comentários, modais) -->
+<!-- LÓGICA JS ESPECÍFICA DA PÁGINA -->
 <script>
-
-window.MANUAL_FILTER_INIT = true; 
-document.addEventListener('DOMContentLoaded', function() {
-
-    if (typeof FiltrosQuestoes !== 'undefined') {
-            new FiltrosQuestoes().init();
-        } else {
-            console.error("Módulo FiltrosQuestoes não foi encontrado.");
-        }
-        
-    
-    const salvarFiltroModalEl = document.getElementById('salvarFiltroModal');
-    const salvarFiltroModal = salvarFiltroModalEl ? new bootstrap.Modal(salvarFiltroModalEl) : null;
-    
-    const confirmarExclusaoModalEl = document.getElementById('confirmarExclusaoModal');
-    const confirmarExclusaoModal = confirmarExclusaoModalEl ? new bootstrap.Modal(confirmarExclusaoModalEl) : null;
-
-    const notificationModalEl = document.getElementById('notificationModal');
-    const notificationModal = notificationModalEl ? new bootstrap.Modal(notificationModalEl) : null;
-
-    /**
-     * Exibe um modal de notificação genérico.
-     * @param {string} title - O título do modal.
-     * @param {string} message - A mensagem a ser exibida no corpo do modal.
-     * @param {string} type - O tipo de notificação ('success', 'error', ou 'info').
-     */
-     function showNotificationModal(title, message, type = 'info') {
-        if (!notificationModal) return;
-
-        const modalTitle = document.getElementById('notificationModalLabel');
-        const modalBody = document.getElementById('notificationModalBody');
-        const modalHeader = document.getElementById('notificationModalHeader');
-
-        modalTitle.textContent = title;
-        modalBody.innerHTML = message; // innerHTML para permitir tags como <br> se necessário
-
-        // Reseta as classes de cor do cabeçalho
-        modalHeader.classList.remove('bg-success', 'bg-danger', 'bg-primary');
-
-        // Aplica a classe de cor correta com base no tipo
-        if (type === 'success') {
-            modalHeader.classList.add('bg-success');
-        } else if (type === 'error') {
-            modalHeader.classList.add('bg-danger');
-        } else {
-            modalHeader.classList.add('bg-primary'); // Cor padrão para 'info'
-        }
-
-        notificationModal.show();
-    }
-
-    const tiptapEditors = {};
-    let editTiptapEditor = null;
-
+    document.addEventListener('DOMContentLoaded', function() {
         // =======================================================================
-    // INÍCIO DO CÓDIGO FALTANTE
-    // =======================================================================
-
-    const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
-    if (Editor) {
-        editTiptapEditor = new Editor({
-            extensions: [ 
-                StarterKit, 
-                Markdown.configure({ html: false }), 
-                Underline,
-                Placeholder.configure({ placeholder: 'Escreva sua resposta...' })
-            ],
-            content: '',
-        });
-    } else {
-        console.error("Tiptap não foi carregado a tempo para criar o editor de edição.");
-    }
-
-    function initializeTiptapEditor({ editorElement, toolbarElement, hiddenTextarea }) {
-        if (editorElement.tiptapEditor) return editorElement.tiptapEditor;
-
-        if (!Editor) {
-            console.error("Tiptap não foi carregado corretamente.");
-            return;
-        }
-
-        const editor = new Editor({
-            element: editorElement,
-            extensions: [
-                StarterKit,
-                Markdown.configure({ html: false, linkify: true, breaks: true }),
-                Underline,
-                Placeholder.configure({ placeholder: 'Escreva o seu comentário...' }),
-            ],
-            content: '',
-            editorProps: {
-                transformPastedHTML(html) {
-                    const doc = new DOMParser().parseFromString(html, 'text/html');
-                    doc.body.querySelectorAll('*').forEach(el => {
-                        el.removeAttribute('style');
-                        el.removeAttribute('class');
-                    });
-                    return doc.body.innerHTML;
-                }
-            },
-            onUpdate: ({ editor }) => {
-                hiddenTextarea.value = editor.storage.markdown.getMarkdown();
-            },
-            onTransaction: ({ editor }) => {
-                const updateButtonState = (command, activeState) => {
-                    const button = toolbarElement.querySelector(`[data-command="${command}"]`);
-                    if (button) button.classList.toggle('active', editor.isActive(activeState));
-                };
-                updateButtonState('toggleBold', 'bold');
-                updateButtonState('toggleItalic', 'italic');
-                updateButtonState('toggleUnderline', 'underline');
-                updateButtonState('toggleBulletList', 'bulletList');
-                updateButtonState('toggleOrderedList', 'orderedList');
-            }
-        });
-
-        toolbarElement.querySelectorAll('button[data-command]').forEach(button => {
-            button.addEventListener('click', () => {
-                const command = button.dataset.command;
-                const commands = {
-                    toggleBold: () => editor.chain().focus().toggleBold().run(),
-                    toggleItalic: () => editor.chain().focus().toggleItalic().run(),
-                    toggleUnderline: () => editor.chain().focus().toggleUnderline().run(),
-                    toggleBulletList: () => editor.chain().focus().toggleBulletList().run(),
-                    toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(),
-                };
-                if (commands[command]) commands[command]();
+        // INICIALIZAÇÃO E VARIÁVEIS
+        // =======================================================================
+        const tiptapEditors = {}; // Armazena instâncias dos editores Tiptap
+        let editTiptapEditor = null; // Editor único para edição de comentários
+    
+        // Inicializa o editor de edição de comentários assim que o Tiptap estiver disponível
+        if (window.TipTap) {
+            const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
+            editTiptapEditor = new Editor({
+                extensions: [ StarterKit, Markdown.configure({ html: false }), Underline, Placeholder.configure({ placeholder: 'Edite sua resposta...' }) ],
+                content: '',
             });
-        });
-
-        editorElement.tiptapEditor = editor;
-        return editor;
-    }
-
-
-    document.addEventListener('click', function(e) {
-        const target = e.target;
-
-        const likeLink = target.closest('.btn-like');
-        if (likeLink) { e.preventDefault(); handleLikeComentario(likeLink); return; }
-
-        const toggleRepliesLink = target.closest('.toggle-replies-btn');
-        if (toggleRepliesLink) { e.preventDefault(); handleToggleReplies(toggleRepliesLink); return; }
-
-        const sortLink = target.closest('.sort-comments-btn');
-        if (sortLink) { e.preventDefault(); handleSortClick(sortLink); return; }
-
-        if (target.classList.contains('fa-star')) { handleFavoritar(target); return; }
-
-        const button = target.closest('button');
-        if (!button) return;
-
-        if (button.id === 'btn-confirmar-salvar-filtro') handleSalvarFiltro();
-        else if (button.classList.contains('btn-deletar-filtro')) {
-            const filtroId = button.dataset.filtroId;
-            const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
-            abrirModalConfirmacao(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
-        }
-        else if (button.classList.contains('btn-responder')) handleResponder(button);
-        else if (button.classList.contains('btn-toggle-comentarios')) handleToggleComentarios(button);
-        else if (button.classList.contains('btn-toggle-explicacao')) handleToggleExplicacao(button); 
-
-        else if (button.classList.contains('btn-excluir-comentario')) {
-            const comentarioId = button.dataset.comentarioId;
-            abrirModalConfirmacao('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
-        }
-        else if (button.classList.contains('btn-editar-comentario')) handleAbrirEdicao(button);
-        else if (button.classList.contains('btn-salvar-edicao')) handleSalvarEdicao(button);
-        else if (button.classList.contains('btn-cancelar-edicao')) cancelarEdicao(button.closest('.comment-edit-form'));
-        else if (button.classList.contains('btn-cancel-reply')) {
-            const formContainer = button.closest('.reply-form-container');
-            if (formContainer) {
-                formContainer.innerHTML = '';
-                formContainer.style.display = 'none';
-            }
-        }
-    });
-
-    document.addEventListener('submit', function(e) {
-        if (e.target.classList.contains('form-comentario')) {
-            e.preventDefault();
-            handleAdicionarComentario(e.target); 
-        }
-    });
-
-    function handleSalvarFiltro() {
-    const inputNome = document.getElementById('input-nome-filtro');
-    const nomeFiltro = inputNome.value;
-    if (!nomeFiltro.trim()) { inputNome.classList.add('is-invalid'); return; }
-    inputNome.classList.remove('is-invalid');
-    const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
-    
-    fetch("{% url 'pratica:salvar_filtro' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ nome: nomeFiltro, parametros: params })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.status === 'success') {
-            if(salvarFiltroModal) salvarFiltroModal.hide();
-            const lista = document.getElementById('lista-modal-filtros-salvos');
-            const itemExistente = document.getElementById(`filtro-salvo-item-${result.filtro.id}`);
-            if(itemExistente) itemExistente.remove();
-
-            const filtroHtml = `
-                <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
-                    <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
-                    <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
-                </li>`;
-            const msgVazio = document.getElementById('sem-filtros-salvos-msg');
-            if(msgVazio) msgVazio.remove();
-            lista.insertAdjacentHTML('beforeend', filtroHtml);
-            showNotificationModal('Sucesso!', 'Filtro salvo com sucesso.', 'success'); // <-- Feedback positivo
         } else {
-            // SUBSTITUÍDO
-            showNotificationModal('Erro ao Salvar', result.message, 'error');
+            console.error("Tiptap não foi carregado a tempo para criar o editor de edição.");
         }
-    })
-    // ADICIONADO
-    .catch(error => {
-        console.error('Erro de rede ao salvar filtro:', error);
-        showNotificationModal('Erro de Conexão', 'Não foi possível salvar o filtro. Tente novamente.', 'error');
-    });
-}
     
-function handleDeletarFiltro(filtroId) {
-    fetch("{% url 'pratica:deletar_filtro' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ filtro_id: filtroId })
-    })
-    .then(response => response.json())
-    .then(result => {
-        if (result.status === 'success') {
-            document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
-            if(confirmarExclusaoModal) confirmarExclusaoModal.hide();
-        } else {
-            // SUBSTITUÍDO
-            showNotificationModal('Erro ao Deletar', result.message, 'error');
-        }
-    })
-    // ADICIONADO
-    .catch(error => {
-        console.error('Erro de rede ao deletar filtro:', error);
-        showNotificationModal('Erro de Conexão', 'Não foi possível deletar o filtro. Tente novamente.', 'error');
-    });
-}
-    function abrirModalConfirmacao(mensagem, callback) {
-        document.getElementById('corpo-modal-exclusao').textContent = mensagem;
-        const btnConfirmar = document.getElementById('btn-confirmar-exclusao');
-        const newBtn = btnConfirmar.cloneNode(true);
-        btnConfirmar.parentNode.replaceChild(newBtn, btnConfirmar);
-        newBtn.addEventListener('click', callback, { once: true });
-        if(confirmarExclusaoModal) confirmarExclusaoModal.show();
-    }
-
-    function handleResponder(button) {
-        const questaoId = button.dataset.questaoId;
-        const questaoCard = document.getElementById(`questao-${questaoId}`);
-        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
-        if (!alternativaSelecionada) { 
-            showNotificationModal('Atenção', 'Por favor, selecione uma alternativa antes de responder.', 'info'); 
-            return; 
-        }
-        
-        const data = { questao_id: questaoId, alternativa: alternativaSelecionada.value };
-
-        fetch("{% url 'pratica:verificar_resposta' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify(data)
-        })
-        .then(response => response.json())
-        .then(result => {
-            const feedbackDiv = questaoCard.querySelector('.feedback');
-            const alertDiv = feedbackDiv.querySelector('.alert');
-            const explicacaoDiv = feedbackDiv.querySelector('.explicacao');
-            const explicacaoContent = explicacaoDiv.querySelector('.explicacao-conteudo');
-            
-            questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
-            button.style.display = 'none';
-
-            if (result.correta) {
-                alertDiv.className = 'alert alert-success';
-                alertDiv.textContent = `Correto! O gabarito é ${result.gabarito}.`;
-            } else {
-                alertDiv.className = 'alert alert-danger';
-                alertDiv.textContent = `Incorreto. A resposta correta era ${result.gabarito}.`;
-            }
-            
-            const labels = questaoCard.querySelectorAll('.form-check-label');
-            labels.forEach(label => {
-                const key = label.getAttribute('for').split('-')[1];
-                if (key === result.gabarito) {
-                    label.classList.add('text-success');
-                }
-                if (!result.correta && key === alternativaSelecionada.value){
-                    label.classList.add('text-danger');
-                }
-            });
-
-            if (result.explicacao) {
-                explicacaoContent.innerHTML = result.explicacao;
-                const btnExplicacao = questaoCard.querySelector('.btn-toggle-explicacao');
-                if (btnExplicacao) {
-                    btnExplicacao.classList.remove('d-none');
-                }
-            }
-            
-            feedbackDiv.style.display = 'block';
-        })
-
-        .catch(error => {
-        console.error('Erro de rede ao verificar resposta:', error);
-        showNotificationModal('Erro de Conexão', 'Não foi possível verificar sua resposta. Tente novamente.', 'error');
-    });
-}
-
-    function handleToggleExplicacao(button) {
-        const questaoId = button.dataset.questaoId;
-        const questaoCard = document.getElementById(`questao-${questaoId}`);
-        const explicacaoDiv = questaoCard.querySelector('.explicacao');
-
-        if (explicacaoDiv) {
-            const isHidden = explicacaoDiv.style.display === 'none' || explicacaoDiv.style.display === '';
-            explicacaoDiv.style.display = isHidden ? 'block' : 'none';
-        }
-    }
-// Em pratica/listar_questoes.html, dentro do <script> principal
-
-    function handleFavoritar(icon) {
-    const questaoId = icon.dataset.questaoId;
+        // =======================================================================
+        // FUNÇÕES DE MANIPULAÇÃO DO TIPTAP
+        // =======================================================================
+        function initializeTiptapEditor({ editorElement, toolbarElement, hiddenTextarea }) {
+            if (editorElement.tiptapEditor) return editorElement.tiptapEditor;
     
-    fetch("{% url 'pratica:favoritar_questao' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ questao_id: questaoId })
-    })
-    .then(response => {
-        // Adicionamos uma verificação aqui: se a resposta não for OK (ex: erro 500),
-        // nós forçamos a entrada no .catch()
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(result => {
-        if (result.status === 'success') {
-            icon.classList.toggle('far');
-            icon.classList.toggle('fas');
-            icon.classList.toggle('text-warning');
-        } else {
-            // Se a API retornar um erro conhecido, mostramos no modal
-            showNotificationModal('Erro ao Favoritar', result.message || 'Não foi possível completar a ação.', 'error');
-        }
-    })
-    // ADICIONADO: Tratamento de erro de rede
-    .catch(error => {
-        console.error('Erro de rede ao favoritar questão:', error);
-        showNotificationModal('Erro de Conexão', 'Não foi possível favoritar a questão. Tente novamente.', 'error');
-    });
-}
-    function handleToggleComentarios(button) {
-        const questaoId = button.dataset.questaoId;
-        const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
-        if (!comentariosSection) return;
-
-        const isHidden = comentariosSection.style.display === 'none';
-        comentariosSection.style.display = isHidden ? 'block' : 'none';
-
-        if (isHidden) {
-            if (!tiptapEditors[questaoId]) {
-                const form = comentariosSection.querySelector('.form-comentario');
-                if (form) {
-                    const editorElement = form.querySelector('.tiptap-editor');
-                    const toolbarElement = form.querySelector('.tiptap-toolbar');
-                    const hiddenTextarea = form.querySelector('textarea[name="conteudo"]');
-                    if (editorElement && toolbarElement && hiddenTextarea) {
-                        tiptapEditors[questaoId] = initializeTiptapEditor({ editorElement, toolbarElement, hiddenTextarea });
-                    }
-                }
-            }
-            if (comentariosSection.dataset.carregado !== 'true') {
-                carregarComentarios(questaoId);
-            }
-        }
-    }
-    
-        function handleAdicionarComentario(form) {
-        const questaoId = form.dataset.questaoId;
-        const parentId = form.dataset.parentId;
-        const textarea = form.querySelector('textarea[name="conteudo"]');
-        const conteudo = textarea.value;
-
-        if (!conteudo.trim()) {
-            // SUBSTITUÍDO
-            showNotificationModal('Atenção', 'O comentário não pode estar vazio.', 'info');
-            return;
-        }
-
-        const postData = { questao_id: questaoId, conteudo: conteudo };
-        if (parentId) postData.parent_id = parentId;
-
-        fetch("{% url 'pratica:adicionar_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify(postData)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (result.status === 'success') {
-                carregarComentarios(questaoId);
-                if (!parentId && tiptapEditors[questaoId]) {
-                    tiptapEditors[questaoId].commands.clearContent();
-                }
-            } else {
-                // SUBSTITUÍDO
-                showNotificationModal('Erro ao Comentar', result.message, 'error');
-            }
-        })
-        // ADICIONADO
-        .catch(error => {
-            console.error('Erro de rede ao adicionar comentário:', error);
-            showNotificationModal('Erro de Conexão', 'Não foi possível enviar seu comentário. Tente novamente.', 'error');
-        });
-    }
-    function handleExcluirComentario(comentarioId) {
-        const commentWrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
-        if (!commentWrapper) return;
-        const questaoId = commentWrapper.closest('.card-questao').id.replace('questao-', '');
-
-        fetch("{% url 'pratica:excluir_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ comentario_id: comentarioId })
-        })
-        .then(r => r.json())
-        .then(res => {
-            if (res.status === 'success') {
-                carregarComentarios(questaoId);
-                if (confirmarExclusaoModal) confirmarExclusaoModal.hide();
-            } else {
-                // SUBSTITUÍDO
-                showNotificationModal('Erro ao Excluir', res.message, 'error');
-            }
-        })
-        // ADICIONADO
-        .catch(error => {
-            console.error('Erro de rede ao excluir comentário:', error);
-            if (confirmarExclusaoModal) confirmarExclusaoModal.hide();
-            showNotificationModal('Erro de Conexão', 'Não foi possível excluir o comentário. Tente novamente.', 'error');
-        });
-    }
-
-    function handleLikeComentario(link) {
-    const comentarioId = link.dataset.comentarioId;
-    fetch("{% url 'pratica:toggle_like_comentario' %}", {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-        body: JSON.stringify({ comentario_id: comentarioId })
-    })
-    .then(response => {
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        return response.json();
-    })
-    .then(result => {
-        if (result.status === 'success') {
-            const countSpan = link.querySelector('.like-count');
-            if (countSpan) countSpan.textContent = result.likes_count;
-            link.classList.toggle('liked', result.liked);
-        } else {
-            showNotificationModal('Erro', result.message || 'Não foi possível registrar o like.', 'error');
-        }
-    })
-    // ADICIONADO: Tratamento de erro de rede
-    .catch(error => {
-        console.error('Erro de rede ao dar like:', error);
-        showNotificationModal('Erro de Conexão', 'Não foi possível registrar o like. Tente novamente.', 'error');
-    });
-}
-
-    function handleToggleReplies(link) {
-        const comentarioId = link.dataset.comentarioId;
-        const questaoId = link.closest('.card-questao').id.replace('questao-', '');
-        const wrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
-        const repliesWrapper = wrapper.querySelector('.replies-wrapper');
-
-        if (repliesWrapper.style.display === 'block') {
-            repliesWrapper.style.display = 'none';
-        } else {
-            repliesWrapper.style.display = 'block';
-            
-            const formContainer = repliesWrapper.querySelector('.reply-form-container');
-            if (!formContainer.querySelector('form')) {
-                formContainer.innerHTML = `
-                    <div class="new-comment-form-container mt-3">
-                        <div class="comment-avatar">
-                            <div class="avatar-icon" ><i class="fas fa-user"></i></div>
-                        </div>
-                        <form class="form-comentario form-reply flex-grow-1" data-questao-id="${questaoId}" data-parent-id="${comentarioId}">
-                            <div class="mb-2">
-                                <textarea name="conteudo" class="form-control form-control-sm" rows="3" placeholder="Escreva sua resposta..." required></textarea>
-                            </div>
-                            <div class="d-flex justify-content-center">
-                                <button type="button" class="btn btn-sm btn-secondary me-2 btn-cancel-reply">Cancelar</button>
-                                <button type="submit" class="btn btn-sm btn-primary">Enviar Resposta</button>
-                            </div>
-                        </form>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    function handleSortClick(link) {
-        const questaoId = link.dataset.questaoId;
-        const sortBy = link.dataset.sort;
-        
-        const sortLabel = document.getElementById(`sort-label-${questaoId}`);
-        if (sortLabel) sortLabel.textContent = link.textContent;
-
-        carregarComentarios(questaoId, sortBy);
-    }
-    
-    function handleAbrirEdicao(button) {
-        const comentarioId = button.dataset.comentarioId;
-        const commentCard = document.getElementById(`comentario-${comentarioId}`);
-        const contentDiv = commentCard.querySelector('.comment-content');
-        const editFormDiv = commentCard.querySelector('.comment-edit-form');
-        
-        const outroFormAberto = document.querySelector('.comment-edit-form:not([style*="display: none"])');
-        if (outroFormAberto) cancelarEdicao(outroFormAberto);
-
-        const rawContent = contentDiv.dataset.rawContent;
-
-        editFormDiv.innerHTML = `
-            <div class="tiptap-toolbar">
-                <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBold" title="Negrito"><b>B</b></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleItalic" title="Itálico"><i>I</i></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
-                <button type="button" class="btn btn-sm btn-outline-secondary me-1 mb-1" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
-            </div>
-            <div class="tiptap-editor" id="tiptap-editor-edit-${comentarioId}"></div>
-            <div class="mt-2 d-flex d-flex justify-content-center">
-                <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao me-2">Cancelar</button>
-                <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
-            </div>
-        `;
-
-        const editorPlaceholder = editFormDiv.querySelector('.tiptap-editor');
-        editorPlaceholder.appendChild(editTiptapEditor.view.dom);
-
-        editTiptapEditor.commands.setContent(rawContent, false);
-        editTiptapEditor.commands.focus();
-        
-        contentDiv.style.display = 'none';
-        editFormDiv.style.display = 'block';
-    }
-
-    function handleSalvarEdicao(button) {
-        const comentarioId = button.dataset.comentarioId;
-        const novoConteudo = editTiptapEditor.storage.markdown.getMarkdown();
-
-        fetch("{% url 'pratica:editar_comentario' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
-        })
-        .then(response => response.json())
-        .then(result => {
-            if(result.status === 'success') {
-                const commentCard = document.getElementById(`comentario-${comentarioId}`);
-                const contentDiv = commentCard.querySelector('.comment-content');
-                contentDiv.innerHTML = result.conteudo_html;
-                contentDiv.dataset.rawContent = novoConteudo;
-                cancelarEdicao(button.closest('.comment-edit-form'));
-            } else { 
-                // SUBSTITUÍDO
-                showNotificationModal('Erro ao Salvar', result.message, 'error'); 
-            }
-        })
-        // ADICIONADO
-        .catch(error => {
-            console.error('Erro de rede ao salvar edição:', error);
-            showNotificationModal('Erro de Conexão', 'Não foi possível salvar a edição. Tente novamente.', 'error');
-        });
-    }
-    function cancelarEdicao(editFormDiv) {
-        if (!editFormDiv) return;
-        const commentCard = editFormDiv.closest('.comment-card');
-        const contentDiv = commentCard.querySelector('.comment-content');
-        
-        contentDiv.style.display = 'block';
-        editFormDiv.style.display = 'none';
-        editFormDiv.innerHTML = '';
-    }
-
-    function carregarComentarios(questaoId, sortBy = 'recent') {
-    const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
-    comentariosList.innerHTML = '<p class="text-center text-muted py-4">Carregando comentários...</p>';
-    
-    fetch(`/pratica/carregar-comentarios/${questaoId}/?sort_by=${sortBy}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            comentariosList.innerHTML = '';
-            if (data.comentarios.length > 0) {
-                data.comentarios.forEach(c => {
-                    comentariosList.appendChild(criarHtmlComentario(c));
-                });
-            } else {
-                comentariosList.innerHTML = '<p class="text-center text-muted py-4">Nenhum comentário ainda. Seja o primeiro a comentar!</p>';
-            }
-            document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
-        })
-        // ADICIONADO: Tratamento de erro de rede
-        .catch(error => {
-            console.error('Erro ao carregar comentários:', error);
-            comentariosList.innerHTML = '<p class="text-center text-danger py-4">Não foi possível carregar os comentários. Tente novamente mais tarde.</p>';
-        });
-}
-
-    function criarHtmlComentario(comentario) {
-        let buttons = '';
-        if (comentario.pode_editar) {
-            buttons = `
-                <div class="comment-actions dropdown">
-                    <button class="btn btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
-                    <ul class="dropdown-menu dropdown-menu-end">
-                        <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${comentario.id}">Editar</button></li>
-                        <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${comentario.id}">Excluir</button></li>
-                    </ul>
-                </div>
-            `;
-        }
-
-        const userInitial = comentario.usuario.charAt(0).toUpperCase();
-
-        let footerHtml = '';
-        if (!comentario.parent_id) {
-            const likedClass = comentario.user_liked ? 'liked' : '';
-            footerHtml = `
-                <div class="comment-footer">
-                    <a href="#" class="btn btn-like ${likedClass}" data-comentario-id="${comentario.id}">
-                        <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${comentario.likes_count}</span>)
-                    </a>
-                    <a href="#" class="btn toggle-replies-btn" data-comentario-id="${comentario.id}">
-                        <i class="fas fa-reply"></i> Respostas (${comentario.respostas_count})
-                    </a>
-                </div>
-            `;
-        }
-
-        const wrapper = document.createElement('div');
-        wrapper.className = 'comment-wrapper';
-        wrapper.id = `comment-wrapper-${comentario.id}`;
-
-        wrapper.innerHTML = `
-            <div class="comment-avatar">
-                <div class="avatar-icon" title="${comentario.usuario}">${userInitial}</div>
-            </div>
-            <div class="comment-card" id="comentario-${comentario.id}">
-                <div class="comment-main w-100">
-                    <div class="comment-header d-flex justify-content-between align-items-start">
-                        <div class="comment-user-info">
-                            <span class="comment-user">${comentario.usuario}</span>
-                            <div class="comment-date">${comentario.data_criacao}</div>
-                        </div>
-                        ${buttons}
-                    </div>
-                    <div class="comment-content" data-raw-content="${comentario.conteudo_raw.replace(/"/g, '&quot;')}">
-                        <div class="comment-body">${comentario.conteudo}</div>
-                    </div>
-                    <div class="comment-edit-form mt-2" style="display: none;"></div>
-                    ${footerHtml}
-                </div>
-            </div>
-        `;
-
-        if (!comentario.parent_id) {
-            const repliesWrapper = document.createElement('div');
-            repliesWrapper.className = 'replies-wrapper';
-            repliesWrapper.style.display = 'none';
-
-            const repliesContainer = document.createElement('div');
-            repliesContainer.className = 'comment-replies';
-            
-            if (comentario.respostas && comentario.respostas.length > 0) {
-                comentario.respostas.forEach(resposta => {
-                    repliesContainer.appendChild(criarHtmlComentario(resposta));
-                });
-            }
-            
-            const replyFormContainer = document.createElement('div');
-            replyFormContainer.className = 'reply-form-container';
-
-            repliesWrapper.appendChild(repliesContainer);
-            repliesWrapper.appendChild(replyFormContainer);
-            wrapper.appendChild(repliesWrapper);
-        }
-
-        return wrapper;
-    }
-
-    
-
-    const modalNotificarErroEl = document.getElementById('modalNotificarErro');
-    if (modalNotificarErroEl) {
-        const modalNotificarErro = new bootstrap.Modal(modalNotificarErroEl);
-        const formNotificarErro = document.getElementById('form-notificar-erro');
-        let tipoErroSelecionado = null;
-
-        modalNotificarErroEl.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const questaoId = button.dataset.questaoId;
-            formNotificarErro.querySelector('#notificar-erro-questao-id').value = questaoId;
-        });
-
-        const botoesTipoErro = formNotificarErro.querySelectorAll('#botoes-tipo-erro button');
-        botoesTipoErro.forEach(btn => {
-            btn.addEventListener('click', function() {
-                botoesTipoErro.forEach(b => b.classList.remove('active', 'btn-dark'));
-                this.classList.add('active', 'btn-dark');
-                tipoErroSelecionado = this.dataset.tipo;
-            });
-        });
-
-        // Lógica de envio do formulário ATUALIZADA
-        formNotificarErro.addEventListener('submit', function(e) {
-            e.preventDefault();
-            const questaoId = this.querySelector('#notificar-erro-questao-id').value;
-            const descricao = this.querySelector('textarea[name="descricao"]').value;
-
-            if (!tipoErroSelecionado) {
-                // SUBSTITUÍDO: alert() por nosso novo modal
-                showNotificationModal('Atenção', 'Por favor, selecione o tipo do erro antes de enviar.', 'error');
+            const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
+            if (!Editor) {
+                console.error("Tiptap não carregou corretamente.");
                 return;
             }
-
+    
+            const editor = new Editor({
+                element: editorElement,
+                extensions: [
+                    StarterKit, Markdown.configure({ html: false, linkify: true, breaks: true }), Underline,
+                    Placeholder.configure({ placeholder: 'Escreva o seu comentário...' }),
+                ],
+                content: '',
+                onUpdate: ({ editor }) => {
+                    hiddenTextarea.value = editor.storage.markdown.getMarkdown();
+                },
+            });
+    
+            toolbarElement.querySelectorAll('button[data-command]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const command = button.dataset.command;
+                    const commands = {
+                        toggleBold: () => editor.chain().focus().toggleBold().run(),
+                        toggleItalic: () => editor.chain().focus().toggleItalic().run(),
+                        toggleUnderline: () => editor.chain().focus().toggleUnderline().run(),
+                        toggleBulletList: () => editor.chain().focus().toggleBulletList().run(),
+                        toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(),
+                    };
+                    if (commands[command]) commands[command]();
+                });
+            });
+    
+            editorElement.tiptapEditor = editor;
+            return editor;
+        }
+    
+        // =======================================================================
+        // DELEGAÇÃO DE EVENTOS CENTRALIZADA (CORRIGIDA)
+        // =======================================================================
+        document.body.addEventListener('click', function(e) {
+            const target = e.target;
+            const link = target.closest('a');
+            const button = target.closest('button');
+            const icon = target.closest('.fa-star');
+    
+            // Ações em links (<a>)
+            if (link) {
+                if (link.classList.contains('btn-like')) { e.preventDefault(); handleLikeComentario(link); }
+                else if (link.classList.contains('toggle-replies-btn')) { e.preventDefault(); handleToggleReplies(link); }
+                else if (link.classList.contains('sort-comments-btn')) { e.preventDefault(); handleSortClick(link); }
+            }
+            // Ações em botões (<button>)
+            else if (button) {
+                if (button.id === 'btn-confirmar-salvar-filtro') { handleSalvarFiltro(); }
+                else if (button.classList.contains('btn-deletar-filtro')) {
+                    const filtroId = button.dataset.filtroId;
+                    const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
+                    showConfirmationModal(`Deseja realmente excluir o filtro "${nomeFiltro}"?`, () => handleDeletarFiltro(filtroId));
+                }
+                else if (button.classList.contains('btn-responder')) { handleResponder(button); }
+                else if (button.classList.contains('btn-toggle-comentarios')) { handleToggleComentarios(button); }
+                else if (button.classList.contains('btn-toggle-explicacao')) { handleToggleExplicacao(button); }
+                else if (button.classList.contains('btn-excluir-comentario')) {
+                    const comentarioId = button.dataset.comentarioId;
+                    showConfirmationModal('Deseja realmente excluir o seu comentário?', () => handleExcluirComentario(comentarioId));
+                }
+                else if (button.classList.contains('btn-editar-comentario')) { handleAbrirEdicao(button); }
+                else if (button.classList.contains('btn-salvar-edicao')) { handleSalvarEdicao(button); }
+                else if (button.classList.contains('btn-cancelar-edicao')) { cancelarEdicao(button.closest('.comment-edit-form')); }
+            }
+            // Ações em ícones (<i>)
+            else if (icon) {
+                handleFavoritar(icon);
+            }
+        });
+    
+        document.body.addEventListener('submit', function(e) {
+            if (e.target.classList.contains('form-comentario')) {
+                e.preventDefault();
+                handleAdicionarComentario(e.target);
+            }
+            if (e.target.id === 'form-notificar-erro') {
+                e.preventDefault();
+                handleNotificarErro(e.target);
+            }
+        });
+    
+        // =======================================================================
+        // HANDLERS DE AÇÕES (lógica principal da página)
+        // =======================================================================
+    
+        /** Lida com o salvamento de um novo conjunto de filtros. */
+        function handleSalvarFiltro() {
+            const inputNome = document.getElementById('input-nome-filtro');
+            if (!inputNome.value.trim()) { inputNome.classList.add('is-invalid'); return; }
+            inputNome.classList.remove('is-invalid');
+            const params = new URLSearchParams(new FormData(document.getElementById('form-filtros'))).toString();
+            
+            fetch("{% url 'pratica:salvar_filtro' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ nome: inputNome.value, parametros: params })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    bootstrap.Modal.getInstance(document.getElementById('salvarFiltroModal')).hide();
+                    const lista = document.getElementById('lista-modal-filtros-salvos');
+                    document.getElementById('sem-filtros-salvos-msg')?.remove();
+                    lista.insertAdjacentHTML('beforeend', `
+                        <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-${result.filtro.id}">
+                            <a href="?${result.filtro.parametros}" class="text-decoration-none text-dark flex-grow-1">${result.filtro.nome}</a>
+                            <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="${result.filtro.id}">&times;</button>
+                        </li>`);
+                    showNotificationModal('Sucesso!', 'Filtro salvo com sucesso.', 'success');
+                } else { showNotificationModal('Erro ao Salvar', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível salvar. Tente novamente.', 'error'));
+        }
+    
+        /** Lida com a exclusão de um filtro salvo. */
+        function handleDeletarFiltro(filtroId) {
+            fetch("{% url 'pratica:deletar_filtro' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ filtro_id: filtroId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    document.getElementById(`filtro-salvo-item-${filtroId}`).remove();
+                } else { showNotificationModal('Erro ao Deletar', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível deletar. Tente novamente.', 'error'));
+        }
+    
+        /** Lida com o envio de uma resposta de questão. */
+        function handleResponder(button) {
+            const questaoId = button.dataset.questaoId;
+            const questaoCard = document.getElementById(`questao-${questaoId}`);
+            const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+            if (!alternativaSelecionada) { 
+                showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
+                return; 
+            }
+            
+            fetch("{% url 'pratica:verificar_resposta' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
+            })
+            .then(response => response.json())
+            .then(result => {
+                const feedbackDiv = questaoCard.querySelector('.feedback');
+                const alertDiv = feedbackDiv.querySelector('.alert');
+                
+                questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+                button.style.display = 'none';
+    
+                alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
+                alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
+                
+                questaoCard.querySelectorAll('.form-check-label').forEach(label => {
+                    const key = label.getAttribute('for').split('-')[1];
+                    if (key === result.gabarito) label.classList.add('text-success');
+                    if (!result.correta && key === alternativaSelecionada.value) label.classList.add('text-danger');
+                });
+    
+                if (result.explicacao) {
+                    feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
+                    questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
+                }
+                feedbackDiv.style.display = 'block';
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta.', 'error'));
+        }
+    
+        /** Alterna a visibilidade da explicação da questão. */
+        function handleToggleExplicacao(button) {
+            const questaoId = button.dataset.questaoId;
+            const explicacaoDiv = document.getElementById(`questao-${questaoId}`).querySelector('.explicacao');
+            if (explicacaoDiv) {
+                const isHidden = explicacaoDiv.style.display === 'none' || !explicacaoDiv.style.display;
+                explicacaoDiv.style.display = isHidden ? 'block' : 'none';
+            }
+        }
+    
+        /** Lida com o clique no ícone de favoritar. */
+        function handleFavoritar(icon) {
+            fetch("{% url 'pratica:favoritar_questao' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ questao_id: icon.dataset.questaoId })
+            })
+            .then(response => response.ok ? response.json() : Promise.reject('Erro na resposta do servidor'))
+            .then(result => {
+                if (result.status === 'success') {
+                    icon.classList.toggle('far');
+                    icon.classList.toggle('fas');
+                    icon.classList.toggle('text-warning');
+                } else { showNotificationModal('Erro', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível favoritar.', 'error'));
+        }
+    
+        /** Alterna a seção de comentários e carrega-os se for a primeira vez. */
+        function handleToggleComentarios(button) {
+            const questaoId = button.dataset.questaoId;
+            const comentariosSection = document.getElementById(`comentarios-section-${questaoId}`);
+            const isHidden = comentariosSection.style.display === 'none';
+            comentariosSection.style.display = isHidden ? 'block' : 'none';
+    
+            if (isHidden) {
+                if (!tiptapEditors[questaoId]) { // Inicializa o editor de novo comentário
+                    const form = comentariosSection.querySelector('.form-comentario');
+                    if (form) {
+                        tiptapEditors[questaoId] = initializeTiptapEditor({
+                            editorElement: form.querySelector('.tiptap-editor'),
+                            toolbarElement: form.querySelector('.tiptap-toolbar'),
+                            hiddenTextarea: form.querySelector('textarea[name="conteudo"]'),
+                        });
+                    }
+                }
+                if (comentariosSection.dataset.carregado !== 'true') {
+                    carregarComentarios(questaoId);
+                }
+            }
+        }
+    
+        /** Envia um novo comentário ou resposta. */
+        function handleAdicionarComentario(form) {
+            const questaoId = form.dataset.questaoId;
+            const parentId = form.dataset.parentId;
+            const conteudo = form.querySelector('textarea[name="conteudo"]').value;
+            if (!conteudo.trim()) { showNotificationModal('Atenção', 'O comentário não pode estar vazio.', 'info'); return; }
+    
+            fetch("{% url 'pratica:adicionar_comentario' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ questao_id: questaoId, conteudo: conteudo, parent_id: parentId })
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    carregarComentarios(questaoId); // Recarrega os comentários para mostrar o novo
+                    if (!parentId && tiptapEditors[questaoId]) {
+                        tiptapEditors[questaoId].commands.clearContent();
+                    } else {
+                        const formContainer = form.closest('.reply-form-container');
+                        if (formContainer) formContainer.innerHTML = ''; // Limpa o formulário de resposta
+                    }
+                } else { showNotificationModal('Erro ao Comentar', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível enviar o comentário.', 'error'));
+        }
+    
+        /** Lida com a exclusão de um comentário. */
+        function handleExcluirComentario(comentarioId) {
+            const questaoId = document.getElementById(`comment-wrapper-${comentarioId}`).closest('.card-questao').id.replace('questao-', '');
+            fetch("{% url 'pratica:excluir_comentario' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ comentario_id: comentarioId })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.status === 'success') {
+                    carregarComentarios(questaoId);
+                } else { showNotificationModal('Erro ao Excluir', res.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível excluir.', 'error'));
+        }
+        
+        /** Lida com o like/unlike de um comentário. */
+        function handleLikeComentario(link) {
+            fetch("{% url 'pratica:toggle_like_comentario' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ comentario_id: link.dataset.comentarioId })
+            })
+            .then(r => r.ok ? r.json() : Promise.reject('Erro de servidor'))
+            .then(result => {
+                if (result.status === 'success') {
+                    link.querySelector('.like-count').textContent = result.likes_count;
+                    link.classList.toggle('liked', result.liked);
+                } else { showNotificationModal('Erro', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível registrar o like.', 'error'));
+        }
+    
+        /** Alterna a visibilidade das respostas e insere o formulário de resposta. */
+        function handleToggleReplies(link) {
+            const comentarioId = link.dataset.comentarioId;
+            const questaoId = link.closest('.card-questao').id.replace('questao-', '');
+            const wrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
+            const repliesWrapper = wrapper.querySelector('.replies-wrapper');
+    
+            const isHidden = repliesWrapper.style.display === 'none' || !repliesWrapper.style.display;
+            repliesWrapper.style.display = isHidden ? 'block' : 'none';
+    
+            if (isHidden) {
+                const formContainer = repliesWrapper.querySelector('.reply-form-container');
+                if (!formContainer.querySelector('form')) {
+                    formContainer.innerHTML = `
+                        <div class="new-comment-form-container mt-3">
+                            <div class="comment-avatar"><div class="avatar-icon"><i class="fas fa-user"></i></div></div>
+                            <form class="form-comentario form-reply flex-grow-1" data-questao-id="${questaoId}" data-parent-id="${comentarioId}">
+                                <textarea name="conteudo" class="form-control form-control-sm" rows="3" placeholder="Escreva sua resposta..." required></textarea>
+                                <div class="d-flex justify-content-end mt-2">
+                                    <button type="button" class="btn btn-sm btn-secondary me-2" onclick="this.closest('.reply-form-container').innerHTML = ''">Cancelar</button>
+                                    <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
+                                </div>
+                            </form>
+                        </div>`;
+                }
+            }
+        }
+    
+        /** Lida com a mudança na ordenação dos comentários. */
+        function handleSortClick(link) {
+            const questaoId = link.dataset.questaoId;
+            document.getElementById(`sort-label-${questaoId}`).textContent = link.textContent;
+            carregarComentarios(questaoId, link.dataset.sort);
+        }
+    
+        /** Abre o formulário de edição para um comentário. */
+        function handleAbrirEdicao(button) {
+            const comentarioId = button.dataset.comentarioId;
+            const commentCard = document.getElementById(`comentario-${comentarioId}`);
+            const contentDiv = commentCard.querySelector('.comment-content');
+            const editFormDiv = commentCard.querySelector('.comment-edit-form');
+            
+            document.querySelectorAll('.comment-edit-form:not([style*="display: none"])').forEach(cancelarEdicao);
+    
+            const rawContent = contentDiv.dataset.rawContent;
+            editFormDiv.innerHTML = `
+                <div class="tiptap-toolbar">
+                    <button type="button" data-command="toggleBold" title="Negrito"><b>B</b></button>
+                    <button type="button" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+                    <button type="button" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+                </div>
+                <div class="tiptap-editor" id="tiptap-editor-edit-${comentarioId}"></div>
+                <div class="mt-2 d-flex justify-content-center">
+                    <button type="button" class="btn btn-sm btn-secondary btn-cancelar-edicao me-2">Cancelar</button>
+                    <button type="button" class="btn btn-sm btn-primary btn-salvar-edicao" data-comentario-id="${comentarioId}">Salvar</button>
+                </div>`;
+    
+            editFormDiv.querySelector('.tiptap-editor').appendChild(editTiptapEditor.view.dom);
+            editTiptapEditor.commands.setContent(rawContent, false);
+            editTiptapEditor.commands.focus();
+            
+            contentDiv.style.display = 'none';
+            editFormDiv.style.display = 'block';
+        }
+    
+        /** Envia a edição de um comentário. */
+        function handleSalvarEdicao(button) {
+            const comentarioId = button.dataset.comentarioId;
+            const novoConteudo = editTiptapEditor.storage.markdown.getMarkdown();
+    
+            fetch("{% url 'pratica:editar_comentario' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ comentario_id: comentarioId, conteudo: novoConteudo })
+            })
+            .then(r => r.json())
+            .then(result => {
+                if(result.status === 'success') {
+                    const contentDiv = document.getElementById(`comentario-${comentarioId}`).querySelector('.comment-content');
+                    contentDiv.innerHTML = result.conteudo_html;
+                    contentDiv.dataset.rawContent = novoConteudo;
+                    cancelarEdicao(button.closest('.comment-edit-form'));
+                } else { showNotificationModal('Erro ao Salvar', result.message, 'error'); }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível salvar a edição.', 'error'));
+        }
+    
+        /** Cancela o modo de edição de um comentário. */
+        function cancelarEdicao(editFormDiv) {
+            if (!editFormDiv) return;
+            const contentDiv = editFormDiv.closest('.comment-card').querySelector('.comment-content');
+            contentDiv.style.display = 'block';
+            editFormDiv.style.display = 'none';
+            editFormDiv.innerHTML = '';
+        }
+    
+        /** Carrega e renderiza os comentários de uma questão. */
+        function carregarComentarios(questaoId, sortBy = 'recent') {
+            const comentariosList = document.getElementById(`comentarios-list-${questaoId}`);
+            comentariosList.innerHTML = '<p class="text-center text-muted py-4">Carregando...</p>';
+            
+            fetch(`/pratica/carregar-comentarios/${questaoId}/?sort_by=${sortBy}`)
+                .then(response => response.ok ? response.json() : Promise.reject('Erro ao carregar'))
+                .then(data => {
+                    comentariosList.innerHTML = '';
+                    if (data.comentarios.length > 0) {
+                        data.comentarios.forEach(c => {
+                            comentariosList.appendChild(criarElementoComentario(c));
+                        });
+                    } else {
+                        comentariosList.innerHTML = '<p class="text-center text-muted py-4">Nenhum comentário ainda.</p>';
+                    }
+                    document.getElementById(`comentarios-section-${questaoId}`).dataset.carregado = 'true';
+                }).catch(err => {
+                    comentariosList.innerHTML = '<p class="text-center text-danger py-4">Erro ao carregar comentários.</p>';
+                });
+        }
+    
+        /** Gera um ELEMENTO DOM para um comentário. */
+        function criarElementoComentario(c) {
+            const template = document.createElement('template');
+            template.innerHTML = `
+                <div class="comment-wrapper" id="comment-wrapper-${c.id}">
+                    <div class="comment-avatar"><div class="avatar-icon">${c.usuario.charAt(0).toUpperCase()}</div></div>
+                    <div class="comment-card" id="comentario-${c.id}">
+                        <div class="comment-header d-flex justify-content-between">
+                            <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
+                            ${c.pode_editar ? `
+                            <div class="comment-actions dropdown">
+                                <button class="btn btn-sm" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-h"></i></button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}">Editar</button></li>
+                                    <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}">Excluir</button></li>
+                                </ul>
+                            </div>` : ''}
+                        </div>
+                        <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
+                            <div class="comment-body">${c.conteudo}</div>
+                        </div>
+                        <div class="comment-edit-form mt-2" style="display: none;"></div>
+                        ${!c.parent_id ? `
+                        <div class="comment-footer">
+                            <a href="#" class="btn btn-like ${c.user_liked ? 'liked' : ''}" data-comentario-id="${c.id}">
+                                <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${c.likes_count}</span>)
+                            </a>
+                            <a href="#" class="btn toggle-replies-btn" data-comentario-id="${c.id}">
+                                <i class="fas fa-reply"></i> Respostas (${c.respostas_count})
+                            </a>
+                        </div>` : ''}
+                    </div>
+                    ${!c.parent_id ? `
+                    <div class="replies-wrapper" style="display: none;">
+                        <div class="comment-replies"></div>
+                        <div class="reply-form-container"></div>
+                    </div>` : ''}
+                </div>`.trim();
+    
+            const commentElement = template.content.firstChild;
+            
+            if (c.respostas && c.respostas.length > 0) {
+                const repliesContainer = commentElement.querySelector('.comment-replies');
+                c.respostas.forEach(resposta => {
+                    repliesContainer.appendChild(criarElementoComentario(resposta));
+                });
+            }
+            
+            return commentElement;
+        }
+        
+        /** Lida com o envio do formulário de notificação de erro. */
+        function handleNotificarErro(form) {
+            const tipoErroSelecionado = form.querySelector('#botoes-tipo-erro button.active')?.dataset.tipo;
+            if (!tipoErroSelecionado) {
+                showNotificationModal('Atenção', 'Selecione o tipo do erro.', 'error');
+                return;
+            }
+    
             const data = {
-                questao_id: questaoId,
+                questao_id: form.querySelector('#notificar-erro-questao-id').value,
                 tipo_erro: tipoErroSelecionado,
-                descricao: descricao
+                descricao: form.querySelector('textarea[name="descricao"]').value
             };
-
+    
             fetch("{% url 'pratica:notificar_erro' %}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                 body: JSON.stringify(data)
             })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(result => {
-                // Primeiro, esconde o modal de notificação de erro
-                modalNotificarErro.hide();
-
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalNotificarErro'));
+                modal.hide();
                 if (result.status === 'success') {
-                    // SUBSTITUÍDO: alert() por modal de sucesso
                     showNotificationModal('Notificação Enviada!', result.message, 'success');
-                    
-                    // Limpa o formulário para o próximo uso
-                    formNotificarErro.reset();
-                    botoesTipoErro.forEach(b => b.classList.remove('active', 'btn-dark'));
-                    tipoErroSelecionado = null;
+                    form.reset();
+                    form.querySelectorAll('#botoes-tipo-erro button').forEach(b => b.classList.remove('active', 'btn-dark'));
                 } else {
-                    // SUBSTITUÍDO: alert() por modal de erro
                     showNotificationModal('Erro no Envio', result.message, 'error');
                 }
-            })
-            .catch(error => {
-                console.error("Fetch Error:", error);
-                modalNotificarErro.hide();
-                showNotificationModal('Erro de Conexão', 'Não foi possível se comunicar com o servidor. Por favor, tente novamente mais tarde.', 'error');
-            });
-        });
-    }
+            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível enviar a notificação.', 'error'));
+        }
     
-});
-</script>
-
+        // Listener para o modal de notificação de erro (setup inicial)
+        const modalNotificarErroEl = document.getElementById('modalNotificarErro');
+        if (modalNotificarErroEl) {
+            modalNotificarErroEl.addEventListener('show.bs.modal', function (event) {
+                document.getElementById('notificar-erro-questao-id').value = event.relatedTarget.dataset.questaoId;
+            });
+            modalNotificarErroEl.querySelectorAll('#botoes-tipo-erro button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    modalNotificarErroEl.querySelectorAll('#botoes-tipo-erro button').forEach(b => b.classList.remove('active', 'btn-dark'));
+                    this.classList.add('active', 'btn-dark');
+                });
+            });
+        }
+    });
+    </script>
 {% endblock %}

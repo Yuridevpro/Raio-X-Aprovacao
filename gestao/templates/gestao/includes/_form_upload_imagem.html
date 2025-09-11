@@ -1,0 +1,17 @@
+<!-- gestao/templates/gestao/includes/_form_upload_imagem.html -->
+<div class="col-12">
+    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+    <div id="image-uploader" class="image-uploader">
+        <div class="image-uploader-content">
+            <i class="fas fa-cloud-upload-alt image-uploader-icon"></i>
+            <div class="fw-bold">Arraste e solte ou clique para selecionar</div>
+            <div class="small text-muted">PNG, JPG ou GIF (MAX. 5MB)</div>
+        </div>
+        {{ field }}
+    </div>
+    <div id="image-preview-container" class="image-preview-container">
+        <img id="image-preview" src="#" alt="Pré-visualização" class="image-preview"/>
+        <button type="button" id="remove-image-btn" class="remove-image-btn" title="Remover Imagem">&times;</button>
+    </div>
+    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+</div>

@@ -1,4 +1,4 @@
-<!-- gestao/templates/gestao/listar_solicitacoes_despromocao.html (VERSÃO FINAL COM DESIGN CONSISTENTE) -->
+<!-- gestao/templates/gestao/listar_solicitacoes_despromocao.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -45,7 +45,6 @@
                             </div>
                             <div class="col-md-3 text-center text-md-end">
                                 {% if despromocao.solicitado_por == request.user %}
-                                    {# O solicitante SEMPRE vê o botão de cancelar #}
                                     <form id="form-cancelar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:cancelar_despromocao_superuser' despromocao.id %}">
                                         {% csrf_token %}
                                         <button type="button" class="btn btn-sm btn-outline-secondary btn-confirm-action"
@@ -56,7 +55,6 @@
                                         </button>
                                     </form>
                                 {% elif despromocao.usuario_alvo == request.user and despromocao.get_quorum_necessario == 1 %}
-                                    {# CASO ESPECIAL: O usuário-alvo é o único que pode aprovar #}
                                     <form id="form-aprovar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:aprovar_despromocao_superuser' despromocao.id %}">
                                         {% csrf_token %}
                                         <button type="button" class="btn btn-sm btn-outline-danger btn-confirm-action"
@@ -67,7 +65,6 @@
                                         </button>
                                     </form>
                                 {% else %}
-                                    {# CASO NORMAL: Outros superusuários aprovam #}
                                     <form id="form-aprovar-despromocao-{{ despromocao.id }}" method="POST" action="{% url 'gestao:aprovar_despromocao_superuser' despromocao.id %}">
                                         {% csrf_token %}
                                         <button type="button" class="btn btn-sm btn-warning btn-confirm-action"
@@ -97,7 +94,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // A lógica de JS para o modal de confirmação é a mesma e já está aqui.
+    // Lógica genérica para o modal de confirmação.
     document.querySelectorAll('.btn-confirm-action').forEach(button => {
         button.addEventListener('click', function() {
             const formId = this.dataset.formId;
@@ -106,14 +103,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById(formId);
 
             if (form && typeof showConfirmationModal === 'function') {
-                showConfirmationModal(modalTitle, modalBody, () => {
-                    form.submit();
-                });
-            } else {
-                // Fallback para o confirm do navegador
-                if (confirm(modalBody)) {
-                    form.submit();
-                }
+                showConfirmationModal(modalTitle, modalBody, () => form.submit());
+            } else if (form) {
+                if (confirm(modalBody)) form.submit();
             }
         });
     });

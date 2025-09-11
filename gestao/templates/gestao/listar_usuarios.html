@@ -1,39 +1,32 @@
 <!-- gestao/templates/gestao/listar_usuarios.html -->
 {% extends 'base.html' %}
 {% load static %}
-{% load questoes_extras %}
-{% load gestao_extras %}  <!-- ADICIONE ESTA LINHA AQUI -->
+{% load gestao_extras %}
 
 {% block title %}Gerenciar Usuários{% endblock %}
 
 {% block head %}
-    <!-- Carrega o CSS específico para o painel de gestão -->
     <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+{% endblock %}
 
-    <style>
-
-
-    </style>
-    {% endblock %}
-
-    {% block content %}
-    <div class="container my-5">
-        <!-- CABEÇALHO DA PÁGINA -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
-            <div class="d-flex align-items-center">
-                <h2 class="h3 mb-0 me-3">Gerenciar Usuários</h2>
-                {% if total_usuarios > 0 %}
-                <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fs-6 fw-normal">
-                    {{ total_usuarios }} {% if total_usuarios == 1 %}encontrado{% else %}encontrados{% endif %}
-                </span>
-                {% endif %}
-            </div>
-            <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary align-self-start align-self-md-auto">
-                <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
-            </a>
+{% block content %}
+<div class="container my-5">
+    <!-- CABEÇALHO DA PÁGINA -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+        <div class="d-flex align-items-center">
+            <h2 class="h3 mb-0 me-3">Gerenciar Usuários</h2>
+            {% if paginated_object.paginator.count > 0 %}
+            <span class="badge rounded-pill bg-primary-subtle text-primary-emphasis fs-6 fw-normal">
+                {{ paginated_object.paginator.count }} encontrado{{ paginated_object.paginator.count|pluralize }}
+            </span>
+            {% endif %}
         </div>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary align-self-start align-self-md-auto">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
+        </a>
+    </div>
 
-        {% if messages %}
+    {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
                 {{ message }}
@@ -41,457 +34,241 @@
             </div>
         {% endfor %}
     {% endif %}
-    
-        <!-- ... (depois do cabeçalho da página e das mensagens) ... -->
 
-        <!-- CARD DE FILTROS - RECOLHÍVEL -->
-        <div class="card mb-4 shadow-sm filter-card">
-            <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Usuários</h5>
-                    <span class="icon-toggle"></span>
-                </div>
-            </div>
-            <div class="collapse" id="collapseFilters">
-                <div class="card-body">
-                    <form method="GET" action="{% url 'gestao:listar_usuarios' %}">
-                        <div class="row g-3 align-items-end">
-                            <div class="col-lg-4 col-md-12">
-                                <label for="q" class="form-label">Nome de usuário ou E-mail</label>
-                                <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q|default:'' }}">
-                            </div>
-                            <div class="col-lg-3 col-md-6">
-                                <label for="permissao" class="form-label">Permissão</label>
-                                <select name="permissao" id="permissao" class="form-select">
-                                    <option value="" {% if not filtro_permissao %}selected{% endif %}>Todas</option>
-                                    <option value="staff" {% if filtro_permissao == 'staff' %}selected{% endif %}>Membro da Equipe</option>
-                                    <option value="superuser" {% if filtro_permissao == 'superuser' %}selected{% endif %}>Superusuário</option>
-                                    <option value="comum" {% if filtro_permissao == 'comum' %}selected{% endif %}>Usuário Comum</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-3 col-md-6">
-                                <label for="solicitacao" class="form-label">Status da Solicitação</label>
-                                <select name="solicitacao" id="solicitacao" class="form-select">
-                                    <option value="" {% if not filtro_solicitacao %}selected{% endif %}>Todos</option>
-                                    <option value="pendente" {% if filtro_solicitacao == 'pendente' %}selected{% endif %}>Com Solicitação Pendente</option>
-                                </select>
-                            </div>
-                            <div class="col-lg-2 col-md-12">
-                                <div class="d-flex flex-column flex-sm-row gap-2">
-                                    <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                                    <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary w-100">Limpar</a>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+    <!-- CARD DE FILTROS RECOLHÍVEL -->
+    <div class="card mb-4 shadow-sm filter-card">
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Usuários</h5>
+                <span class="icon-toggle"></span>
             </div>
         </div>
-
-        <!-- INCLUSÃO DOS CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
-        {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
-
-        
-        <!-- LISTAGEM DE USUÁRIOS EM CARDS -->
-        <div class="row g-3">
-            {% for usuario in paginated_object %}
-            <div class="col-12 col-md-6 col-lg-4">
-                <div class="card shadow-sm h-100">
-                    <div class="card-body d-flex flex-column justify-content-between">
-                        <div>
-                            <h5 class="card-title mb-1 fw-bold">
-                                <i class="fas fa-user me-2"></i>{{ usuario.username }}
-                            </h5>
-                            <p class="text-muted mb-2">
-                                <i class="fas fa-envelope me-2"></i>{{ usuario.email|default:"Não informado" }}
-                            </p>
-    
-                            <!-- Badges de permissão -->
-                            {% if usuario.is_superuser %}
-                                <span class="badge text-bg-danger"><i class="fas fa-shield-alt me-1"></i>Superusuário</span>
-                            {% elif usuario.is_staff %}
-                                <span class="badge text-bg-success"><i class="fas fa-user-shield me-1"></i>Membro da Equipe</span>
-                            {% else %}
-                                <span class="badge text-bg-secondary">Usuário Comum</span>
-                            {% endif %}
-    
-                            {% if usuario.tem_solicitacao_pendente %}
-                            <span class="badge text-bg-dark mt-1" title="Este usuário possui uma solicitação de exclusão pendente de revisão.">
-                                <i class="fas fa-user-clock me-1"></i>Exclusão Solicitada
-                            </span>
-                            {% endif %}
+        <div class="collapse" id="collapseFilters">
+            <div class="card-body">
+                <form method="GET" action="{% url 'gestao:listar_usuarios' %}">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-3 col-md-12">
+                            <label for="q" class="form-label">Nome de usuário ou E-mail</label>
+                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q|default:'' }}">
                         </div>
-    
-                        <!-- Dropdown de ações -->
-                        <div class="mt-3 text-end">
-                            <div class="dropdown">
-                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle w-100" 
-                                        type="button" id="actions-{{ usuario.id }}" data-bs-toggle="dropdown" 
-                                        aria-expanded="false">
-                                    <i class="fas fa-cog"></i> Ações
-                                </button>
-                                
-                                <ul class="dropdown-menu" aria-labelledby="actions-{{ usuario.id }}">
-                                    {% if request.user.is_superuser %}
-
-                                        <!-- ======================================================================= -->
-                                        <!-- INÍCIO DA MODIFICAÇÃO: Lógica Unificada de Ações de Superusuário -->
-                                        <!-- ======================================================================= -->
-                                        {% if usuario.is_superuser %}
-                                            {% if usuario != request.user %}
-                                                {# Opção para despromover outro superusuário #}
-                                                <li>
-                                                    <a class="dropdown-item text-warning" href="{% url 'gestao:solicitar_despromocao_superuser' usuario.id %}">
-                                                        <i class="fas fa-user-graduate fa-fw me-2"></i>Solicitar Despromoção
-                                                    </a>
-                                                </li>
-                                            {% endif %}
-                                        {% else %}
-                                            {# Opções para usuários que NÃO são superusuários #}
-                                            <li>
-                                                <a class="dropdown-item" href="{% url 'gestao:editar_usuario_staff' usuario.id %}">
-                                                    <i class="fas fa-edit fa-fw me-2"></i>Editar Permissões
-                                                </a>
-                                            </li>
-                                            
-                                            {% if usuario != request.user %}
-                                                {% get_superuser_count as superuser_count %}
-                                                <li>
-                                                    {% if superuser_count <= 1 %}
-                                                        <!-- Promoção Direta -->
-                                                        <form id="form-promover-direto-{{ usuario.id }}" method="POST" action="{% url 'gestao:promover_diretamente_superuser' usuario.id %}">
-                                                            {% csrf_token %}
-                                                            <button type="button" class="dropdown-item text-success btn-confirm-action"
-                                                                    data-form-id="form-promover-direto-{{ usuario.id }}"
-                                                                    data-modal-title="Confirmar Promoção Direta"
-                                                                    data-modal-body="Você é o único Superusuário. Deseja promover {{ usuario.username }} diretamente, sem necessidade de aprovação?">
-                                                                <i class="fas fa-user-check fa-fw me-2"></i>Promover Diretamente
-                                                            </button>
-                                                        </form>
-                                                    {% else %}
-                                                        <!-- Solicitação de Promoção -->
-                                                        <a class="dropdown-item text-success" href="{% url 'gestao:solicitar_promocao_superuser' usuario.id %}">
-                                                            <i class="fas fa-rocket fa-fw me-2"></i>Solicitar Promoção
-                                                        </a>
-                                                    {% endif %}
-                                                </li>
-                                            {% endif %}
-                                        {% endif %}
-                                        <!-- ======================================================================= -->
-                                        <!-- FIM DA MODIFICAÇÃO -->
-                                        <!-- ======================================================================= -->
-                                    
-                                    {% endif %}
-    
-                                    {% if usuario != request.user %}
-                                    {% if request.user.is_superuser or request.user.is_staff %}
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            {% if request.user.is_superuser %}
-                                                {% if usuario.is_superuser %}
-                                                    {# Exclusão de Superusuário #}
-                                                    <a class="dropdown-item text-danger" href="{% url 'gestao:solicitar_exclusao_superuser' usuario.id %}">
-                                                        <i class="fas fa-user-times fa-fw me-2"></i>Solicitar Exclusão
-                                                    </a>
-                                                {% else %}
-                                                    {# Exclusão de usuário comum #}
-                                                    <button type="button" class="dropdown-item text-danger btn-deletar"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#deletarUsuarioModal"
-                                                            data-user-id="{{ usuario.id }}"
-                                                            data-user-username="{{ usuario.username }}">
-                                                        <i class="fas fa-trash fa-fw me-2"></i>Excluir Usuário
-                                                    </button>
-                                                {% endif %}
-                                            {% elif request.user.is_staff and not usuario.is_staff and not usuario.is_superuser %}
-                                                {# Sugestão de exclusão por Staff #}
-                                                <button type="button" class="dropdown-item text-warning"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#sugerirExclusaoModal"
-                                                        data-user-id="{{ usuario.id }}"
-                                                        data-user-username="{{ usuario.username }}">
-                                                    <i class="fas fa-flag fa-fw me-2"></i>Sugerir Exclusão
-                                                </button>
-                                            {% endif %}
-                                        </li>
-                                    {% endif %}
-                                {% endif %}
-                                </ul>
+                        <div class="col-lg-2 col-md-6">
+                            <label for="permissao" class="form-label">Permissão</label>
+                            <select name="permissao" id="permissao" class="form-select">
+                                <option value="" {% if not filtro_permissao %}selected{% endif %}>Todas</option>
+                                <option value="staff" {% if filtro_permissao == 'staff' %}selected{% endif %}>Membro da Equipe</option>
+                                <option value="superuser" {% if filtro_permissao == 'superuser' %}selected{% endif %}>Superusuário</option>
+                                <option value="comum" {% if filtro_permissao == 'comum' %}selected{% endif %}>Usuário Comum</option>
+                            </select>
                         </div>
+                        <!-- ======================================================= -->
+                        <!-- INÍCIO DA ADIÇÃO: Novo filtro de Status                 -->
+                        <!-- ======================================================= -->
+                        <div class="col-lg-2 col-md-6">
+                            <label for="status" class="form-label">Status</label>
+                            <select name="status" id="status" class="form-select">
+                                <option value="ativos" {% if filtro_status == 'ativos' %}selected{% endif %}>Ativos</option>
+                                <option value="inativos" {% if filtro_status == 'inativos' %}selected{% endif %}>Inativos</option>
+                                <option value="todos" {% if filtro_status == 'todos' %}selected{% endif %}>Todos</option>
+                            </select>
                         </div>
-                    </div>
-                </div>
-            </div>
-            {% empty %}
-                <div class="col-12">
-                    <div class="card card-body text-center p-5">
-                        <h5 class="text-muted">Nenhum usuário encontrado com os filtros aplicados.</h5>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    
-        <!-- PAGINAÇÃO -->
-
-        <div class="mt-4">
-            {% include 'includes/_paginacao.html' with paginated_object=usuarios page_numbers=page_numbers %}
-        </div>
- 
-    
-    </div>
-    
-    <!-- MODAIS -->
-    <!-- Modal de Exclusão Direta (para Superusuários) -->
-    <div class="modal fade" id="deletarUsuarioModal" tabindex="-1" aria-labelledby="deletarUsuarioModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form id="form-deletar-usuario" method="POST" action="">
-                    {% csrf_token %}
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title" id="deletarUsuarioModalLabel"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Exclusão</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Você está prestes a excluir permanentemente o usuário <strong id="username-para-deletar" class="text-danger"></strong>.</p>
-                        <p class="fw-bold">Esta ação não pode ser desfeita.</p>
-                        <hr>
-                        
-                        {% get_exclusao_form as form %}
-                        <div class="mb-3">
-                            <label for="{{ form.motivo_predefinido.id_for_label }}" class="form-label">{{ form.motivo_predefinido.label }}:</label>
-                            {{ form.motivo_predefinido }}
-                            <div class="invalid-feedback" id="motivo-predefinido-error-delete"></div>
+                        <!-- ======================================================= -->
+                        <!-- FIM DA ADIÇÃO                                           -->
+                        <!-- ======================================================= -->
+                        <div class="col-lg-3 col-md-6">
+                            <label for="solicitacao" class="form-label">Status da Solicitação</label>
+                            <select name="solicitacao" id="solicitacao" class="form-select">
+                                <option value="" {% if not filtro_solicitacao %}selected{% endif %}>Todos</option>
+                                <option value="pendente" {% if filtro_solicitacao == 'pendente' %}selected{% endif %}>Com Solicitação Pendente</option>
+                            </select>
                         </div>
-                        <div class="mb-3">
-                            <label for="{{ form.justificativa.id_for_label }}">{{ form.justificativa.label }} (Opcional):</label>
-                            {{ form.justificativa }}
+                        <div class="col-lg-2 col-md-12">
+                            <div class="d-flex flex-column flex-sm-row gap-2">
+                                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
+                                <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-secondary w-100">Limpar</a>
+                            </div>
                         </div>
-    
-                    </div>
-                    <div class="modal-footer justify-content-center">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-danger" id="btn-confirm-delete">
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-                            <span class="btn-text">Sim, Excluir Usuário</span>
-                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
+
+    <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
     
-    <!-- Modal para Sugerir Exclusão (para Staff) -->
-    <div class="modal fade" id="sugerirExclusaoModal" tabindex="-1" aria-labelledby="sugerirExclusaoModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <form id="form-sugerir-exclusao" method="POST" action="">
-                    {% csrf_token %}
-                    <div class="modal-header bg-warning">
-                        <h5 class="modal-title" id="sugerirExclusaoModalLabel"><i class="fas fa-flag me-2"></i>Sugerir Exclusão de Usuário</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p>Você está solicitando a exclusão do usuário <strong id="username-para-sugerir"></strong>.</p>
-                        <p>Por favor, forneça uma justificativa clara para que um superusuário possa revisar seu pedido.</p>
-                        <hr>
+    <!-- LISTAGEM DE USUÁRIOS EM CARDS -->
+    <div class="row g-3">
+        {% for usuario in paginated_object %}
+        <div class="col-12 col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-1 fw-bold">
+                            <i class="fas fa-user me-2"></i>{{ usuario.username }}
+                        </h5>
+                        <p class="text-muted mb-2">
+                            <i class="fas fa-envelope me-2"></i>{{ usuario.email|default:"Não informado" }}
+                        </p>
+
+                        <!-- Badges de permissão e status -->
+                        {% if usuario.is_superuser %}
+                            <span class="badge text-bg-danger"><i class="fas fa-shield-alt me-1"></i>Superusuário</span>
+                        {% elif usuario.is_staff %}
+                            <span class="badge text-bg-success"><i class="fas fa-user-shield me-1"></i>Membro da Equipe</span>
+                        {% else %}
+                            <span class="badge text-bg-secondary">Usuário Comum</span>
+                        {% endif %}
+
+                        {% if usuario.tem_solicitacao_pendente %}
+                        <span class="badge text-bg-warning mt-1" title="Este usuário possui uma solicitação de exclusão pendente de revisão.">
+                            <i class="fas fa-user-clock me-1"></i>Exclusão Solicitada
+                        </span>
+                        {% endif %}
                         
-                        {% get_exclusao_form as form %}
-                        <div class="mb-3">
-                            <label for="{{ form.motivo_predefinido.id_for_label }}" class="form-label">{{ form.motivo_predefinido.label }}:</label>
-                            {{ form.motivo_predefinido }}
-                            <div class="invalid-feedback" id="motivo-predefinido-error-suggest"></div>
-                        </div>
-                        <div class="mb-3">
-                            <label for="{{ form.justificativa.id_for_label }}">{{ form.justificativa.label }} <span class="text-danger">*</span></label>
-                            {{ form.justificativa }}
-                            <div class="invalid-feedback" id="justificativa-error-suggest"></div>
-                        </div>
-    
+                        <!-- ======================================================= -->
+                        <!-- INÍCIO DA ADIÇÃO: Badge para usuário inativo            -->
+                        <!-- ======================================================= -->
+                        {% if not usuario.is_active %}
+                        <span class="badge text-bg-dark mt-1" title="Este usuário está inativo e não pode fazer login.">
+                            <i class="fas fa-user-slash me-1"></i>Inativo
+                        </span>
+                        {% endif %}
+                        <!-- ======================================================= -->
+                        <!-- FIM DA ADIÇÃO                                           -->
+                        <!-- ======================================================= -->
                     </div>
-                    <div class="modal-footer justify-content-center">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-warning" id="btn-confirm-sugestao">
-                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true" style="display: none;"></span>
-                            <span class="btn-text">Enviar Solicitação</span>
-                        </button>
+
+                    <!-- Dropdown de ações -->
+                    <div class="mt-3 text-end">
+                        {% include 'gestao/includes/_acoes_usuario_dropdown.html' %}
                     </div>
-                </form>
+                </div>
             </div>
         </div>
+        {% empty %}
+            <div class="col-12">
+                <div class="card card-body text-center p-5">
+                    <h5 class="text-muted">Nenhum usuário encontrado com os filtros aplicados.</h5>
+                </div>
+            </div>
+        {% endfor %}
     </div>
-    {% endblock %}
 
-    {% block scripts %}
-    <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+    </div>
+</div>
+
+<!-- MODAIS -->
+{% include 'gestao/includes/_modais_exclusao_usuario.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
     
-        // =======================================================================
-        // INÍCIO DA ADIÇÃO: Lógica genérica para confirmação de ações via modal
-        // =======================================================================
-        // Este código irá capturar o clique no botão "Promover Diretamente"
-        document.querySelectorAll('.btn-confirm-action').forEach(button => {
-            button.addEventListener('click', function() {
-                const formId = this.dataset.formId;
-                const modalTitle = this.dataset.modalTitle;
-                const modalBody = this.dataset.modalBody;
-                const formToSubmit = document.getElementById(formId);
+    // ... seu script JavaScript continua aqui, sem alterações necessárias ...
     
-                // Supondo que você tenha uma função global 'showConfirmationModal'
-                // que aceita (título, corpo, callback_on_confirm)
-                if (formToSubmit && typeof showConfirmationModal === 'function') {
-                    showConfirmationModal(modalTitle, modalBody, () => {
-                        formToSubmit.submit();
+    // =======================================================================
+    // LÓGICA GENÉRICA PARA CONFIRMAÇÃO DE AÇÕES VIA MODAL
+    // =======================================================================
+    document.querySelectorAll('.btn-confirm-action').forEach(button => {
+        button.addEventListener('click', function() {
+            const formId = this.dataset.formId;
+            const modalTitle = this.dataset.modalTitle;
+            const modalBody = this.dataset.modalBody;
+            const formToSubmit = document.getElementById(formId);
+
+            if (formToSubmit && typeof showConfirmationModal === 'function') {
+                showConfirmationModal(modalTitle, modalBody, () => formToSubmit.submit());
+            } else if (formToSubmit && confirm(modalBody)) {
+                formToSubmit.submit();
+            }
+        });
+    });
+
+    // =======================================================================
+    // LÓGICA DO MODAL DE EXCLUSÃO (DIRETA E SUGESTÃO)
+    // =======================================================================
+    const setupExclusionModal = (modalId, formId, submitBtnId, urlTemplate) => {
+        const modalEl = document.getElementById(modalId);
+        if (!modalEl) return;
+
+        const modal = new bootstrap.Modal(modalEl);
+        const form = document.getElementById(formId);
+        const submitBtn = document.getElementById(submitBtnId);
+
+        modalEl.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const userId = button.dataset.userId;
+            const username = button.dataset.userUsername;
+            
+            form.action = urlTemplate.replace('0', userId);
+            modalEl.querySelector('[id^="username-para-"]').textContent = username;
+            form.reset(); // Limpa o formulário ao abrir
+            form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const spinner = submitBtn.querySelector('.spinner-border');
+            const btnText = submitBtn.querySelector('.btn-text');
+            submitBtn.disabled = true;
+            spinner.style.display = 'inline-block';
+            btnText.style.display = 'none';
+
+            fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form),
+                headers: {'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value}
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                modal.hide();
+                if (ok) {
+                    showNotificationModal('Sucesso!', data.message, 'success', () => {
+                        window.location.reload();
                     });
                 } else {
-                    // Fallback caso a função de modal não exista, usando o confirm padrão
-                    if (confirm(modalBody)) {
-                        formToSubmit.submit();
+                    if (data.field_errors) {
+                        for (const [field, errors] of Object.entries(data.field_errors)) {
+                            const input = form.querySelector(`[name=${field}]`);
+                            const errorDiv = input.nextElementSibling;
+                            if (input && errorDiv && errorDiv.classList.contains('invalid-feedback')) {
+                                input.classList.add('is-invalid');
+                                errorDiv.textContent = errors[0];
+                            }
+                        }
+                        modal.show();
+                    } else {
+                         throw new Error(data.message || 'Ocorreu um erro.');
                     }
                 }
+            })
+            .catch(error => showNotificationModal('Erro', error.message, 'error'))
+            .finally(() => {
+                submitBtn.disabled = false;
+                spinner.style.display = 'none';
+                btnText.style.display = 'inline-block';
             });
         });
-        // =======================================================================
-        // FIM DA ADIÇÃO
-        // =======================================================================
-    
-    
-        // =======================================================================
-        // Lógica do modal de exclusão direta (SUPERUSER) - SEM ALTERAÇÕES
-        // =======================================================================
-        const deletarModalEl = document.getElementById('deletarUsuarioModal');
-        if (deletarModalEl) {
-            const deletarModal = new bootstrap.Modal(deletarModalEl);
-            const form = document.getElementById('form-deletar-usuario');
-            const submitBtn = document.getElementById('btn-confirm-delete');
-            const spinner = submitBtn.querySelector('.spinner-border');
-            const motivoPredefinidoSelect = form.querySelector('[name=motivo_predefinido]');
-            const motivoPredefinidoError = document.getElementById('motivo-predefinido-error-delete');
-    
-            deletarModalEl.addEventListener('show.bs.modal', function (event) {
-                const button = event.relatedTarget;
-                const userId = button.dataset.userId;
-                const username = button.dataset.userUsername;
-    
-                motivoPredefinidoSelect.classList.remove('is-invalid');
-                if (motivoPredefinidoError) motivoPredefinidoError.textContent = '';
-                
-                const baseUrl = "{% url 'gestao:deletar_usuario' 0 %}";
-                const actionUrl = baseUrl.replace('0', userId);
-                
-                form.setAttribute('action', actionUrl);
-                deletarModalEl.querySelector('#username-para-deletar').textContent = username;
-            });
-    
-            form.addEventListener('submit', function(event) {
-                event.preventDefault();
-                submitBtn.disabled = true;
-                spinner.style.display = 'inline-block';
-                submitBtn.querySelector('.btn-text').style.display = 'none';
-                motivoPredefinidoSelect.classList.remove('is-invalid');
-    
-                const formData = new FormData(form);
-                const url = form.getAttribute('action');
-    
-                fetch(url, { method: 'POST', body: formData, headers: {'X-CSRFToken': formData.get('csrfmiddlewaretoken')} })
-                .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => {
-                    if (ok) {
-                        deletarModal.hide();
-                        showNotificationModal('Sucesso!', data.message, 'success');
-                        // Tenta remover o card do usuário da tela
-                        const cardToRemove = button.closest('.col-12');
-                        if(cardToRemove) {
-                            cardToRemove.remove();
-                        } else {
-                            setTimeout(() => window.location.reload(), 2000);
-                        }
-                    } else {
-                        if (data.field_errors && data.field_errors.motivo_predefinido) {
-                            motivoPredefinidoSelect.classList.add('is-invalid');
-                            motivoPredefinidoError.textContent = data.field_errors.motivo_predefinido[0];
-                        }
-                        throw new Error(data.message || 'Ocorreu um erro ao processar sua solicitação.');
-                    }
-                })
-                .catch(error => { showNotificationModal('Erro na Exclusão', error.message, 'error'); })
-                .finally(() => {
-                    submitBtn.disabled = false;
-                    spinner.style.display = 'none';
-                    submitBtn.querySelector('.btn-text').style.display = 'inline-block';
-                });
-            });
-        }
-    
-        // =======================================================================
-        // Lógica do modal para Sugerir Exclusão (STAFF) - SEM ALTERAÇÕES
-        // =======================================================================
-        const sugerirModalEl = document.getElementById('sugerirExclusaoModal');
-        if (sugerirModalEl) {
-            const sugerirModal = new bootstrap.Modal(sugerirModalEl);
-            const sugerirForm = document.getElementById('form-sugerir-exclusao');
-            const sugerirBtn = document.getElementById('btn-confirm-sugestao');
-            const spinner = sugerirBtn.querySelector('.spinner-border');
-            const btnText = sugerirBtn.querySelector('.btn-text');
-            const motivoPredefinidoSelect = sugerirForm.querySelector('[name=motivo_predefinido]');
-            const justificativaTextarea = sugerirForm.querySelector('[name=justificativa]');
-            const motivoPredefinidoError = document.getElementById('motivo-predefinido-error-suggest');
-            const justificativaError = document.getElementById('justificativa-error-suggest');
-    
-            sugerirModalEl.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const userId = button.dataset.userId;
-                const username = button.dataset.userUsername;
-                
-                sugerirForm.reset();
-                motivoPredefinidoSelect.classList.remove('is-invalid');
-                justificativaTextarea.classList.remove('is-invalid');
-                if(motivoPredefinidoError) motivoPredefinidoError.textContent = '';
-                if(justificativaError) justificativaError.textContent = '';
-    
-                const baseUrl = "{% url 'gestao:sugerir_exclusao_usuario' 0 %}";
-                sugerirForm.action = baseUrl.replace('0', userId);
-                sugerirModalEl.querySelector('#username-para-sugerir').textContent = username;
-            });
-    
-            sugerirForm.addEventListener('submit', function(event) {
-                event.preventDefault();
-                sugerirBtn.disabled = true;
-                spinner.style.display = 'inline-block';
-                btnText.style.display = 'none';
-                motivoPredefinidoSelect.classList.remove('is-invalid');
-                justificativaTextarea.classList.remove('is-invalid');
-    
-                const formData = new FormData(sugerirForm);
-                const url = sugerirForm.getAttribute('action');
-    
-                fetch(url, { method: 'POST', body: formData, headers: {'X-CSRFToken': formData.get('csrfmiddlewaretoken')} })
-                .then(response => response.json().then(data => ({ok: response.ok, data})))
-                .then(({ok, data}) => {
-                    sugerirModal.hide();
-                    if (ok) {
-                        showNotificationModal('Solicitação Enviada', data.message, 'success');
-                    } else {
-                        if (data.field_errors) {
-                            if (data.field_errors.motivo_predefinido) {
-                                motivoPredefinidoSelect.classList.add('is-invalid');
-                                motivoPredefinidoError.textContent = data.field_errors.motivo_predefinido[0];
-                            }
-                            if (data.field_errors.justificativa) {
-                                justificativaTextarea.classList.add('is-invalid');
-                                justificativaError.textContent = data.field_errors.justificativa[0];
-                            }
-                        }
-                        throw new Error(data.message || 'Não foi possível enviar a solicitação.');
-                    }
-                })
-                .catch(error => { showNotificationModal('Erro', error.message, 'error'); })
-                .finally(() => {
-                    sugerirBtn.disabled = false;
-                    spinner.style.display = 'none';
-                    btnText.style.display = 'inline-block';
-                });
-            });
-        }
-    });
-    </script>
-    {% endblock %}
+    };
+
+    setupExclusionModal(
+        'deletarUsuarioModal',
+        'form-deletar-usuario',
+        'btn-confirm-delete',
+        "{% url 'gestao:deletar_usuario' 0 %}"
+    );
+
+    setupExclusionModal(
+        'sugerirExclusaoModal',
+        'form-sugerir-exclusao',
+        'btn-confirm-sugestao',
+        "{% url 'gestao:sugerir_exclusao_usuario' 0 %}"
+    );
+});
+</script>
+{% endblock %}

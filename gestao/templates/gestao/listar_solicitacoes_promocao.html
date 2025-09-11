@@ -1,4 +1,4 @@
-<!-- gestao/templates/gestao/listar_solicitacoes_promocao.html (VERSÃO FINAL) -->
+<!-- gestao/templates/gestao/listar_solicitacoes_promocao.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -44,9 +44,6 @@
                                 <p class="mb-0"><strong>Justificativa:</strong> {{ promocao.justificativa }}</p>
                             </div>
                             <div class="col-md-3 text-center text-md-end">
-                                <!-- ======================================================================= -->
-                                <!-- INÍCIO DA MODIFICAÇÃO: Formulários agora chamam JS -->
-                                <!-- ======================================================================= -->
                                 {% if promocao.solicitado_por == request.user %}
                                     <form id="form-cancelar-{{ promocao.id }}" method="POST" action="{% url 'gestao:cancelar_promocao_superuser' promocao.id %}">
                                         {% csrf_token %}
@@ -68,9 +65,6 @@
                                         </button>
                                     </form>
                                 {% endif %}
-                                <!-- ======================================================================= -->
-                                <!-- FIM DA MODIFICAÇÃO -->
-                                <!-- ======================================================================= -->
                             </div>
                         </div>
                     </div>
@@ -90,7 +84,7 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Função para lidar com a submissão de formulário após confirmação em modal
+    // Listener genérico para botões que acionam um modal de confirmação antes de submeter um formulário.
     document.querySelectorAll('.btn-confirm-action').forEach(button => {
         button.addEventListener('click', function() {
             const formId = this.dataset.formId;
@@ -98,12 +92,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const modalBody = this.dataset.modalBody;
             const form = document.getElementById(formId);
 
+            // Usa a função global `showConfirmationModal` se disponível.
             if (form && typeof showConfirmationModal === 'function') {
                 showConfirmationModal(modalTitle, modalBody, () => {
                     form.submit();
                 });
-            } else {
-                // Fallback para o confirm do navegador se o modal não existir
+            } else if (form) {
+                // Fallback para o `confirm` do navegador se o modal customizado não for encontrado.
                 if (confirm(modalBody)) {
                     form.submit();
                 }

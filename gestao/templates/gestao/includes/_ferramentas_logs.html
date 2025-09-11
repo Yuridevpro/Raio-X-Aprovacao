@@ -1,0 +1,52 @@
+<!-- gestao/templates/gestao/includes/_ferramentas_logs.html -->
+{% load gestao_extras %} <!-- <-- ADICIONE ESTA LINHA NO TOPO -->
+
+<div class="card mb-4 shadow-sm">
+    <div class="card-header bg-light border-bottom">
+        <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Ferramentas de Logs</h5>
+    </div>
+    <div class="card-body">
+        <!-- Limpeza de Logs -->
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+            <div>
+                <p class="mb-1 fw-bold">Limpar Logs Antigos</p>
+                <small class="text-muted">Move logs com mais de X dias para a lixeira.</small>
+            </div>
+            <div class="btn-group ms-md-auto">
+                <button type="button" class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-broom me-2"></i>Limpar Logs com mais de...
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <!-- A linha abaixo agora funcionará corretamente -->
+                    {% for days in "30,60,90,180"|split:',' %}
+                    <li>
+                        <form id="form-limpar-logs-{{ days }}" action="{% url 'gestao:mover_logs_antigos_para_lixeira' %}" method="POST">
+                            {% csrf_token %}
+                            <input type="hidden" name="days" value="{{ days }}">
+                            <button type="button" class="dropdown-item btn-confirm-action" 
+                                    data-form-id="form-limpar-logs-{{ days }}"
+                                    data-modal-title="Confirmar Limpeza"
+                                    data-modal-body="Tem certeza? Isso moverá todos os logs com mais de {{ days }} dias para a lixeira.">
+                                {{ days }} dias
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        
+        <hr>
+        
+        <!-- Acesso à Lixeira -->
+        <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mt-3">
+            <div>
+                <p class="mb-1 fw-bold">Lixeira de Logs</p>
+                <small class="text-muted">Consulte os registros que já foram movidos para a lixeira.</small>
+            </div>
+            <a href="{% url 'gestao:listar_logs_deletados' %}" class="btn btn-outline-info btn-sm ms-md-auto">
+                <i class="fas fa-trash-restore me-2"></i>Ver Lixeira
+            </a>
+        </div>
+    </div>
+</div>

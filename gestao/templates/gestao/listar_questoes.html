@@ -1,46 +1,26 @@
-<!-- gestao/listar_questoes -->
-
+<!-- gestao/listar_questoes.html (VERSÃO CORRIGIDA) -->
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
 {% load pratica_extras %}
+
 {% block title %}Gerenciar Questões{% endblock %}
 
 {% block head %}
     <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
     <style>
-        /* CSS para um design mais limpo e para o filtro recolhível */
-        body {
-            background-color: #f8f9fa;
-        }
-
         .page-header {
-            background-color: #ffffff;
+            background-color: var(--cor-fundo-claro);
             padding: 1.5rem 2rem;
-            border-radius: 0.5rem;
+            border-radius: var(--raio-borda);
             margin-bottom: 2rem;
-            border: 1px solid #dee2e6;
-        }
-
-        .filter-card .card-header {
-            cursor: pointer;
+            border: 1px solid var(--cor-borda);
         }
         
-        .filter-card .card-header .icon-toggle::before {
-            content: '\f078'; /* Ícone de seta para baixo do FontAwesome */
-            font-family: 'Font Awesome 5 Free';
-            font-weight: 900;
-            transition: transform 0.3s ease;
-            display: inline-block;
-        }
-        .filter-card .card-header:not(.collapsed) .icon-toggle::before {
-            transform: rotate(-180deg);
-        }
-
         .lista-questoes-container {
-            background-color: #ffffff;
-            border-radius: 0.5rem;
-            border: 1px solid #dee2e6;
+            background-color: var(--cor-fundo-claro);
+            border-radius: var(--raio-borda);
+            border: 1px solid var(--cor-borda);
             overflow: hidden;
         }
         
@@ -49,7 +29,7 @@
             align-items: center;
             gap: 1.5rem;
             padding: 1rem 1.5rem;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid var(--cor-borda);
             transition: background-color 0.2s ease-in-out;
         }
         .lista-questoes-container .questao-item:last-child {
@@ -59,43 +39,15 @@
             background-color: #f8f9fa;
         }
         
-        .questao-info {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-            flex-wrap: wrap;
-            flex-grow: 1;
-        }
-
-        .questao-info .codigo {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: var(--bs-primary);
-            min-width: 80px;
-        }
-
-        .questao-info .disciplina {
-            font-weight: 500;
-        }
-
-        .questao-info .meta {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
-
-        .questao-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
+        .questao-info { display: flex; align-items: center; gap: 1.25rem; flex-wrap: wrap; flex-grow: 1; }
+        .questao-info .codigo { font-size: 1.1rem; font-weight: 600; color: var(--cor-primaria); min-width: 80px; }
+        .questao-info .disciplina { font-weight: 500; }
+        .questao-info .meta { font-size: 0.9rem; color: var(--cor-texto-muted); }
+        .questao-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
 
         @media (max-width: 767.98px) {
             .page-header { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .page-header .btn-group { width: 100%; }
-            .page-header .btn-group > .btn:first-of-type { flex-grow: 1; }
             .questao-item { flex-direction: column; align-items: flex-start; gap: 1rem; }
-            .questao-info { gap: 0.75rem; }
             .questao-actions { width: 100%; justify-content: flex-end; }
         }
     </style>
@@ -104,21 +56,15 @@
 {% block content %}
 <div class="container mt-5 mb-5">
     <div class="mb-4">
-        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-2"></i>Voltar ao Painel
-        </a>
+        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar ao Painel</a>
     </div>
     
     <!-- CABEÇALHO DA PÁGINA -->
     <div class="page-header d-flex justify-content-between align-items-center">
         <h2 class="h3 mb-0">Gerenciamento de Questões</h2>
         <div class="btn-group">
-            <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Adicionar Questão
-            </a>
-            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
-                <span class="visually-hidden">Opções</span>
-            </button>
+            <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Adicionar Questão</a>
+            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
             <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Disciplina"><i class="fas fa-book fa-fw me-2"></i>Adicionar Disciplina</a></li>
                 <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal"><i class="fas fa-tags fa-fw me-2"></i>Adicionar Assunto</a></li>
@@ -129,61 +75,64 @@
         </div>
     </div>
     
-    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>{% endfor %}{% endif %}
+    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
 
     <!-- CARD DE FILTROS RECOLHÍVEL -->
     <div class="card mb-4 shadow-sm filter-card">
-        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Busca</h5>
-                <span class="icon-toggle"></span>
-            </div>
-        </div>
-        <div class="collapse" id="collapseFilters">
-            <div class="card-body p-4">
-                {% include 'includes/_filtros_questoes.html' with form_action_url=request.path %}
-            </div>
-        </div>
-    </div>
-
-    <!-- BARRA DE AÇÕES EM MASSA -->
-    <div id="bulk-actions-bar" class="card card-body mb-3 sticky-top" style="display: none; top: 10px; z-index: 1000;">
-        <!-- ... (conteúdo da barra de ações em massa) ... -->
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters"><div class="d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros de Busca</h5><span class="icon-toggle"></span></div></div>
+        <div class="collapse" id="collapseFilters"><div class="card-body p-4">{% include 'includes/_filtros_questoes.html' with form_action_url=request.path %}</div></div>
     </div>
     
     <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
     {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
+
+    <!-- ======================================================================= -->
+    <!-- INÍCIO DA CORREÇÃO: Inclusão da barra de ações em massa -->
+    <!-- ======================================================================= -->
+    {% include 'gestao/includes/_barra_acoes_em_massa_questoes.html' %}
+    <!-- ======================================================================= -->
+    <!-- FIM DA CORREÇÃO -->
+    <!-- ======================================================================= -->
 
     <!-- LISTAGEM DE QUESTÕES -->
     {% if questoes %}
         <div class="lista-questoes-container">
             {% for questao in questoes %}
             <div class="questao-item" id="questao-item-{{ questao.id }}">
-                <div class="form-check">
-                    <input class="form-check-input questao-checkbox" type="checkbox" data-id="{{ questao.id }}">
-                </div>
+                <div class="form-check"><input class="form-check-input questao-checkbox" type="checkbox" data-id="{{ questao.id }}"></div>
                 <div class="questao-info">
                     <span class="codigo">{{ questao.codigo }}</span>
                     <span class="disciplina">{{ questao.disciplina.nome }}</span>
-                    <span class="meta">
-                        {% if questao.is_inedita %}
-                            <span class="badge bg-info text-dark">Inédita</span>
-                        {% else %}
-                            {{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}
-                        {% endif %}
-                    </span>
+                    <span class="meta">{% if questao.is_inedita %}<span class="badge bg-info text-dark">Inédita</span>{% else %}{{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}{% endif %}</span>
                 </div>
                 <div class="questao-actions">
-                    <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao" data-questao-id="{{ questao.id }}" data-bs-toggle="tooltip" title="Visualização Rápida">
+                    <!-- BOTÃO VISUALIZAR CORRIGIDO -->
+                    <!-- Adicionado data-bs-toggle="modal" e data-bs-target para acionar o modal -->
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-secondary btn-visualizar-questao" 
+                            data-questao-id="{{ questao.id }}"
+                            data-bs-toggle="modal" 
+                            data-bs-target="#visualizarQuestaoModal"
+                            title="Visualização Rápida">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Editar">
+                
+                    <!-- BOTÃO EDITAR (mantido como estava, pois está correto) -->
+                    <!-- Ele usa o tooltip do Bootstrap, pois não aciona um modal -->
+                    <a href="{% url 'gestao:editar_questao' questao.id %}" 
+                       class="btn btn-sm btn-outline-info" 
+                       data-bs-toggle="tooltip" 
+                       title="Editar">
                         <i class="fas fa-edit"></i>
                     </a>
-                    <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-questao" data-bs-toggle="modal" data-bs-target="#deletarQuestaoModal" data-questao-id="{{ questao.id }}" data-questao-codigo="{{ questao.codigo }}" data-bs-toggle="tooltip" title="Deletar">
+                    
+                    <!-- BOTÃO DELETAR (mantido como estava, pois está correto) -->
+                    <button type="button" 
+                            class="btn btn-sm btn-outline-danger btn-deletar-questao" 
+                            data-bs-toggle="modal" 
+                            data-bs-target="#deletarQuestaoModal" 
+                            data-questao-id="{{ questao.id }}" 
+                            data-questao-codigo="{{ questao.codigo }}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -191,129 +140,15 @@
             {% endfor %}
         </div>
     {% else %}
-        <div class="text-center py-5 empty-state-card">
-            <i class="fas fa-search fa-4x text-muted mb-3"></i>
-            <h4 class="h5 fw-bold">Nenhuma questão foi encontrada</h4>
-            <p class="text-muted">Tente ajustar seus filtros de busca ou adicione novas questões.</p>
-        </div>
+        <div class="text-center py-5 card card-body"><i class="fas fa-search fa-4x text-muted mb-3"></i><h4 class="h5 fw-bold">Nenhuma questão foi encontrada</h4><p class="text-muted">Tente ajustar seus filtros de busca ou adicione novas questões.</p></div>
     {% endif %}
 
     <!-- PAGINAÇÃO -->
-    <div class="mt-4">
-        {% include 'includes/_paginacao.html' with paginated_object=questoes page_numbers=page_numbers %} 
-    </div>
+    <div class="mt-4">{% include 'includes/_paginacao.html' with paginated_object=questoes %}</div>
 </div>
 
-<!-- ======================================================= -->
-<!-- INÍCIO DA MODIFICAÇÃO: Modais agora com formulários -->
-<!-- ======================================================= -->
-
-<!-- Modal 'addEntidadeModal' -->
-<div class="modal fade" id="addEntidadeModal" tabindex="-1" aria-labelledby="addEntidadeModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addEntidadeModalLabel">Adicionar</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="form-add-entidade">
-                    {% csrf_token %}
-                    <input type="hidden" name="tipo_entidade" id="input-tipo-entidade">
-                    <div class="mb-3">
-                        <label for="input-nome-entidade" class="form-label">{{ entidade_simples_form.nome.label }}:</label>
-                        {{ entidade_simples_form.nome }}
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer d-flex justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-salvar-entidade">
-                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                    <span class="btn-text">Salvar</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal 'addAssuntoModal' -->
-<div class="modal fade" id="addAssuntoModal" tabindex="-1" aria-labelledby="addAssuntoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addAssuntoModalLabel">Adicionar Novo Assunto</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="form-add-assunto">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="{{ assunto_form.disciplina.id_for_label }}" class="form-label">{{ assunto_form.disciplina.label }}:</label>
-                        {{ assunto_form.disciplina }}
-                    </div>
-                    <div class="mb-3">
-                        <label for="{{ assunto_form.nome.id_for_label }}" class="form-label">{{ assunto_form.nome.label }}:</label>
-                        {{ assunto_form.nome }}
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer d-flex justify-content-center">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" id="btn-salvar-assunto">
-                    <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                    <span class="btn-text">Salvar Assunto</span>
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Outros modais (deletar, visualizar) permanecem aqui -->
-<div class="modal fade" id="deletarQuestaoModal" tabindex="-1" aria-labelledby="deletarQuestaoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <form id="form-deletar-questao" method="POST" action="">
-                {% csrf_token %}
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title" id="deletarQuestaoModalLabel">Confirmar Exclusão</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Você tem certeza que deseja excluir permanentemente a questão <strong id="codigo-para-deletar"></strong>?</p>
-                    <p class="text-danger fw-bold">Esta ação não pode ser desfeita.</p>
-                </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger" id="btn-confirm-delete-questao">
-                        <span class="spinner-border spinner-border-sm" style="display: none;"></span>
-                        <span class="btn-text">Sim, Excluir</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<div class="modal fade" id="visualizarQuestaoModal" tabindex="-1" aria-labelledby="visualizarQuestaoModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="visualizarQuestaoModalLabel">Visualizando Questão: <span id="modalQuestaoCodigo" class="fw-bold">...</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-            <div class="modal-body">
-                <div id="modalQuestaoSpinner" class="text-center p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div>
-                <div id="modalQuestaoContent" style="display: none;">
-                    <h6>Enunciado:</h6>
-                    <div id="modalQuestaoEnunciado" class="enunciado-formatado mb-4 p-3 bg-light rounded"></div>
-                    <h6>Alternativas:</h6>
-                    <ul id="modalQuestaoAlternativas" class="list-group"></ul>
-                </div>
-            </div>
-            <div class="modal-footer d-flex justify-content-center" ><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button></div>
-        </div>
-    </div>
-</div>
+<!-- MODAIS -->
+{% include 'gestao/includes/_modais_gestao_questoes.html' %}
 {% endblock %}
 
 
@@ -321,340 +156,238 @@
 <!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
 <script src="{% static 'js/filtros-questoes.js' %}"></script>
 
-<!-- Scripts específicos para os modais e funcionalidades da página -->
+<!-- ======================================================================= -->
+<!-- INÍCIO DO BLOCO DE SCRIPT CORRIGIDO E UNIFICADO -->
+<!-- ======================================================================= -->
 <script>
-
-
-document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function() {
+        new bootstrap.Tooltip(document.body, { selector: "[data-bs-toggle='tooltip']" });
     
-    // Inicializa os tooltips do Bootstrap para os botões com ícones
-    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-
-    // =======================================================================
-    // LÓGICA ATUALIZADA: Modal 'addEntidadeModal' com Spinner
-    // =======================================================================
-    const addEntidadeModalEl = document.getElementById('addEntidadeModal');
-    if (addEntidadeModalEl) {
-        const addEntidadeModal = new bootstrap.Modal(addEntidadeModalEl);
-        const saveBtn = document.getElementById('btn-salvar-entidade');
-        const spinner = saveBtn.querySelector('.spinner-border');
-        const btnText = saveBtn.querySelector('.btn-text');
-        
-        addEntidadeModalEl.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const tipo = button.getAttribute('data-tipo');
-            const titulo = button.getAttribute('data-titulo');
+        // =======================================================================
+        // FUNÇÕES DE MANIPULAÇÃO DOS MODAIS
+        // =======================================================================
+    
+        /**
+         * Configura um modal para enviar um formulário via AJAX.
+         * Usado para adicionar Disciplina, Banca, Instituição e Assunto.
+         */
+        function setupAjaxModalForm(modalId, formId, url) {
+            const modalEl = document.getElementById(modalId);
+            if (!modalEl) return;
+    
+            modalEl.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                if (button && button.dataset.tipo) {
+                    modalEl.querySelector('.modal-title').textContent = button.dataset.titulo;
+                    modalEl.querySelector('#input-tipo-entidade').value = button.dataset.tipo;
+                }
+            });
+    
+            const form = document.getElementById(formId);
+            const submitBtn = modalEl.querySelector('.modal-footer button.btn-primary');
             
-            addEntidadeModalEl.querySelector('.modal-title').textContent = titulo;
-            addEntidadeModalEl.querySelector('#input-tipo-entidade').value = tipo;
-        });
-
-        saveBtn.addEventListener('click', function() {
-            saveBtn.disabled = true;
-            spinner.style.display = 'inline-block';
-            btnText.style.display = 'none';
-
-            const form = document.getElementById('form-add-entidade');
-            const formData = new FormData(form);
-            const inputNome = form.querySelector('#input-nome-entidade');
-            const feedback = form.querySelector('.invalid-feedback');
-            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'gestao:adicionar_entidade_simples' %}", {
-                method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
-            })
-            .then(response => response.json().then(data => ({ ok: response.ok, data })))
-            .then(({ok, data}) => {
-                if (ok) {
-                    addEntidadeModal.hide();
-                    showNotificationModal('Sucesso!', `"${data.entidade.nome}" foi adicionado. A página será recarregada.`, 'success', () => {
-                        window.location.reload();
-                    });
-                } else {
-                    inputNome.classList.add('is-invalid');
-                    feedback.textContent = data.message;
-                    feedback.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao salvar entidade:', error);
-                showNotificationModal('Erro de Rede', 'Não foi possível salvar o item. Verifique sua conexão.', 'error');
-            })
-            .finally(() => {
-                saveBtn.disabled = false;
-                spinner.style.display = 'none';
-                btnText.style.display = 'inline-block';
-            });
-        });
-
-        addEntidadeModalEl.addEventListener('hidden.bs.modal', function() {
-            const form = this.querySelector('form');
-            form.reset();
-            this.querySelector('#input-nome-entidade').classList.remove('is-invalid');
-            this.querySelector('.invalid-feedback').style.display = 'none';
-        });
-    }
-
-    // =======================================================================
-    // LÓGICA ATUALIZADA: Modal 'addAssuntoModal' com Spinner
-    // =======================================================================
-    const addAssuntoModalEl = document.getElementById('addAssuntoModal');
-    if (addAssuntoModalEl) {
-        const addAssuntoModal = new bootstrap.Modal(addAssuntoModalEl);
-        const saveBtn = document.getElementById('btn-salvar-assunto');
-        const spinner = saveBtn.querySelector('.spinner-border');
-        const btnText = saveBtn.querySelector('.btn-text');
-
-        saveBtn.addEventListener('click', function() {
-            saveBtn.disabled = true;
-            spinner.style.display = 'inline-block';
-            btnText.style.display = 'none';
-
-            const form = document.getElementById('form-add-assunto');
-            const formData = new FormData(form);
-            const inputNome = form.querySelector('#input-nome-assunto');
-            const feedback = form.querySelector('.invalid-feedback');
-            const csrfToken = form.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            fetch("{% url 'gestao:adicionar_assunto' %}", {
-                method: 'POST', body: formData, headers: { 'X-CSRFToken': csrfToken }
-            })
-            .then(response => response.json().then(data => ({ ok: response.ok, data })))
-            .then(({ok, data}) => {
-                if (ok) {
-                    addAssuntoModal.hide();
-                    showNotificationModal('Sucesso!', `Assunto "${data.assunto.nome}" adicionado. A página será recarregada.`, 'success', () => {
-                        window.location.reload();
-                    });
-                } else {
-                    inputNome.classList.add('is-invalid');
-                    feedback.textContent = data.message || "Este campo é obrigatório.";
-                    feedback.style.display = 'block';
-                }
-            })
-            .catch(error => {
-                console.error('Erro ao salvar assunto:', error);
-                showNotificationModal('Erro de Rede', 'Não foi possível salvar o item. Verifique sua conexão.', 'error');
-            })
-            .finally(() => {
-                saveBtn.disabled = false;
-                spinner.style.display = 'none';
-                btnText.style.display = 'inline-block';
-            });
-        });
-        
-        addAssuntoModalEl.addEventListener('hidden.bs.modal', function() {
-            const form = this.querySelector('form');
-            form.reset();
-            this.querySelector('#input-nome-assunto').classList.remove('is-invalid');
-            this.querySelector('.invalid-feedback').style.display = 'none';
-        });
-    }
-
-    // =======================================================================
-    // LÓGICA CORRIGIDA: Modal para Deletar Questão Individual
-    // =======================================================================
-    const deletarQuestaoModalEl = document.getElementById('deletarQuestaoModal');
-    if(deletarQuestaoModalEl) {
-        const deletarQuestaoModal = new bootstrap.Modal(deletarQuestaoModalEl);
-        const form = document.getElementById('form-deletar-questao');
-        const submitBtn = document.getElementById('btn-confirm-delete-questao');
-        const spinner = submitBtn.querySelector('.spinner-border');
-        const btnText = submitBtn.querySelector('.btn-text');
-
-        deletarQuestaoModalEl.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-            const questaoId = button.dataset.questaoId;
-            const questaoCodigo = button.dataset.questaoCodigo;
-            
-            const baseUrl = "{% url 'gestao:deletar_questao' 0 %}";
-            form.action = baseUrl.replace('0', questaoId);
-            deletarQuestaoModalEl.querySelector('#codigo-para-deletar').textContent = questaoCodigo;
-        });
-
-        form.addEventListener('submit', function(event) {
-            event.preventDefault();
-            submitBtn.disabled = true;
-            spinner.style.display = 'inline-block';
-            btnText.style.display = 'none';
-
-            fetch(form.action, {
-                method: 'POST',
-                headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
-            })
-            .then(response => response.json().then(data => ({ok: response.ok, data})))
-            .then(({ok, data}) => {
-                if(ok) {
-                    deletarQuestaoModal.hide();
-                    showNotificationModal('Sucesso!', data.message, 'success');
-                    const itemToRemove = document.getElementById(`questao-item-${data.deleted_questao_id}`);
-                    if(itemToRemove) {
-                        itemToRemove.remove();
-                    }
-                    
-                    const totalCountSpan = document.getElementById('total-results-count');
-                    const totalBadgeSpan = document.getElementById('total-results-badge');
-                    if (totalCountSpan && totalBadgeSpan) {
-                        const currentCount = parseInt(totalCountSpan.textContent, 10);
-                        const newCount = Math.max(0, currentCount - 1);
-                        const newLabel = newCount === 1 ? ' resultado' : ' resultados';
-                        totalBadgeSpan.innerHTML = `<span id="total-results-count">${newCount}</span>${newLabel}`;
-                    }
-
-                } else {
-                    throw new Error(data.message || 'Não foi possível excluir a questão.');
-                }
-            })
-            .catch(error => {
-                deletarQuestaoModal.hide();
-                showNotificationModal('Erro', error.message, 'error');
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                spinner.style.display = 'none';
-                btnText.style.display = 'inline-block';
-            });
-        });
-    }
-
-  // =======================================================================
-    // LÓGICA CORRIGIDA: Ações em Massa
-    // =======================================================================
-    const bulkActionsBar = document.getElementById('bulk-actions-bar');
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const questaoCheckboxes = document.querySelectorAll('.questao-checkbox');
-    const selectedCountSpan = document.getElementById('selected-count');
-    const bulkActionDropdownBtn = document.getElementById('bulk-action-dropdown-btn');
-
-    function updateBulkActionBar() {
-        if (!bulkActionsBar) return;
-        const selectedCheckboxes = document.querySelectorAll('.questao-checkbox:checked');
-        const count = selectedCheckboxes.length;
-        if (count > 0) {
-            bulkActionsBar.style.display = 'block';
-            selectedCountSpan.textContent = count;
-        } else {
-            bulkActionsBar.style.display = 'none';
-        }
-        if (selectAllCheckbox) {
-            selectAllCheckbox.checked = count > 0 && count === questaoCheckboxes.length;
-        }
-    }
-
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            questaoCheckboxes.forEach(checkbox => { checkbox.checked = this.checked; });
-            updateBulkActionBar();
-        });
-    }
-    questaoCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
-
-    document.querySelectorAll('.bulk-action-btn').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const action = this.dataset.action;
-            const selectedIds = Array.from(document.querySelectorAll('.questao-checkbox:checked')).map(cb => cb.dataset.id);
-
-            if (selectedIds.length === 0) {
-                showNotificationModal('Atenção', 'Nenhuma questão foi selecionada.', 'info');
-                return;
-            }
-            const confirmationMessage = `Tem certeza que deseja EXCLUIR ${selectedIds.length} questão(ões) permanentemente?`;
-
-            // Supondo que você tenha uma função showConfirmationModal que aceite um callback
-            showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
-                const spinner = bulkActionDropdownBtn.querySelector('.spinner-border');
-                const btnText = bulkActionDropdownBtn.querySelector('.btn-text');
-                
-                bulkActionDropdownBtn.disabled = true;
+            submitBtn.addEventListener('click', function() {
+                const spinner = submitBtn.querySelector('.spinner-border');
+                const btnText = submitBtn.querySelector('.btn-text');
+                submitBtn.disabled = true;
                 spinner.style.display = 'inline-block';
                 btnText.style.display = 'none';
-
-                fetch("{% url 'gestao:questoes_acoes_em_massa' %}", {
+    
+                fetch(url, {
                     method: 'POST',
-                    headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                    body: JSON.stringify({ ids: selectedIds, action: action })
+                    body: new FormData(form),
+                    headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
                 })
                 .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                .then(({ ok, data }) => { 
+                .then(({ok, data}) => {
                     if (ok) {
-                        // Agora esta chamada funcionará corretamente
-                        showNotificationModal('Sucesso!', data.message, 'success', () => {
-                            window.location.reload();
-                        });
+                        bootstrap.Modal.getInstance(modalEl).hide();
+                        showNotificationModal('Sucesso!', 'Item adicionado. A página será recarregada.', 'success', () => window.location.reload());
                     } else {
-                        throw new Error(data.message || 'Ocorreu um erro.');
+                        const errorField = Object.keys(data.errors)[0];
+                        const input = form.querySelector(`[name=${errorField}]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            input.nextElementSibling.textContent = data.errors[errorField][0];
+                        } else {
+                            throw new Error(data.message || 'Erro de validação.');
+                        }
                     }
                 })
-                .catch(err => {
-                    showNotificationModal('Erro', err.message, 'error');
-                })
+                .catch(error => showNotificationModal('Erro de Rede', error.message, 'error'))
                 .finally(() => {
-                    bulkActionDropdownBtn.disabled = false;
+                    submitBtn.disabled = false;
                     spinner.style.display = 'none';
                     btnText.style.display = 'inline-block';
                 });
             });
-        });
-    });
-
-    // =======================================================================
-    // LÓGICA ORIGINAL: Modal de Visualização Rápida
-    // =======================================================================
-    const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
-    if (visualizarQuestaoModalEl) {
-        const visualizarQuestaoModal = new bootstrap.Modal(visualizarQuestaoModalEl);
-        const modalCodigo = document.getElementById('modalQuestaoCodigo');
-        const modalEnunciado = document.getElementById('modalQuestaoEnunciado');
-        const modalAlternativas = document.getElementById('modalQuestaoAlternativas');
-        const modalSpinner = document.getElementById('modalQuestaoSpinner');
-        const modalContent = document.getElementById('modalQuestaoContent');
-
-        document.querySelectorAll('.btn-visualizar-questao').forEach(button => {
-            button.addEventListener('click', function() {
-                const questaoId = this.dataset.questaoId;
-                
-                modalContent.style.display = 'none';
-                modalSpinner.style.display = 'block';
-                modalCodigo.textContent = '...';
-                visualizarQuestaoModal.show();
-
+        }
+    
+        /**
+         * Configura o modal de exclusão de uma única questão.
+         */
+        function setupDeletarQuestaoModal() {
+            const modalEl = document.getElementById('deletarQuestaoModal');
+            if (!modalEl) return;
+            
+            const modal = new bootstrap.Modal(modalEl);
+            const form = document.getElementById('form-deletar-questao');
+            
+            modalEl.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                form.action = `{% url 'gestao:deletar_questao' 0 %}`.replace('0', button.dataset.questaoId);
+                this.querySelector('#codigo-para-deletar').textContent = button.dataset.questaoCodigo;
+            });
+    
+            form.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const submitBtn = form.querySelector('button[type="submit"]');
+                const spinner = submitBtn.querySelector('.spinner-border');
+                const btnText = submitBtn.querySelector('.btn-text');
+                submitBtn.disabled = true;
+                spinner.style.display = 'inline-block';
+                btnText.style.display = 'none';
+    
+                fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
+                })
+                .then(response => response.json().then(data => ({ok: response.ok, data})))
+                .then(({ok, data}) => {
+                    modal.hide();
+                    if(ok) {
+                        // MUDANÇA 1: Mensagem genérica e recarregamento da página.
+                        showNotificationModal('Sucesso!', 'A questão foi removida com sucesso.', 'success', () => {
+                            window.location.reload();
+                        });
+                    } else {
+                        throw new Error(data.message || 'Não foi possível excluir a questão.');
+                    }
+                })
+                .catch(error => showNotificationModal('Erro', error.message, 'error'))
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    spinner.style.display = 'none';
+                    btnText.style.display = 'inline-block';
+                });
+            });
+        }
+    
+        /**
+         * Configura o modal de visualização rápida da questão.
+         */
+        function setupVisualizarQuestaoModal() {
+            const modalEl = document.getElementById('visualizarQuestaoModal');
+            if (!modalEl) return;
+            
+            const modal = new bootstrap.Modal(modalEl);
+            modalEl.addEventListener('show.bs.modal', function(event) {
+                const questaoId = event.relatedTarget.dataset.questaoId;
+                const content = this.querySelector('#modalQuestaoContent');
+                const spinner = this.querySelector('#modalQuestaoSpinner');
+                content.style.display = 'none';
+                spinner.style.display = 'block';
+    
                 fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
-                    .then(response => {
-                        if (!response.ok) {
-                             throw new Error(`Erro de servidor: ${response.status}`);
-                        }
-                        return response.json();
-                    })
+                    .then(response => response.ok ? response.json() : Promise.reject('Erro de servidor'))
                     .then(data => {
-                        if (data.status === 'success') {
-                            modalCodigo.textContent = data.codigo;
-                            modalEnunciado.innerHTML = data.enunciado;
-                            modalAlternativas.innerHTML = '';
-                            for (const [key, value] of Object.entries(data.alternativas)) {
-                                const listItem = document.createElement('li');
-                                listItem.classList.add('list-group-item');
-                                if (key === data.gabarito) {
-                                    listItem.classList.add('list-group-item-success', 'fw-bold');
-                                }
-                                listItem.innerHTML = `<strong>${key})</strong> ${value}`;
-                                modalAlternativas.appendChild(listItem);
-                            }
-                        } else {
-                            throw new Error(data.message || 'Não foi possível carregar os dados da questão.');
-                        }
+                        this.querySelector('#modalQuestaoCodigo').textContent = data.codigo;
+                        this.querySelector('#modalQuestaoEnunciado').innerHTML = data.enunciado;
+                        const alternativasList = this.querySelector('#modalQuestaoAlternativas');
+                        alternativasList.innerHTML = Object.entries(data.alternativas).map(([key, value]) => `
+                            <li class="list-group-item ${key === data.gabarito ? 'list-group-item-success fw-bold' : ''}">
+                                <strong>${key})</strong> ${value}
+                            </li>`).join('');
                     })
-                    .catch(error => {
-                         modalEnunciado.innerHTML = `<div class="alert alert-danger">${error.message}</div>`;
-                    })
+                    .catch(error => this.querySelector('#modalQuestaoEnunciado').innerHTML = `<div class="alert alert-danger">${error}</div>`)
                     .finally(() => {
-                        modalSpinner.style.display = 'none';
-                        modalContent.style.display = 'block';
+                        spinner.style.display = 'none';
+                        content.style.display = 'block';
                     });
             });
-        });
-    }
-});
-</script>
+        }
+    
+        /**
+         * Configura a lógica para a barra de ações em massa.
+         */
+        function setupAcoesEmMassa() {
+            const bulkActionsBar = document.getElementById('bulk-actions-bar');
+            const selectAllCheckbox = document.getElementById('select-all-checkbox');
+            const questaoCheckboxes = document.querySelectorAll('.questao-checkbox');
+            const selectedCountSpan = document.getElementById('selected-count');
+            const bulkActionBtn = document.querySelector('.bulk-action-btn');
+    
+            if (!bulkActionsBar || !bulkActionBtn) return;
+    
+            const updateBulkActionBar = () => {
+                const count = document.querySelectorAll('.questao-checkbox:checked').length;
+                bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+                if (selectedCountSpan) selectedCountSpan.textContent = count;
+                if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === questaoCheckboxes.length;
+            };
+    
+            if (selectAllCheckbox) {
+                selectAllCheckbox.addEventListener('change', () => {
+                    questaoCheckboxes.forEach(checkbox => { checkbox.checked = selectAllCheckbox.checked; });
+                    updateBulkActionBar();
+                });
+            }
+            questaoCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
+    
+            bulkActionBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const selectedIds = Array.from(document.querySelectorAll('.questao-checkbox:checked')).map(cb => cb.dataset.id);
+    
+                if (selectedIds.length === 0) {
+                    showNotificationModal('Atenção', 'Nenhuma questão foi selecionada.', 'info');
+                    return;
+                }
+                
+                const confirmationMessage = `Tem certeza que deseja EXCLUIR as ${selectedIds.length} questões selecionadas permanentemente?`;
+    
+                showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
+                    const dropdownBtn = document.getElementById('bulk-action-dropdown-btn');
+                    const spinner = dropdownBtn.querySelector('.spinner-border');
+                    const btnText = dropdownBtn.querySelector('.btn-text');
+                    dropdownBtn.disabled = true;
+                    spinner.style.display = 'inline-block';
+                    btnText.style.display = 'none';
+    
+                    fetch("{% url 'gestao:questoes_acoes_em_massa' %}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                        body: JSON.stringify({ ids: selectedIds, action: this.dataset.action })
+                    })
+                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                    .then(({ ok, data }) => { 
+                        if (ok) {
+                            // MUDANÇA 2: Mensagem genérica e recarregamento da página.
+                            showNotificationModal('Sucesso!', 'As questões selecionadas foram removidas com sucesso.', 'success', () => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Ocorreu um erro.');
+                        }
+                    })
+                    .catch(err => showNotificationModal('Erro', err.message, 'error'))
+                    .finally(() => {
+                        dropdownBtn.disabled = false;
+                        spinner.style.display = 'none';
+                        btnText.style.display = 'inline-block';
+                    });
+                });
+            });
+        }
+    
+        // =======================================================================
+        // CHAMADA DAS FUNÇÕES DE INICIALIZAÇÃO
+        // =======================================================================
+        setupAjaxModalForm('addEntidadeModal', 'form-add-entidade', "{% url 'gestao:adicionar_entidade_simples' %}");
+        setupAjaxModalForm('addAssuntoModal', 'form-add-assunto', "{% url 'gestao:adicionar_assunto' %}");
+        setupDeletarQuestaoModal();
+        setupVisualizarQuestaoModal();
+        setupAcoesEmMassa();
+    });
+    </script>
+
 {% endblock %}

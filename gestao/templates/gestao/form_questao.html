@@ -11,105 +11,88 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.min.css" rel="stylesheet">
     
     <style>
-        :root {
-            --primary-color: #4A90E2;
-            --primary-hover-color: #357ABD;
-            --secondary-color: #6c757d;
-            --success-color: #198754;
-            --light-bg: #f8f9fa;
-            --white-bg: #FFFFFF;
-            --border-color: #dee2e6;
-            --text-color: #495057;
-            --dark-text-color: #212529;
-            --font-family: 'Poppins', sans-serif; /* Certifique-se de importar esta fonte no seu base.html */
-            --card-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
-            --card-border-radius: 0.75rem;
-            --input-border-radius: 0.375rem;
-        }
-
-        body {
-            background-color: var(--light-bg);
-            font-family: var(--font-family);
-        }
-
-        /* --- CARD PRINCIPAL E LAYOUT --- */
+        /* ================================================================== */
+        /* 1. LAYOUT E ESTRUTURA DOS CARDS
+        /* Este bloco define a aparência dos containers principais da página.
+        /* ================================================================== */
         .main-card {
-            background-color: var(--white-bg);
+            background-color: var(--cor-fundo-claro);
             border: none;
-            border-radius: var(--card-border-radius);
-            box-shadow: var(--card-shadow);
-            overflow: hidden; /* Garante que os cantos arredondados sejam aplicados aos filhos */
+            border-radius: var(--raio-borda);
+            box-shadow: var(--sombra-caixa);
+            overflow: hidden;
         }
-
         .page-header {
             padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--cor-borda);
         }
-
         .sub-card {
-            background-color: var(--white-bg);
-            border: 1px solid #e9ecef;
-            border-radius: var(--card-border-radius);
+            background-color: var(--cor-fundo-claro);
+            border: 1px solid var(--cor-borda);
+            border-radius: var(--raio-borda);
             padding: 1.5rem;
             margin-bottom: 2rem;
         }
-
         .form-section-title {
             font-size: 1.15rem;
             font-weight: 600;
-            color: var(--dark-text-color);
+            color: var(--cor-texto-escuro);
             margin-bottom: 1.5rem;
         }
 
-        /* --- ESTILOS DOS CAMPOS DO FORMULÁRIO --- */
+        /* ================================================================== */
+        /* 2. ESTILOS DOS CAMPOS DE FORMULÁRIO (INPUTS, SELECTS)
+        /* ================================================================== */
         .form-label {
-            font-weight: 500;
-            color: var(--text-color);
+            font-weight: var(--peso-fonte-medio);
+            color: var(--cor-texto-escuro);
             margin-bottom: 0.5rem;
         }
         .form-control, .form-select, .ts-control {
-            border-radius: var(--input-border-radius);
-            border-color: var(--border-color);
+            border-radius: 8px; /* Mantém consistência com botões */
+            border-color: var(--cor-borda);
             transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
         .form-control:focus, .form-select:focus, .ts-control.focus {
-            border-color: var(--primary-color) !important;
+            border-color: var(--cor-primaria) !important;
             box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25) !important;
         }
 
-        /* --- COMPONENTE DE UPLOAD DE IMAGEM --- */
+        /* ================================================================== */
+        /* 3. COMPONENTE DE UPLOAD DE IMAGEM
+        /* ================================================================== */
         .image-uploader {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--input-border-radius);
+            border: 2px dashed var(--cor-borda);
+            border-radius: 8px;
             padding: 1.5rem;
             text-align: center;
             cursor: pointer;
-            transition: border-color 0.3s ease, background-color 0.3s ease;
+            transition: var(--transicao-padrao);
             position: relative;
             background-color: #fafafa;
         }
         .image-uploader:hover, .image-uploader.dragover {
-            border-color: var(--primary-color);
+            border-color: var(--cor-primaria);
             background-color: #f0f6ff;
         }
-        .image-uploader-icon { font-size: 2.5rem; color: #adb5bd; margin-bottom: 1rem; }
-        .image-uploader-text { color: var(--text-color); font-weight: 500; }
-        .image-uploader-hint { font-size: 0.875rem; color: #6c757d; }
+        .image-uploader-icon { font-size: 2.5rem; color: var(--cor-texto-muted); margin-bottom: 1rem; }
+        .image-uploader-text { color: var(--cor-texto-escuro); font-weight: var(--peso-fonte-medio); }
+        .image-uploader-hint { font-size: 0.875rem; color: var(--cor-texto-muted); }
         .image-uploader input[type="file"] { display: none; }
         .image-preview-container {
-            display: none; /* Começa escondido */
+            display: none;
             position: relative;
             margin-top: 1rem;
         }
         .image-preview {
             max-width: 100%;
             max-height: 200px;
-            border-radius: var(--input-border-radius);
-            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            border: 1px solid var(--cor-borda);
         }
         .remove-image-btn {
             position: absolute; top: -10px; right: -10px;
-            background-color: #dc3545; color: white;
+            background-color: var(--cor-erro); color: var(--cor-texto-claro);
             border: none; border-radius: 50%;
             width: 28px; height: 28px;
             display: flex; align-items: center; justify-content: center;
@@ -117,52 +100,53 @@
             cursor: pointer;
         }
 
-        /* --- LÓGICA DE "QUESTÃO INÉDITA" --- */
+        /* ================================================================== */
+        /* 4. LÓGICA DE "QUESTÃO INÉDITA" E EDITOR TIPTAP
+        /* ================================================================== */
         .field-disabled {
             opacity: 0.5;
             pointer-events: none;
             transition: opacity 0.3s ease;
         }
-
-        /* --- EDITOR TIPTAP MELHORADO --- */
         .tiptap-editor-wrapper { position: relative; }
         .tiptap-toolbar {
             display: flex; flex-wrap: wrap; gap: .25rem;
             padding: .5rem;
-            border: 1px solid var(--border-color);
+            border: 1px solid var(--cor-borda);
             border-bottom: none;
-            border-top-left-radius: var(--input-border-radius);
-            border-top-right-radius: var(--input-border-radius);
-            background-color: var(--white-bg);
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+            background-color: var(--cor-fundo-claro);
             position: sticky; top: 0; z-index: 10;
         }
         .tiptap-toolbar button {
             background: none; border: none; padding: 0.375rem 0.6rem;
-            border-radius: 0.25rem; cursor: pointer; color: var(--text-color);
+            border-radius: 0.25rem; cursor: pointer; color: var(--cor-texto-escuro);
             transition: background-color 0.2s ease, color 0.2s ease;
         }
         .tiptap-toolbar button:hover { background-color: #e9ecef; }
-        .tiptap-toolbar button.active { background-color: var(--primary-color); color: white; }
-        
+        .tiptap-toolbar button.active { background-color: var(--cor-primaria); color: var(--cor-texto-claro); }
         .ProseMirror.tiptap {
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: var(--input-border-radius);
-            border-bottom-right-radius: var(--input-border-radius);
+            border: 1px solid var(--cor-borda);
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
             padding: .75rem 1rem;
             min-height: 200px;
-            background-color: var(--white-bg);
+            background-color: var(--cor-fundo-claro);
         }
         .ProseMirror:focus { outline: none; }
         .ProseMirror p.is-editor-empty:first-child::before {
-            color: #adb5bd; content: attr(data-placeholder);
+            color: var(--cor-texto-muted); content: attr(data-placeholder);
             float: left; height: 0; pointer-events: none;
         }
 
-        /* --- ALTERNATIVAS --- */
-        .alternativa-item { display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem; border-radius: 0.5rem; transition: background-color 0.2s ease; }
-        .alternativa-item:hover { background-color: #f8f9fa; }
+        /* ================================================================== */
+        /* 5. SEÇÃO DE ALTERNATIVAS
+        /* ================================================================== */
+        .alternativa-item { display: flex; align-items: flex-start; gap: 1rem; padding: 0.75rem; border-radius: 8px; transition: background-color 0.2s ease; }
+        .alternativa-item:hover { background-color: var(--cor-fundo-body); }
         .alternativa-letra {
-            font-weight: 700; background-color: #e9ecef; color: #495057;
+            font-weight: var(--peso-fonte-bold); background-color: #e9ecef; color: var(--cor-texto-escuro);
             width: 38px; height: 38px;
             display: flex; align-items: center; justify-content: center;
             border-radius: 50%; flex-shrink: 0; margin-top: 0.25rem;
@@ -170,25 +154,22 @@
         .alternativa-campo { flex-grow: 1; }
         .alternativa-campo .form-control { min-height: 42px; }
 
-        /* --- AJUSTES PARA DISPOSITIVOS MÓVEIS --- */
+        /* ================================================================== */
+        /* 6. AJUSTES PARA DISPOSITIVOS MÓVEIS (RESPONSIVO)
+        /* ================================================================== */
         @media (max-width: 767px) {
             .container.my-5 {
                 padding-left: 0; padding-right: 0; margin-top: 0 !important; margin-bottom: 0 !important;
             }
             .main-card {
                 border-radius: 0; box-shadow: none;
-                border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color);
+                border-top: 1px solid var(--cor-borda); border-bottom: 1px solid var(--cor-borda);
             }
             .main-card .card-body { padding: 1.5rem 1rem; }
             .page-header { padding-left: 1rem; padding-right: 1rem; margin-bottom: 1.5rem !important; }
             .page-header {
-            margin-top: 1.5rem !important;
-        }
-        .main-card .card-footer {
-                
-              
+                margin-top: 1.5rem !important;
             }
-          
         }
     </style>
 {% endblock %}
@@ -556,6 +537,53 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // =======================================================================
+    // 6. FILTRAR ASSUNTOS PELO SELECIONADO EM DISCIPLINA
+    // =======================================================================
+    function handleDisciplinaChange() {
+        const disciplinaSelect = document.querySelector('select[name="disciplina"]');
+        const assuntoSelect = document.querySelector('select[name="assunto"]');
+        if (!disciplinaSelect || !assuntoSelect) return;
+
+        disciplinaSelect.addEventListener('change', async () => {
+            const disciplinaId = disciplinaSelect.value;
+
+            // Limpa opções do TomSelect de assunto
+            const tsAssunto = tomSelectInstances['assunto'];
+            tsAssunto.clear();
+            tsAssunto.clearOptions();
+
+            if (!disciplinaId) {
+                tsAssunto.disable();
+                return;
+            }
+
+            try {
+                const response = await fetch(`/questoes/api/get-assuntos/${disciplinaId}/`);
+                const data = await response.json();
+
+                // Recarrega opções
+                data.forEach(item => {
+                    tsAssunto.addOption({ value: item.id, text: item.nome });
+                });
+                tsAssunto.enable();
+            } catch (err) {
+                console.error("Erro ao carregar assuntos:", err);
+            }
+        });
+
+        const tsAssunto = tomSelectInstances['assunto'];
+        if (!disciplinaSelect.value) {
+            // Se for criação (sem disciplina ainda), desabilita
+            tsAssunto.disable();
+        } else {
+            // Se for edição (já tem disciplina), mantém habilitado
+            tsAssunto.enable();
+        }
+    }
+
+
     // =======================================================================
     // CHAMADAS DE INICIALIZAÇÃO
     // =======================================================================
@@ -564,6 +592,8 @@ document.addEventListener('DOMContentLoaded', function() {
     handleCustomFileInput();
     initTiptapEditors();
     handleBulkAlternatives(); // <-- Chame a nova função aqui
+    handleDisciplinaChange();  // <-- chamada nova
+
 
 });
 </script>

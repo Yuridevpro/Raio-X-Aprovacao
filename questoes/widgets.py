@@ -2,15 +2,16 @@
 
 from django import forms
 
-# A classe base foi alterada de 'Textarea' para 'forms.Widget'
-class TiptapEditorWidget(forms.Widget):
-    # O caminho para o template HTML que irá renderizar o nosso editor.
+class TiptapEditorWidget(forms.Textarea):
+    """
+    Widget customizado que renderiza um editor Tiptap.
+    Ele substitui um <textarea> padrão pelo HTML completo do editor.
+    """
+    # Aponta para o template que criamos no Passo 1
     template_name = 'questoes/widgets/tiptap_widget.html'
 
-    # Adicionar este método é uma boa prática para garantir que o valor
-    # do campo seja passado corretamente para o contexto do template.
     def get_context(self, name, value, attrs):
         context = super().get_context(name, value, attrs)
-        # O template (tiptap_widget.html) espera o valor em 'widget.value'
-        context['widget']['value'] = value or ''
+        # Passa o atributo 'placeholder' para o template do widget
+        context['widget']['attrs']['placeholder'] = self.attrs.get('placeholder', '')
         return context

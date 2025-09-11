@@ -1,0 +1,66 @@
+<!-- templates/pratica/includes/_modais_pratica.html -->
+
+<!-- Modal para Salvar Filtros -->
+<div class="modal fade" id="salvarFiltroModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Salvar Filtro</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p>Digite um nome para o conjunto de filtros atual.</p>
+                <input type="text" class="form-control" id="input-nome-filtro" placeholder="Ex: Questões de Direito Constitucional 2023">
+                <div class="invalid-feedback">Por favor, insira um nome.</div>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-confirmar-salvar-filtro">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+  
+<!-- Modal para Listar Filtros Salvos -->
+<div class="modal fade" id="filtrosSalvosModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Meus Filtros Salvos</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <ul class="list-group" id="lista-modal-filtros-salvos">
+                    {% for filtro in filtros_salvos %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center" id="filtro-salvo-item-{{ filtro.id }}">
+                            <a href="?{{ filtro.parametros_url }}" class="text-decoration-none text-dark flex-grow-1">{{ filtro.nome }}</a>
+                            <button type="button" class="btn btn-sm btn-danger btn-deletar-filtro" data-filtro-id="{{ filtro.id }}">&times;</button>
+                        </li>
+                    {% empty %}
+                        <p id="sem-filtros-salvos-msg" class="text-center text-muted">Nenhum filtro salvo.</p>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Notificar Erro -->
+<div class="modal fade" id="modalNotificarErro" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Qual o tipo do erro encontrado?</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <form id="form-notificar-erro">
+                    {% csrf_token %}
+                    <input type="hidden" name="questao_id" id="notificar-erro-questao-id">
+                    <div class="mb-4" id="botoes-tipo-erro">
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="ENUNCIADO_ALTERNATIVA">Enunciado/alternativa errada</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="DISCIPLINA_ASSUNTO">Disciplina ou assunto errado</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_ANULADA">Questão anulada</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DESATUALIZADA">Questão desatualizada</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DUPLICADA">Questão duplicada</button>
+                    </div>
+                    <div class="mb-3">
+                        <textarea class="form-control" name="descricao" rows="4" placeholder="Comente sobre o erro encontrado (Obrigatório)" required></textarea>
+                    </div>
+                    <div class="d-grid"><button type="submit" class="btn btn-primary">Enviar Notificação</button></div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

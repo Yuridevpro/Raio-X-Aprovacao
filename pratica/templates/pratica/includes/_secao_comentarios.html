@@ -1,0 +1,39 @@
+<!-- templates/pratica/includes/_secao_comentarios.html -->
+<div class="d-flex justify-content-between align-items-center mb-4 px-3">
+    <h4 class="h6 mb-0">Comentários</h4>
+    <div class="dropdown">
+        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <span id="sort-label-{{ questao.id }}">Mais Recentes</span>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="recent" data-questao-id="{{ questao.id }}">Mais Recentes</a></li>
+            <li><a class="dropdown-item sort-comments-btn" href="#" data-sort="likes" data-questao-id="{{ questao.id }}">Mais Curtidos</a></li>
+        </ul>
+    </div>
+</div>
+
+<!-- A lista de comentários será populada via JS aqui -->
+<div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}"></div>
+
+<!-- Formulário para adicionar um novo comentário -->
+<div class="p-3">
+    <hr>
+    <h5 class="h6 mb-3 text-center">Deixe seu comentário</h5>
+    <div class="new-comment-form-container">
+        <div class="comment-avatar"><div class="avatar-icon"><i class="fas fa-user"></i></div></div>
+        <form class="form-comentario flex-grow-1" data-questao-id="{{ questao.id }}">
+            <div class="tiptap-toolbar">
+                <button type="button" data-command="toggleBold" title="Negrito"><b>B</b></button>
+                <button type="button" data-command="toggleItalic" title="Itálico"><i>I</i></button>
+                <button type="button" data-command="toggleUnderline" title="Sublinhado"><u>U</u></button>
+                <button type="button" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
+                <button type="button" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+            </div>
+            <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
+            <textarea name="conteudo" class="d-none" required></textarea>
+            <div class="d-flex justify-content-center mt-2">
+                <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
+            </div>
+        </form>
+    </div>
+</div>

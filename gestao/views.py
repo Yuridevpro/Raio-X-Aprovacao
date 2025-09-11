@@ -440,10 +440,12 @@ def notificacoes_acoes_em_massa(request):
 
 # gestao/views.py
 
+# gestao/views.py
+
 @login_required
 @user_passes_test(is_staff_member)
 def listar_usuarios(request):
-    base_queryset = User.objects.exclude(id=request.user.id)
+    base_queryset = User.objects.all().select_related('userprofile').exclude(id=request.user.id)
     if not request.user.is_superuser:
         base_queryset = base_queryset.exclude(is_superuser=True)
 
@@ -455,27 +457,37 @@ def listar_usuarios(request):
         tem_solicitacao_pendente=Exists(solicitacoes_pendentes)
     )
 
-    # --- LÓGICA DE FILTRAGEM (sem alterações) ---
+    # --- LÓGICA DE FILTRAGEM ATUALIZADA ---
     filtro_q = request.GET.get('q', '').strip()
     filtro_permissao = request.GET.get('permissao', '')
     filtro_solicitacao = request.GET.get('solicitacao', '')
+    filtro_status = request.GET.get('status', 'ativos') # PADRÃO: Mostrar apenas ativos
+
     if filtro_q:
         base_queryset = base_queryset.filter(
             Q(username__icontains=filtro_q) | Q(email__icontains=filtro_q)
         )
     if filtro_permissao:
-        if filtro_permissao == 'superuser':
-            base_queryset = base_queryset.filter(is_superuser=True)
-        elif filtro_permissao == 'staff':
-            base_queryset = base_queryset.filter(is_staff=True, is_superuser=False)
-        elif filtro_permissao == 'comum':
-            base_queryset = base_queryset.filter(is_staff=False)
+        if filtro_permissao == 'superuser': base_queryset = base_queryset.filter(is_superuser=True)
+        elif filtro_permissao == 'staff': base_queryset = base_queryset.filter(is_staff=True, is_superuser=False)
+        elif filtro_permissao == 'comum': base_queryset = base_queryset.filter(is_staff=False)
+    
     if filtro_solicitacao == 'pendente':
         base_queryset = base_queryset.filter(tem_solicitacao_pendente=True)
 
     # =======================================================================
-    # INÍCIO DA CORREÇÃO FINAL: Lógica de Ordenação Hierárquica
+    # INÍCIO DA ADIÇÃO: Lógica para o novo filtro de status
     # =======================================================================
+    if filtro_status == 'ativos':
+        base_queryset = base_queryset.filter(is_active=True)
+    elif filtro_status == 'inativos':
+        base_queryset = base_queryset.filter(is_active=False)
+    # Se for 'todos', não aplica nenhum filtro de status
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
+    # --- LÓGICA DE ORDENAÇÃO ATUALIZADA ---
     sort_by = request.GET.get('sort_by', 'nivel')
     sort_options = {
         'nivel': 'Nível de Permissão',
@@ -485,31 +497,24 @@ def listar_usuarios(request):
         '-username': 'Nome (Z-A)',
     }
     
-    # Define a hierarquia de ordenação correta.
-    # A permissão é o critério principal. A solicitação é o secundário.
     order_fields = [
-        '-is_superuser',             # 1. Superusuários sempre no topo.
-        '-is_staff',                 # 2. Membros da equipe logo abaixo.
-        '-tem_solicitacao_pendente', # 3. DENTRO de cada grupo, priorizar quem tem solicitação.
+        '-is_active',                # 1. Usuários ativos primeiro.
+        '-is_superuser',             # 2. Superusuários no topo.
+        '-is_staff',                 # 3. Membros da equipe logo abaixo.
+        '-tem_solicitacao_pendente', # 4. DENTRO de cada grupo, priorizar quem tem solicitação.
     ]
 
-    # Adiciona o critério de desempate final, que é a escolha do usuário.
     if sort_by != 'nivel' and sort_by in sort_options:
         order_fields.append(sort_by)
     else:
-        # Se a ordenação for por 'nivel' (padrão), o desempate final é o nome de usuário.
         order_fields.append('username')
     
     base_queryset = base_queryset.order_by(*order_fields)
-    # =======================================================================
-    # FIM DA CORREÇÃO FINAL
-    # =======================================================================
 
     # --- LÓGICA DE PAGINAÇÃO ---
     paginated_object, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=9)
 
     context = {
-        'usuarios': paginated_object,
         'paginated_object': paginated_object,
         'page_numbers': page_numbers,
         'per_page': per_page,
@@ -518,10 +523,10 @@ def listar_usuarios(request):
         'filtro_q': filtro_q,
         'filtro_permissao': filtro_permissao,
         'filtro_solicitacao': filtro_solicitacao,
+        'filtro_status': filtro_status, # Passa o novo filtro para o template
         'total_usuarios': paginated_object.paginator.count,
     }
     return render(request, 'gestao/listar_usuarios.html', context)
-
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)

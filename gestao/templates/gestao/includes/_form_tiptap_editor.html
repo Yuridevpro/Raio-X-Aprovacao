@@ -1,0 +1,17 @@
+<!-- gestao/templates/gestao/includes/_form_tiptap_editor.html -->
+<div class="col-12">
+    <label class="form-label">{{ field.label }}</label>
+    <div class="tiptap-editor-wrapper">
+        <div class="tiptap-toolbar">
+            <button type="button" data-command="toggleBold" title="Negrito"><i class="fas fa-bold"></i></button>
+            <button type="button" data-command="toggleItalic" title="Itálico"><i class="fas fa-italic"></i></button>
+            <button type="button" data-command="toggleUnderline" title="Sublinhado"><i class="fas fa-underline"></i></button>
+            <button type="button" data-command="toggleBlockquote" title="Citação"><i class="fas fa-quote-right"></i></button>
+            <button type="button" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
+            <button type="button" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+        </div>
+        <div class="tiptap-editor"></div>
+    </div>
+    {{ field }}
+    {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors.as_text }}</div>{% endif %}
+</div>

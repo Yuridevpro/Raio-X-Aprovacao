@@ -23,44 +23,54 @@ from questoes.utils import filtrar_e_paginar_questoes
 
 # pratica/views.py
 
-# ... (outros imports) ...
+
 from questoes.utils import filtrar_e_paginar_questoes
 
 @login_required
 def listar_questoes(request):
     # 1. Começa com o queryset base.
     lista_questoes = Questao.objects.all()
+    user = request.user
+    user_profile = user.userprofile
 
-    # 2. Lógica de filtro por status (permanece a mesma)
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Lógica completa de filtro por status
+    # =======================================================================
     status = request.GET.get('status')
-    user_profile = request.user.userprofile
-    if status == 'favoritas':
-        lista_questoes = lista_questoes.filter(pk__in=user_profile.questoes_favoritas.all())
-    # ... (outros elif para status) ...
+    
+    # Obtém os IDs das questões que o usuário já respondeu
+    respostas_usuario_pks = RespostaUsuario.objects.filter(usuario=user).values_list('questao__pk', flat=True)
 
+    if status == 'respondidas':
+        lista_questoes = lista_questoes.filter(pk__in=respostas_usuario_pks)
+    elif status == 'nao_respondidas':
+        lista_questoes = lista_questoes.exclude(pk__in=respostas_usuario_pks)
+    elif status == 'acertei':
+        respostas_corretas_pks = RespostaUsuario.objects.filter(usuario=user, foi_correta=True).values_list('questao__pk', flat=True)
+        lista_questoes = lista_questoes.filter(pk__in=respostas_corretas_pks)
+    elif status == 'errei':
+        respostas_incorretas_pks = RespostaUsuario.objects.filter(usuario=user, foi_correta=False).values_list('questao__pk', flat=True)
+        lista_questoes = lista_questoes.filter(pk__in=respostas_incorretas_pks)
+    elif status == 'favoritas':
+        lista_questoes = lista_questoes.filter(pk__in=user_profile.questoes_favoritas.all())
     # =======================================================================
-    # INÍCIO DA ADIÇÃO: Lógica de Ordenação
+    # FIM DA CORREÇÃO
     # =======================================================================
-    sort_by = request.GET.get('sort_by', '-id') # Padrão: mais recentes (por ID)
+
+    # Lógica de Ordenação
+    sort_by = request.GET.get('sort_by', '-id')
     sort_options = {
         '-id': 'Mais Recentes',
         'id': 'Mais Antigas',
-        # Você pode adicionar mais opções aqui se fizer sentido, por exemplo:
-        # '-ano': 'Ano (Decrescente)',
-        # 'ano': 'Ano (Crescente)',
     }
     
-    # Aplica a ordenação, garantindo que seja uma opção válida
     if sort_by in sort_options:
         lista_questoes = lista_questoes.order_by(sort_by)
-    # =======================================================================
-    # FIM DA ADIÇÃO
-    # =======================================================================
 
-    # 3. Chama a função de filtro e paginação
+    # Chama a função de filtro e paginação
     context = filtrar_e_paginar_questoes(request, lista_questoes, items_per_page=20)
     
-    # 4. Adiciona ao contexto as variáveis específicas desta página
+    # Adiciona ao contexto as variáveis específicas desta página
     context.update({
         'favoritas_ids': user_profile.questoes_favoritas.values_list('id', flat=True),
         'filtros_salvos': FiltroSalvo.objects.filter(usuario=request.user),
@@ -69,21 +79,12 @@ def listar_questoes(request):
         'instituicoes': Instituicao.objects.all().order_by('nome'),
         'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
         'status_param': status,
-        # =======================================================================
-        # INÍCIO DA ADIÇÃO: Passa os novos parâmetros para o template
-        # =======================================================================
         'sort_by': sort_by,
         'sort_options': sort_options,
-        # A função filtrar_e_paginar_questoes já adiciona 'per_page' ao contexto,
-        # então não precisamos nos preocupar com isso aqui.
-        # =======================================================================
-        # FIM DA ADIÇÃO
-        # =======================================================================
     })
 
     return render(request, 'pratica/listar_questoes.html', context)
 
-# ... (resto do arquivo pratica/views.py) ...
 
 # =======================================================================
 # AS OUTRAS VIEWS PERMANECEM EXATAMENTE IGUAIS, POIS SÃO ÚNICAS DESTE APP
