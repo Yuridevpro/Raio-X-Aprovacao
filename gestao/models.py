@@ -11,10 +11,7 @@ from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-# =======================================================================
-# MODELOS DE SOLICITAÇÃO DE USUÁRIO COMUM (Sem alterações)
-# =======================================================================
-
+# ... (todos os outros modelos: SolicitacaoExclusao, PromocaoSuperuser, etc. permanecem aqui sem alterações) ...
 class SolicitacaoExclusao(models.Model):
     class Status(models.TextChoices):
         PENDENTE = 'PENDENTE', 'Pendente'
@@ -84,38 +81,21 @@ class PromocaoSuperuser(models.Model):
         return False, f"Aprovação registrada. Ainda falta(m) {votos_restantes} {plural} para a promoção ser efetivada."
 
 
-# =======================================================================
-# INÍCIO DA REFATORAÇÃO: CLASSE BASE ABSTRATA PARA LÓGICA DE QUÓRUM
-# =======================================================================
-
-# gestao/models.py
-
 class BaseSuperuserQuorumRequest(models.Model):
-    """
-    Um modelo base abstrato que contém toda a lógica de quórum compartilhada
-    para solicitações de despromoção e exclusão de superusuários.
-    Isso evita a duplicação de código e centraliza as regras de negócio.
-    """
     class Status(models.TextChoices):
         PENDENTE = 'PENDENTE', 'Pendente'
         APROVADO = 'APROVADO', 'Aprovado'
         CANCELADO = 'CANCELADO', 'Cancelado'
 
     QUORUM_IDEAL = 2
-
-    # Campos comuns a todas as solicitações de quórum
     justificativa = models.TextField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDENTE)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        abstract = True # Isso diz ao Django para não criar uma tabela para este modelo
+        abstract = True
 
     def get_quorum_necessario(self):
-        """
-        Calcula o número de aprovações necessárias.
-        A lógica é a mesma para despromoção e exclusão.
-        """
         outros_superusers_count = User.objects.filter(
             is_superuser=True, is_active=True
         ).exclude(
@@ -125,20 +105,14 @@ class BaseSuperuserQuorumRequest(models.Model):
         ).count()
 
         if outros_superusers_count == 0:
-            return 1 # Apenas o alvo precisa aprovar
+            return 1
         return min(self.QUORUM_IDEAL, outros_superusers_count + 1)
 
     def _check_approval(self, superuser_aprovador):
-        """
-        Lógica central e genérica para processar uma aprovação.
-        Retorna um status ('QUORUM_MET', 'APPROVAL_REGISTERED', 'FAILED') e uma mensagem.
-        """
         if self.status != self.Status.PENDENTE:
             return 'FAILED', "Esta solicitação não está mais pendente."
         if superuser_aprovador == self.solicitado_por:
             return 'FAILED', "O solicitante não pode aprovar a própria solicitação."
-
-        # Adiciona o aprovador à lista, a menos que seja o próprio alvo da solicitação
         if superuser_aprovador != self.usuario_alvo:
             self.aprovado_por.add(superuser_aprovador)
         
@@ -147,32 +121,20 @@ class BaseSuperuserQuorumRequest(models.Model):
         
         if votos_atuais >= quorum_necessario:
             self.status = self.Status.APROVADO
-            # =======================================================================
-            # CORREÇÃO FINAL: A linha foi movida para cá.
-            # Salva o status APROVADO da solicitação. A view cuidará do resto.
-            # Esta linha estava faltando no local correto, o que causava a falha nos testes.
             self.save(update_fields=['status'])
-            # =======================================================================
-            return 'QUORUM_MET', None  # A mensagem de sucesso será gerada pela classe filha
+            return 'QUORUM_MET', None
         else:
-            self.save()  # Salva a adição do novo aprovador
+            self.save()
             votos_restantes = quorum_necessario - votos_atuais
             return 'APPROVAL_REGISTERED', f"Aprovação registrada. Falta(m) {votos_restantes} voto(s)."
 
-# =======================================================================
-# MODELOS REATORADOS QUE HERDAM A LÓGICA DE QUÓRUM
-# =======================================================================
 
 class DespromocaoSuperuser(BaseSuperuserQuorumRequest):
-    # Campos específicos com seus próprios 'related_name'
     usuario_alvo = models.ForeignKey(User, on_delete=models.CASCADE, related_name='despromocoes_recebidas')
     solicitado_por = models.ForeignKey(User, on_delete=models.CASCADE, related_name='despromocoes_solicitadas')
     aprovado_por = models.ManyToManyField(User, related_name='despromocoes_aprovadas', blank=True)
 
     def aprovar(self, superuser_aprovador):
-        """
-        Processa a aprovação e retorna uma mensagem de sucesso específica para despromoção.
-        """
         status, message = self._check_approval(superuser_aprovador)
         if status == 'QUORUM_MET':
             if superuser_aprovador == self.usuario_alvo:
@@ -184,17 +146,13 @@ class DespromocaoSuperuser(BaseSuperuserQuorumRequest):
     def __str__(self):
         return f"Solicitação para despromover {self.usuario_alvo.username}"
 
+
 class ExclusaoSuperuser(BaseSuperuserQuorumRequest):
-    # Campos específicos com seus próprios 'related_name'
     usuario_alvo = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exclusoes_superuser_recebidas')
     solicitado_por = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exclusoes_superuser_solicitadas')
     aprovado_por = models.ManyToManyField(User, related_name='exclusoes_superuser_aprovadas', blank=True)
 
     def aprovar(self, superuser_aprovador):
-        """
-        Processa a aprovação e retorna uma mensagem de sucesso específica para exclusão.
-        A view agora é 100% responsável por deletar o usuário.
-        """
         status, message = self._check_approval(superuser_aprovador)
         if status == 'QUORUM_MET':
             if superuser_aprovador == self.usuario_alvo:
@@ -206,10 +164,7 @@ class ExclusaoSuperuser(BaseSuperuserQuorumRequest):
     def __str__(self):
         return f"Solicitação para excluir o superusuário {self.usuario_alvo.username}"
 
-# =======================================================================
-# FIM DA REFATORAÇÃO
-# =======================================================================
-    
+
 class LogAtividadeManager(models.Manager):
     def get_queryset(self):
         return super().get_queryset().filter(is_deleted=False)
@@ -218,7 +173,6 @@ class LogAtividadeManager(models.Manager):
         return super().get_queryset()
 
 class LogAtividade(models.Model):
-    # ... (O restante do arquivo LogAtividade e seus signals permanece exatamente o mesmo) ...
     class Acao(models.TextChoices):
         USUARIO_DELETADO = 'USUARIO_DELETADO', 'Usuário Deletado'
         PERMISSOES_ALTERADAS = 'PERMISSOES_ALTERADAS', 'Permissões de Usuário Alteradas'
@@ -240,12 +194,21 @@ class LogAtividade(models.Model):
         QUESTAO_CRIADA = 'QUESTAO_CRIADA', 'Questão Criada'
         QUESTAO_EDITADA = 'QUESTAO_EDITADA', 'Questão Editada'
         QUESTAO_DELETADA = 'QUESTAO_DELETADA', 'Questão Deletada'
+        QUESTAO_RESTAURADA = 'QUESTAO_RESTAURADA', 'Questão Restaurada'
+        QUESTAO_DELETADA_PERMANENTEMENTE = 'QUESTAO_DELETADA_PERMANENTEMENTE', 'Questão Deletada Permanentemente'
         ENTIDADE_CRIADA = 'ENTIDADE_CRIADA', 'Entidade Criada'
         ASSUNTO_CRIADO = 'ASSUNTO_CRIADO', 'Assunto Criado'
         NOTIFICACOES_RESOLVIDAS = 'NOTIFICACOES_RESOLVIDAS', 'Notificações Resolvidas'
         NOTIFICACOES_REJEITADAS = 'NOTIFICACOES_REJEITADAS', 'Notificações Rejeitadas'
         NOTIFICACOES_DELETADAS = 'NOTIFICACOES_DELETADAS', 'Notificações Deletadas'
         LOG_DELETADO = 'LOG_DELETADO', 'Log Deletado'
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Nova ação para segurança
+        # =======================================================================
+        TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA = 'TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA', 'Tentativa de Exclusão em Massa Excedida'
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)

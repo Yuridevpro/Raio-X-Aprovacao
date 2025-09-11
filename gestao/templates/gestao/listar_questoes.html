@@ -1,4 +1,4 @@
-<!-- gestao/listar_questoes.html (VERSÃO CORRIGIDA) -->
+<!-- gestao/listar_questoes.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
@@ -62,16 +62,30 @@
     <!-- CABEÇALHO DA PÁGINA -->
     <div class="page-header d-flex justify-content-between align-items-center">
         <h2 class="h3 mb-0">Gerenciamento de Questões</h2>
-        <div class="btn-group">
-            <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Adicionar Questão</a>
-            <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Disciplina"><i class="fas fa-book fa-fw me-2"></i>Adicionar Disciplina</a></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal"><i class="fas fa-tags fa-fw me-2"></i>Adicionar Assunto</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="banca" data-titulo="Adicionar Banca"><i class="fas fa-gavel fa-fw me-2"></i>Adicionar Banca</a></li>
-                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="instituicao" data-titulo="Adicionar Instituição"><i class="fas fa-university fa-fw me-2"></i>Adicionar Instituição</a></li>
-            </ul>
+        <div class="d-flex gap-2">
+            <!-- ======================================================================= -->
+            <!-- INÍCIO DA MODIFICAÇÃO: Botão para Lixeira -->
+            <!-- ======================================================================= -->
+            <a href="{% url 'gestao:listar_questoes_deletadas' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-trash me-2"></i>Lixeira
+                {% if lixeira_count > 0 %}
+                    <span class="badge bg-secondary ms-1">{{ lixeira_count }}</span>
+                {% endif %}
+            </a>
+            <!-- ======================================================================= -->
+            <!-- FIM DA MODIFICAÇÃO -->
+            <!-- ======================================================================= -->
+            <div class="btn-group">
+                <a href="{% url 'gestao:adicionar_questao' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Adicionar Questão</a>
+                <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false"></button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="disciplina" data-titulo="Adicionar Disciplina"><i class="fas fa-book fa-fw me-2"></i>Adicionar Disciplina</a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addAssuntoModal"><i class="fas fa-tags fa-fw me-2"></i>Adicionar Assunto</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="banca" data-titulo="Adicionar Banca"><i class="fas fa-gavel fa-fw me-2"></i>Adicionar Banca</a></li>
+                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addEntidadeModal" data-tipo="instituicao" data-titulo="Adicionar Instituição"><i class="fas fa-university fa-fw me-2"></i>Adicionar Instituição</a></li>
+                </ul>
+            </div>
         </div>
     </div>
     
@@ -86,13 +100,8 @@
     <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
     {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
 
-    <!-- ======================================================================= -->
-    <!-- INÍCIO DA CORREÇÃO: Inclusão da barra de ações em massa -->
-    <!-- ======================================================================= -->
+    <!-- BARRA DE AÇÕES EM MASSA -->
     {% include 'gestao/includes/_barra_acoes_em_massa_questoes.html' %}
-    <!-- ======================================================================= -->
-    <!-- FIM DA CORREÇÃO -->
-    <!-- ======================================================================= -->
 
     <!-- LISTAGEM DE QUESTÕES -->
     {% if questoes %}
@@ -106,35 +115,9 @@
                     <span class="meta">{% if questao.is_inedita %}<span class="badge bg-info text-dark">Inédita</span>{% else %}{{ questao.banca.nome|default_if_none:"-" }} / {{ questao.ano|default_if_none:"-" }}{% endif %}</span>
                 </div>
                 <div class="questao-actions">
-                    <!-- BOTÃO VISUALIZAR CORRIGIDO -->
-                    <!-- Adicionado data-bs-toggle="modal" e data-bs-target para acionar o modal -->
-                    <button type="button" 
-                            class="btn btn-sm btn-outline-secondary btn-visualizar-questao" 
-                            data-questao-id="{{ questao.id }}"
-                            data-bs-toggle="modal" 
-                            data-bs-target="#visualizarQuestaoModal"
-                            title="Visualização Rápida">
-                        <i class="fas fa-eye"></i>
-                    </button>
-                
-                    <!-- BOTÃO EDITAR (mantido como estava, pois está correto) -->
-                    <!-- Ele usa o tooltip do Bootstrap, pois não aciona um modal -->
-                    <a href="{% url 'gestao:editar_questao' questao.id %}" 
-                       class="btn btn-sm btn-outline-info" 
-                       data-bs-toggle="tooltip" 
-                       title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </a>
-                    
-                    <!-- BOTÃO DELETAR (mantido como estava, pois está correto) -->
-                    <button type="button" 
-                            class="btn btn-sm btn-outline-danger btn-deletar-questao" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#deletarQuestaoModal" 
-                            data-questao-id="{{ questao.id }}" 
-                            data-questao-codigo="{{ questao.codigo }}">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao" data-questao-id="{{ questao.id }}" data-bs-toggle="modal" data-bs-target="#visualizarQuestaoModal" title="Visualização Rápida"><i class="fas fa-eye"></i></button>
+                    <a href="{% url 'gestao:editar_questao' questao.id %}" class="btn btn-sm btn-outline-info" data-bs-toggle="tooltip" title="Editar"><i class="fas fa-edit"></i></a>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-deletar-questao" data-bs-toggle="modal" data-bs-target="#deletarQuestaoModal" data-questao-id="{{ questao.id }}" data-questao-codigo="{{ questao.codigo }}"><i class="fas fa-trash"></i></button>
                 </div>
             </div>
             {% endfor %}
@@ -153,24 +136,12 @@
 
 
 {% block scripts %}
-<!-- CARREGAMENTO DO SCRIPT DE FILTROS CENTRALIZADO -->
 <script src="{% static 'js/filtros-questoes.js' %}"></script>
-
-<!-- ======================================================================= -->
-<!-- INÍCIO DO BLOCO DE SCRIPT CORRIGIDO E UNIFICADO -->
-<!-- ======================================================================= -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         new bootstrap.Tooltip(document.body, { selector: "[data-bs-toggle='tooltip']" });
     
-        // =======================================================================
-        // FUNÇÕES DE MANIPULAÇÃO DOS MODAIS
-        // =======================================================================
-    
-        /**
-         * Configura um modal para enviar um formulário via AJAX.
-         * Usado para adicionar Disciplina, Banca, Instituição e Assunto.
-         */
+        // ... (todo o restante do seu JavaScript existente para esta página, sem alterações) ...
         function setupAjaxModalForm(modalId, formId, url) {
             const modalEl = document.getElementById(modalId);
             if (!modalEl) return;
@@ -223,9 +194,6 @@
             });
         }
     
-        /**
-         * Configura o modal de exclusão de uma única questão.
-         */
         function setupDeletarQuestaoModal() {
             const modalEl = document.getElementById('deletarQuestaoModal');
             if (!modalEl) return;
@@ -256,12 +224,11 @@
                 .then(({ok, data}) => {
                     modal.hide();
                     if(ok) {
-                        // MUDANÇA 1: Mensagem genérica e recarregamento da página.
-                        showNotificationModal('Sucesso!', 'A questão foi removida com sucesso.', 'success', () => {
+                        showNotificationModal('Sucesso!', data.message, 'success', () => {
                             window.location.reload();
                         });
                     } else {
-                        throw new Error(data.message || 'Não foi possível excluir a questão.');
+                        throw new Error(data.message || 'Não foi possível mover a questão para a lixeira.');
                     }
                 })
                 .catch(error => showNotificationModal('Erro', error.message, 'error'))
@@ -273,9 +240,6 @@
             });
         }
     
-        /**
-         * Configura o modal de visualização rápida da questão.
-         */
         function setupVisualizarQuestaoModal() {
             const modalEl = document.getElementById('visualizarQuestaoModal');
             if (!modalEl) return;
@@ -307,9 +271,40 @@
             });
         }
     
-        /**
-         * Configura a lógica para a barra de ações em massa.
-         */
+        const advancedConfirmationModalEl = document.getElementById('advancedConfirmationModal');
+        if (advancedConfirmationModalEl) {
+            const modal = new bootstrap.Modal(advancedConfirmationModalEl);
+            const titleEl = document.getElementById('advancedConfirmationModalLabel');
+            const bodyEl = document.getElementById('advancedConfirmationModalBody');
+            const phraseEl = document.getElementById('confirmacao-frase');
+            const inputEl = document.getElementById('input-confirmacao');
+            const confirmBtn = document.getElementById('btn-advanced-confirm-action');
+            let onConfirmCallback = () => {};
+
+            inputEl.addEventListener('input', () => {
+                confirmBtn.disabled = inputEl.value.trim().toUpperCase() !== phraseEl.textContent.trim().toUpperCase();
+            });
+
+            confirmBtn.addEventListener('click', () => {
+                if (onConfirmCallback) onConfirmCallback();
+                modal.hide();
+            });
+            
+            advancedConfirmationModalEl.addEventListener('hidden.bs.modal', () => {
+                inputEl.value = '';
+                confirmBtn.disabled = true;
+            });
+
+            window.showAdvancedConfirmationModal = (title, body, phrase, callback) => {
+                titleEl.textContent = title;
+                bodyEl.textContent = body;
+                phraseEl.textContent = phrase;
+                onConfirmCallback = callback;
+                modal.show();
+            };
+        }
+
+        // --- FUNÇÃO MODIFICADA: Lógica das Ações em Massa ---
         function setupAcoesEmMassa() {
             const bulkActionsBar = document.getElementById('bulk-actions-bar');
             const selectAllCheckbox = document.getElementById('select-all-checkbox');
@@ -343,51 +338,54 @@
                     return;
                 }
                 
-                const confirmationMessage = `Tem certeza que deseja EXCLUIR as ${selectedIds.length} questões selecionadas permanentemente?`;
-    
-                showConfirmationModal('Confirmar Ação em Massa', confirmationMessage, () => {
-                    const dropdownBtn = document.getElementById('bulk-action-dropdown-btn');
-                    const spinner = dropdownBtn.querySelector('.spinner-border');
-                    const btnText = dropdownBtn.querySelector('.btn-text');
-                    dropdownBtn.disabled = true;
-                    spinner.style.display = 'inline-block';
-                    btnText.style.display = 'none';
-    
-                    fetch("{% url 'gestao:questoes_acoes_em_massa' %}", {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
-                        body: JSON.stringify({ ids: selectedIds, action: this.dataset.action })
-                    })
-                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
-                    .then(({ ok, data }) => { 
-                        if (ok) {
-                            // MUDANÇA 2: Mensagem genérica e recarregamento da página.
-                            showNotificationModal('Sucesso!', 'As questões selecionadas foram removidas com sucesso.', 'success', () => {
-                                window.location.reload();
-                            });
-                        } else {
-                            throw new Error(data.message || 'Ocorreu um erro.');
-                        }
-                    })
-                    .catch(err => showNotificationModal('Erro', err.message, 'error'))
-                    .finally(() => {
-                        dropdownBtn.disabled = false;
-                        spinner.style.display = 'none';
-                        btnText.style.display = 'inline-block';
+                // Prepara os dados para o modal AVANÇADO
+                const message = `Você está prestes a mover ${selectedIds.length} questões para a lixeira.`;
+                const phrase = `MOVER ${selectedIds.length} QUESTÕES`;
+
+                // Chama a nova função de modal avançado
+                if (window.showAdvancedConfirmationModal) {
+                    showAdvancedConfirmationModal('Confirmar Ação em Massa', message, phrase, () => {
+                        // Lógica de fetch que era usada no modal antigo
+                        const dropdownBtn = document.getElementById('bulk-action-dropdown-btn');
+                        const spinner = dropdownBtn.querySelector('.spinner-border');
+                        const btnText = dropdownBtn.querySelector('.btn-text');
+                        dropdownBtn.disabled = true;
+                        spinner.style.display = 'inline-block';
+                        btnText.style.display = 'none';
+        
+                        fetch("{% url 'gestao:questoes_acoes_em_massa' %}", {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                            body: JSON.stringify({ ids: selectedIds, action: 'delete' }) // Ação é sempre 'delete' nesta página
+                        })
+                        .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                        .then(({ ok, data }) => { 
+                            if (ok) {
+                                showNotificationModal('Sucesso!', data.message, 'success', () => {
+                                    window.location.reload();
+                                });
+                            } else {
+                                throw new Error(data.message || 'Ocorreu um erro.');
+                            }
+                        })
+                        .catch(err => showNotificationModal('Erro', err.message, 'error'))
+                        .finally(() => {
+                            dropdownBtn.disabled = false;
+                            spinner.style.display = 'none';
+                            btnText.style.display = 'inline-block';
+                        });
                     });
-                });
+                } else {
+                    console.error("Função showAdvancedConfirmationModal não encontrada.");
+                }
             });
         }
     
-        // =======================================================================
-        // CHAMADA DAS FUNÇÕES DE INICIALIZAÇÃO
-        // =======================================================================
         setupAjaxModalForm('addEntidadeModal', 'form-add-entidade', "{% url 'gestao:adicionar_entidade_simples' %}");
         setupAjaxModalForm('addAssuntoModal', 'form-add-assunto', "{% url 'gestao:adicionar_assunto' %}");
         setupDeletarQuestaoModal();
         setupVisualizarQuestaoModal();
         setupAcoesEmMassa();
     });
-    </script>
-
+</script>
 {% endblock %}

@@ -43,14 +43,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',   # ✅ Adicione esta linha
+
     # Nossos Apps
     'usuarios',
     'questoes',
     'pratica',
     'desempenho',
+    'ratelimit',
     'gestao',
     'storages', # Para integração com S3
 ]
+
+SITE_ID = 1
+
 
 # --- MIDDLEWARE ---
 MIDDLEWARE = [

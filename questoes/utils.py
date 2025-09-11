@@ -43,6 +43,7 @@ def paginar_itens(request, queryset, items_per_page=15):
 def filtrar_e_paginar_questoes(request, base_queryset, items_per_page=15):
     """
     Centraliza a lógica de filtrar e agora USA a função genérica para paginar.
+    (ESTA FUNÇÃO PERMANECE INTACTA)
     """
     palavra_chave = request.GET.get('palavra_chave', '').strip()
     disciplinas_ids = request.GET.getlist('disciplina')
@@ -75,7 +76,7 @@ def filtrar_e_paginar_questoes(request, base_queryset, items_per_page=15):
     context = {
         'questoes': questoes_paginadas,
         'page_numbers': page_numbers,
-        'per_page': per_page, # Passando adiante o valor de itens por página
+        'per_page': per_page,
         'selected_disciplinas': [int(i) for i in disciplinas_ids if i.isdigit()],
         'selected_assuntos': [int(i) for i in assuntos_ids if i.isdigit()],
         'selected_bancas': [int(i) for i in bancas_ids if i.isdigit()],
@@ -85,3 +86,47 @@ def filtrar_e_paginar_questoes(request, base_queryset, items_per_page=15):
     }
     
     return context
+
+# =======================================================================
+# INÍCIO DA ADIÇÃO: Nova função de filtro específica para a lixeira
+# =======================================================================
+def filtrar_e_paginar_lixeira(request, base_queryset, items_per_page=20):
+    """
+    Função de filtro dedicada para a página da lixeira.
+    Usa .get() para filtros de seleção única, correspondendo ao novo template de filtros.
+    """
+    termo_busca = request.GET.get('q', '').strip()
+    disciplina_id = request.GET.get('disciplina')
+    banca_id = request.GET.get('banca')
+    instituicao_id = request.GET.get('instituicao')
+    ano_selecionado = request.GET.get('ano')
+    
+    queryset_filtrado = base_queryset
+
+    if termo_busca:
+        queryset_filtrado = queryset_filtrado.filter(
+            Q(enunciado__icontains=termo_busca) | Q(codigo__iexact=termo_busca)
+        )
+    if disciplina_id:
+        queryset_filtrado = queryset_filtrado.filter(disciplina_id=disciplina_id)
+    if banca_id:
+        queryset_filtrado = queryset_filtrado.filter(banca_id=banca_id)
+    if instituicao_id:
+        queryset_filtrado = queryset_filtrado.filter(instituicao_id=instituicao_id)
+    if ano_selecionado:
+        queryset_filtrado = queryset_filtrado.filter(ano=ano_selecionado)
+
+    questoes_paginadas, page_numbers, per_page = paginar_itens(request, queryset_filtrado, items_per_page)
+    
+    context = {
+        'questoes': questoes_paginadas,
+        'paginated_object': questoes_paginadas,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'active_filters': request.GET, # Passa todos os filtros para preencher o formulário de filtros
+    }
+    
+    return context
+# =======================================================================
+# FIM DA ADIÇÃO
+# =======================================================================

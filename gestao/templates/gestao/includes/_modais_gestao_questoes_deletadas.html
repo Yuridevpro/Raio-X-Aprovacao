@@ -1,0 +1,45 @@
+<!-- gestao/templates/gestao/includes/_modais_gestao_questoes_deletadas.html -->
+
+<!-- Modal para Restaurar Questão -->
+<div class="modal fade" id="restaurarQuestaoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-restaurar-questao" method="POST" data-url-template="{% url 'gestao:restaurar_questao' 0 %}">
+                {% csrf_token %}
+                <div class="modal-header bg-success text-white"><h5 class="modal-title">Confirmar Restauração</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p>Deseja restaurar a questão <strong class="codigo-questao"></strong>? Ela voltará para a lista de questões ativas.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success"><span class="spinner-border spinner-border-sm" style="display: none;"></span>Sim, Restaurar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Deletar Questão Permanentemente -->
+{% if request.user.is_superuser %}
+<div class="modal fade" id="deletarPermanenteQuestaoModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-deletar-permanente" method="POST" data-url-template="{% url 'gestao:deletar_questao_permanente' 0 %}">
+                {% csrf_token %}
+                <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Exclusão Permanente</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <p class="fw-bold text-danger">Esta ação é IRREVERSÍVEL!</p>
+                    <p>Você está prestes a excluir permanentemente a questão <strong class="codigo-questao"></strong>. Todos os seus dados serão perdidos para sempre.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><span class="spinner-border spinner-border-sm" style="display: none;"></span>Sim, Excluir Permanentemente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Você pode incluir os modais genéricos de notificação e confirmação aqui também, se necessário -->
+{% include 'gestao/includes/_modais_notificacoes.html' %}

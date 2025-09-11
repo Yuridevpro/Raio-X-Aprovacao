@@ -20,6 +20,15 @@ urlpatterns = [
     path('questoes/deletar/<int:questao_id>/', views.deletar_questao, name='deletar_questao'),
     path('questoes/acoes-em-massa/', views.questoes_acoes_em_massa, name='questoes_acoes_em_massa'),
     
+     # =======================================================================
+    # URLs da Lixeira de Questões
+    # =======================================================================
+    path('questoes/lixeira/', views.listar_questoes_deletadas, name='listar_questoes_deletadas'),
+    path('questoes/lixeira/acoes-em-massa/', views.questoes_deletadas_acoes_em_massa, name='questoes_deletadas_acoes_em_massa'),
+    path('questoes/<int:questao_id>/restaurar/', views.restaurar_questao, name='restaurar_questao'),
+    path('questoes/<int:questao_id>/deletar-permanente/', views.deletar_questao_permanente, name='deletar_questao_permanente'),
+    
+    
     # =======================================================================
     # GERENCIAMENTO DE USUÁRIOS
     # =======================================================================

@@ -1,0 +1,234 @@
+<!-- gestao/templates/gestao/listar_questoes_deletadas.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load questoes_extras %}
+{% load pratica_extras %}
+
+{% block title %}Lixeira de Questões{% endblock %}
+
+{% block head %}
+    <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+    <style>
+        .page-header {
+            background-color: var(--cor-fundo-claro); padding: 1.5rem 2rem;
+            border-radius: var(--raio-borda); margin-bottom: 2rem; border: 1px solid var(--cor-borda);
+        }
+        .lista-questoes-container {
+            background-color: var(--cor-fundo-claro); border-radius: var(--raio-borda);
+            border: 1px solid var(--cor-borda); overflow: hidden;
+            box-shadow: var(--sombra-caixa);
+        }
+        .questao-item {
+            display: grid;
+            grid-template-columns: auto 1fr auto; /* Checkbox | Conteúdo | Ações */
+            align-items: center; gap: 1.5rem; padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid var(--cor-borda);
+        }
+        .lista-questoes-container .questao-item:last-child { border-bottom: none; }
+        
+        /* Estilos do novo card de info */
+        .questao-info { display: flex; flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+        .questao-info-top { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+        .questao-info .codigo { font-size: 1.1rem; font-weight: 600; color: var(--cor-primaria); }
+        .questao-info .disciplina { font-weight: 500; font-size: 1.1rem;}
+        .questao-info-bottom { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.25rem; }
+        .questao-info .meta-item { font-size: 0.8rem; color: var(--cor-texto-muted); background-color: #f0f2f5; padding: 0.2rem 0.6rem; border-radius: 6px; }
+        
+        .questao-actions { display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+    </style>
+{% endblock %}
+    
+{% block content %}
+<div class="container mt-5 mb-5">
+    <div class="mb-4">
+        <a href="{% url 'gestao:listar_questoes' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar para Questões Ativas</a>
+    </div>
+    
+    <div class="page-header">
+        <h2 class="h3 mb-0"><i class="fas fa-trash-alt me-2"></i>Lixeira de Questões</h2>
+        <p class="text-muted mb-0 mt-2">Questões na lixeira podem ser restauradas. A exclusão permanente só é permitida para itens com mais de 20 dias aqui.</p>
+    </div>
+    
+    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+    
+    <div class="card mb-4 shadow-sm filter-card">
+        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters"><div class="d-flex justify-content-between align-items-center"><h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5><span class="icon-toggle"></span></div></div>
+        <div class="collapse" id="collapseFilters">
+            <div class="card-body p-4">
+                {% include 'gestao/includes/_filtros_questoes.html' with form_action_url=request.path %}
+            </div>
+        </div>
+    </div>
+    
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes sort_options=sort_options sort_by=sort_by per_page=per_page %}
+    
+    {% include 'gestao/includes/_barra_acoes_em_massa_questoes_deletadas.html' %}
+
+    {% if questoes %}
+        <div class="lista-questoes-container">
+            {% for questao in questoes %}
+            <div class="questao-item" id="questao-item-{{ questao.id }}">
+                <div class="form-check"><input class="form-check-input questao-checkbox" type="checkbox" data-id="{{ questao.id }}"></div>
+                
+                <!-- Card de informações redesenhado e mais completo -->
+                <div class="questao-info">
+                    <div class="questao-info-top">
+                        <span class="codigo">{{ questao.codigo }}</span>
+                        <span class="disciplina">{{ questao.disciplina.nome }}</span>
+                    </div>
+                    <div class="questao-info-bottom">
+                        <span class="meta-item"><i class="fas fa-tag fa-fw"></i> {{ questao.assunto.nome }}</span>
+                        {% if not questao.is_inedita %}
+                            <span class="meta-item"><i class="fas fa-gavel fa-fw"></i> {{ questao.banca.nome|default:"N/A" }}</span>
+                            <span class="meta-item"><i class="far fa-calendar-alt fa-fw"></i> {{ questao.ano|default:"N/A" }}</span>
+                        {% else %}
+                            <span class="meta-item"><i class="fas fa-star fa-fw"></i> Inédita</span>
+                        {% endif %}
+                        <span class="meta-item">
+                            <i class="fas fa-user-times fa-fw"></i> 
+                            Excluído por: <strong>{{ questao.deleted_by.username|default:"N/A" }}</strong>
+                        </span>
+                    </div>
+                </div>
+
+                <div class="questao-actions">
+                    <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#restaurarQuestaoModal" data-questao-id="{{ questao.id }}" data-questao-codigo="{{ questao.codigo }}" title="Restaurar"><i class="fas fa-trash-restore"></i></button>
+                    
+                    {% if request.user.is_superuser %}
+                        {% if questao.is_permanently_deletable %}
+                            <!-- Botão ATIVO -->
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deletarPermanenteQuestaoModal" data-questao-id="{{ questao.id }}" data-questao-codigo="{{ questao.codigo }}" title="Excluir Permanentemente"><i class="fas fa-fire"></i></button>
+                        {% else %}
+                            <!-- Botão DESATIVADO com Tooltip -->
+                            <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" title="Exclusão permanente disponível após 20 dias na lixeira">
+                                <button type="button" class="btn btn-sm btn-outline-danger" disabled style="pointer-events: none;"><i class="fas fa-fire"></i></button>
+                            </span>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5 card card-body"><i class="fas fa-trash fa-4x text-muted mb-3"></i><h4 class="h5 fw-bold">A lixeira está vazia</h4><p class="text-muted">Nenhuma questão foi movida para a lixeira ainda.</p></div>
+    {% endif %}
+
+    <div class="mt-4">{% include 'includes/_paginacao.html' with paginated_object=questoes %}</div>
+</div>
+
+{% include 'gestao/includes/_modais_gestao_questoes_deletadas.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/filtros-questoes.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa os tooltips do Bootstrap
+    new bootstrap.Tooltip(document.body, { selector: "[data-bs-toggle='tooltip']" });
+    
+    // O restante do seu JavaScript para esta página permanece o mesmo
+    function handleGenericAction(modalId, formId, buttonClass, successCallback) {
+        const modalEl = document.getElementById(modalId);
+        if (!modalEl) return;
+
+        const modal = new bootstrap.Modal(modalEl);
+        const form = document.getElementById(formId);
+        
+        modalEl.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            form.action = form.dataset.urlTemplate.replace('0', button.dataset.questaoId);
+            this.querySelector('.codigo-questao').textContent = button.dataset.questaoCodigo;
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const spinner = submitBtn.querySelector('.spinner-border');
+            submitBtn.disabled = true;
+            if(spinner) spinner.style.display = 'inline-block';
+
+            fetch(form.action, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value }
+            })
+            .then(response => response.json().then(data => ({ ok: response.ok, data })))
+            .then(({ok, data}) => {
+                modal.hide();
+                if (ok) {
+                    successCallback(data);
+                } else {
+                    throw new Error(data.message || 'Ocorreu um erro.');
+                }
+            })
+            .catch(error => showNotificationModal('Erro', error.message, 'error'))
+            .finally(() => {
+                submitBtn.disabled = false;
+                if(spinner) spinner.style.display = 'none';
+            });
+        });
+    }
+
+    handleGenericAction('restaurarQuestaoModal', 'form-restaurar-questao', '.btn-restaurar-questao', (data) => {
+        showNotificationModal('Sucesso!', data.message, 'success', () => window.location.reload());
+    });
+
+    handleGenericAction('deletarPermanenteQuestaoModal', 'form-deletar-permanente', '.btn-deletar-permanente', (data) => {
+        showNotificationModal('Sucesso!', data.message, 'success', () => window.location.reload());
+    });
+
+    function setupAcoesEmMassaLixeira() {
+        const bulkActionsBar = document.getElementById('bulk-actions-bar');
+        if (!bulkActionsBar) return;
+
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const questaoCheckboxes = document.querySelectorAll('.questao-checkbox');
+        const selectedCountSpan = document.getElementById('selected-count');
+        const bulkActionBtns = document.querySelectorAll('.bulk-action-btn');
+
+        const updateBulkActionBar = () => {
+            const count = document.querySelectorAll('.questao-checkbox:checked').length;
+            bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+            if (selectedCountSpan) selectedCountSpan.textContent = count;
+            if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === questaoCheckboxes.length;
+        };
+
+        selectAllCheckbox.addEventListener('change', () => {
+            questaoCheckboxes.forEach(checkbox => { checkbox.checked = selectAllCheckbox.checked; });
+            updateBulkActionBar();
+        });
+        questaoCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
+
+        bulkActionBtns.forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const selectedIds = Array.from(document.querySelectorAll('.questao-checkbox:checked')).map(cb => cb.dataset.id);
+
+                if (selectedIds.length === 0) return;
+                
+                const action = this.dataset.action;
+                const message = action === 'restore' 
+                    ? `Tem certeza que deseja RESTAURAR as ${selectedIds.length} questões selecionadas?`
+                    : `AÇÃO IRREVERSÍVEL! Tem certeza que deseja EXCLUIR PERMANENTEMENTE as ${selectedIds.length} questões?`;
+                
+                showConfirmationModal('Confirmar Ação em Massa', message, () => {
+                    fetch("{% url 'gestao:questoes_deletadas_acoes_em_massa' %}", {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'},
+                        body: JSON.stringify({ ids: selectedIds, action: action })
+                    })
+                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                    .then(({ok, data}) => {
+                        if (ok) {
+                            showNotificationModal('Sucesso!', data.message, 'success', () => window.location.reload());
+                        } else { throw new Error(data.message); }
+                    })
+                    .catch(err => showNotificationModal('Erro', err.message, 'error'));
+                });
+            });
+        });
+    }
+
+    setupAcoesEmMassaLixeira();
+});
+</script>
+{% endblock %}
