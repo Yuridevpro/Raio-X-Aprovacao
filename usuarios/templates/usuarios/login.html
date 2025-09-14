@@ -1,3 +1,5 @@
+<!-- usuarios/templates/usuarios/login.html (ARQUIVO MODIFICADO) -->
+
 {% extends 'base.html' %}
 {% block title %}Login{% endblock %}
 
@@ -29,12 +31,18 @@
                 </div>
             </form>
         </div>
-        <p class="text-center mt-3">
-            Não tem uma conta? <a href="{% url 'cadastro' %}">Cadastre-se!</a>
-        </p>
-        <p class="text-center mt-3">
-            <a href="{% url 'esqueceu_senha' %}">Esqueceu sua senha?</a>
-        </p>
+        <div class="text-center mt-3">
+            <p class="mb-1">Não tem uma conta? <a href="{% url 'cadastro' %}">Cadastre-se!</a></p>
+            <p class="mb-1"><a href="{% url 'esqueceu_senha' %}">Esqueceu sua senha?</a></p>
+            
+            <!-- =========================================================== -->
+            <!-- INÍCIO DA ADIÇÃO: Link para reenviar ativação               -->
+            <!-- =========================================================== -->
+            <p class="mb-0"><a href="{% url 'reenviar_ativacao' %}">Não recebeu o e-mail de ativação?</a></p>
+            <!-- =========================================================== -->
+            <!-- FIM DA ADIÇÃO                                               -->
+            <!-- =========================================================== -->
+        </div>
     </div>
 </div>
 {% endblock %}

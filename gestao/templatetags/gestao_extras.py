@@ -68,3 +68,14 @@ def get_item(dictionary, key):
     Uso: {{ meu_dicionario|get_item:minha_variavel_de_chave }}
     """
     return dictionary.get(key)
+
+@register.filter
+def get_status_badge_class(status_value):
+    """ Retorna a classe CSS para o badge de status do simulado. """
+    if status_value == 'ATIVO':
+        return 'bg-status-ativo'
+    elif status_value == 'EM_BREVE':
+        return 'bg-status-em-breve'
+    elif status_value == 'ARQUIVADO':
+        return 'bg-status-arquivado'
+    return 'bg-secondary'

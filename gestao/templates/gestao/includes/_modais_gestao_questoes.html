@@ -80,3 +80,32 @@
     </div>
 </div>
 
+
+<div class="modal fade" id="advancedConfirmationModal" tabindex="-1" aria-labelledby="advancedConfirmationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-warning text-dark">
+          <h5 class="modal-title" id="advancedConfirmationModalLabel">Confirmar Ação de Risco</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="advancedConfirmationModalBody">Corpo da mensagem de confirmação.</p>
+          <p class="mt-3">Para confirmar, digite a seguinte frase na caixa abaixo:</p>
+          <p class="text-center fw-bold user-select-all bg-light p-2 rounded"><code id="confirmacao-frase">FRASE DE CONFIRMAÇÃO</code></p>
+          <div class="form-floating mt-3">
+            <input type="text" class="form-control" id="input-confirmacao" placeholder="Digite a frase aqui" autocomplete="off">
+            <label for="input-confirmacao">Confirmar Ação</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-warning" id="btn-advanced-confirm-action" disabled>
+              <span class="btn-text">Confirmar Ação</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- ======================================================================= -->
+  <!-- FIM DA ADIÇÃO -->
+  <!-- ======================================================================= -->

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load pratica_extras %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+{# Removido o TomSelect, pois agora usamos os dropdowns padrão #}
+<style>
+    .form-wizard-container { max-width: 800px; margin: auto; }
+    .filtro-feedback {
+        background-color: #eef5ff;
+        border-left: 4px solid var(--cor-primaria);
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    /* Estilos necessários para o componente de filtro incluído */
+    .filter-card, .filter-card .collapse { overflow: visible; }
+    .dropdown { position: relative; }
+    .dropdown-menu { width: 100%; max-height: 300px; overflow-y: auto; }
+    .dropdown-menu .form-check-label { white-space: normal; word-wrap: break-word; }
+
+    /* Esconde definitivamente o input de palavra-chave quando o form tiver essa classe */
+        form.hide-palavra .input-group input[name$="palavra_chave"] {
+            display: none !important;
+        }
+        /* Esconde o input e também o span da lupa */
+        form.hide-palavra .input-group {
+            display: none !important;
+        }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:listar_simulados_gestao' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm form-wizard-container">
+        <div class="card-body p-4 p-md-5">
+            <h5 class="card-title">Definir Universo de Questões</h5>
+            <p class="card-text text-muted mb-4">
+                Comece nomeando seu simulado. Em seguida, selecione os filtros para pré-selecionar as questões que estarão disponíveis na próxima etapa.
+            </p>
+            
+            <!-- ✅ CORREÇÃO: O formulário agora tem a estrutura correta para o include -->
+            <form method="POST" action="{{ form_action_url }}" id="form-filtros" 
+            class="{{ form_classes }}"
+            data-assuntos-url="{{ assuntos_url }}" 
+            data-selected-assuntos="{{ selected_assuntos_json|safe }}"
+            data-prefix="{{ prefix }}">
+      
+                {% csrf_token %}
+
+                
+                
+                <div class="mb-4">
+                    <label for="id_nome" class="form-label fw-bold">Nome do Simulado</label>
+                    <input type="text" name="nome" class="form-control" placeholder="Ex: Simulado de Direito Constitucional - FGV" required id="id_nome">
+                </div>
+
+                <label class="form-label fw-bold">Filtros Iniciais (Opcional)</label>
+                
+                <!-- ✅ CORREÇÃO: Incluindo o sistema de filtros que já funciona -->
+                {% include 'gestao/includes/_filtros_questoes_avancado.html' %}
+
+                <div class="d-grid mt-4">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        Avançar para Seleção <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<!-- ✅ CORREÇÃO: Carregando o MESMO arquivo JS do editor, que já tem a lógica correta -->
+<script src="{% static 'js/filtros-questoes-avancado.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // A lógica de feedback de contagem permanece.
+    const form = document.getElementById('form-filtros');
+    const feedbackContainer = document.getElementById('filtro-feedback-container');
+    let debounceTimer;
+
+    function updateQuestionCount() {
+        const formData = new FormData(form);
+        const data = {
+            disciplinas: formData.getAll('disciplina'),
+            assuntos: formData.getAll('assunto'),
+            bancas: formData.getAll('banca'),
+            instituicoes: formData.getAll('instituicao'),
+            anos: formData.getAll('ano')
+        };
+        feedbackContainer.innerHTML = `<div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2">Calculando...</span>`;
+        fetch("{% url 'gestao:api_contar_questoes_filtro' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            if (result.status === 'success') {
+                feedbackContainer.innerHTML = `<i class="fas fa-check-circle text-success me-2"></i> <strong>${result.count} questões</strong> correspondem aos filtros.`;
+            } else {
+                feedbackContainer.innerHTML = `<i class="fas fa-exclamation-triangle text-danger me-2"></i> Erro ao contar.`;
+            }
+        });
+    }
+
+    // O listener agora é aplicado ao formulário que foi incluído
+    form.addEventListener('change', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(updateQuestionCount, 500);
+    });
+
+    // Dispara a contagem inicial caso a página recarregue com erros de formulário
+    updateQuestionCount();
+});
+</script>
+{% endblock %}

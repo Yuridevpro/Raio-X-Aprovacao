@@ -52,6 +52,8 @@ INSTALLED_APPS = [
     'desempenho',
     'ratelimit',
     'gestao',
+    'simulados',
+    'gamificacao',
     'storages', # Para integração com S3
 ]
 

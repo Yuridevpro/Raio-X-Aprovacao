@@ -1,0 +1,101 @@
+<!-- gestao/templates/gestao/includes/_card_denuncia_comentario_agrupada.html -->
+
+<div class="card mb-4 card-notification-group status-{{ status_ativo }}" id="card-group-comentario-{{ comentario.id }}">
+    <div class="card-header bg-white py-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-3">
+                {% if status_ativo != 'TODAS' %}
+                    <input class="form-check-input notification-checkbox" type="checkbox" data-id="{{ comentario.id }}">
+                {% endif %}
+                <div>
+                    <h5 class="mb-0">
+                        Comentário ID: #{{ comentario.id }}
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 btn-visualizar-comentario" 
+                                data-comentario-id="{{ comentario.id }}"
+                                title="Visualização Rápida do Comentário e Questão"
+                                data-bs-toggle="modal" data-bs-target="#visualizarComentarioModal">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        {% if comentario.questao %}
+                        <a href="{% url 'gestao:editar_questao' comentario.questao.id %}" target="_blank" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1" title="Ver Questão Relacionada ({{ comentario.questao.codigo }})">
+                            <i class="fas fa-link"></i>
+                        </a>
+                        {% endif %}
+                    </h5>
+                    <small class="text-muted">Última denúncia: {{ comentario.ultima_notificacao|date:"d/m/Y H:i" }}</small>
+                </div>
+            </div>
+            <span class="badge bg-warning text-dark fs-6 rounded-pill"><i class="fas fa-flag me-1"></i>{{ comentario.num_reports }} Denúncia{{ comentario.num_reports|pluralize:"s" }}</span>
+        </div>
+    </div>
+    <div class="card-body">
+        <blockquote class="blockquote bg-light p-3 rounded border-start border-4 border-secondary mb-3">
+            <p class="mb-1 fst-italic">"{{ comentario.conteudo|truncatechars:200 }}"</p>
+            <footer class="blockquote-footer mt-1">Autor: {{ comentario.usuario.userprofile.nome }}</footer>
+        </blockquote>
+
+        <div class="row">
+            <div class="col-md-8">
+                <h6 class="mb-2 small text-uppercase fw-bold">Detalhes das Denúncias:</h6>
+                <div class="reports-container" id="reports-container-{{ comentario.id }}">
+                    <ul class="list-group list-group-flush">
+                        {% for report in comentario.reports_filtrados|slice:":3" %}
+                            <li class="list-group-item px-0 py-2">
+                                <div class="d-flex justify-content-between">
+                                    <span><strong>{{ report.usuario_reportou.userprofile.nome|default:"N/A" }}</strong><span class="text-muted ms-2">({{ report.get_tipo_erro_display }})</span></span>
+                                    <small class="text-muted">{{ report.data_criacao|date:"d/m H:i" }}</small>
+                                </div>
+                                <p class="ms-3 mt-1 mb-0 fst-italic text-muted">"{{ report.descricao }}"</p>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% if comentario.reports_filtrados|length > 3 %}
+                    <div class="mt-2 text-center">
+                        <a href="#" class="btn btn-outline-secondary btn-sm toggle-reports-visibility" data-target="#reports-container-{{ comentario.id }}" data-total="{{ comentario.num_reports }}">
+                            Ver todas as {{ comentario.num_reports }} denúncias
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+            <!-- =========================================================== -->
+            <!-- INÍCIO DA ADIÇÃO: Bloco de Ações completo                   -->
+            <!-- =========================================================== -->
+            <div class="col-md-4 d-flex flex-column justify-content-center align-items-center border-top border-md-start mt-3 mt-md-0 pt-3 pt-md-0">
+                <h6 class="mb-3 small text-uppercase fw-bold">Ações</h6>
+                <div class="d-grid gap-2 w-100 w-md-75 mx-auto">
+                    {% if status_ativo == 'PENDENTE' %}
+                        <button type="button" class="btn btn-danger individual-action-btn" 
+                                data-action="deletar_comentario_e_resolver" 
+                                data-alvo-id="{{ comentario.id }}"
+                                data-content-type-id="{{ comentario_content_type_id }}"
+                                data-confirm-message="ATENÇÃO: Isso irá DELETAR o comentário, NOTIFICAR o autor e RESOLVER todas as denúncias. Deseja continuar?">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-trash-alt me-2"></i>Deletar e Resolver</span>
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary individual-action-btn" 
+                                data-action="rejeitar" 
+                                data-alvo-id="{{ comentario.id }}"
+                                data-content-type-id="{{ comentario_content_type_id }}"
+                                data-confirm-message="Rejeitar todas as denúncias para este comentário? O comentário será mantido.">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-times me-2"></i>Rejeitar Denúncias</span>
+                        </button>
+                    {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
+                         <button type="button" class="btn btn-outline-danger individual-action-btn" 
+                                data-action="excluir" 
+                                data-alvo-id="{{ comentario.id }}"
+                                data-content-type-id="{{ comentario_content_type_id }}"
+                                data-confirm-message="EXCLUIR PERMANENTEMENTE todas as {{ comentario.num_reports }} denúncias arquivadas para este comentário?">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-trash me-2"></i>Excluir Denúncias</span>
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            <!-- =========================================================== -->
+            <!-- FIM DA ADIÇÃO                                               -->
+            <!-- =========================================================== -->
+        </div>
+    </div>
+</div>

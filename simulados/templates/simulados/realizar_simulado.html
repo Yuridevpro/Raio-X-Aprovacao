@@ -1,0 +1,281 @@
+<!-- simulados/templates/simulados/realizar_simulado.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Realizando Simulado{% endblock %}
+
+{% block head %}
+<style>
+    body { background-color: #f4f7fa; font-family: 'Inter', sans-serif; }
+    [v-cloak] { display: none; }
+    .simulado-container { max-width: 900px; margin: auto; }
+    .simulado-header { background-color: #fff; padding: 1rem 1.5rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); position: sticky; top: 1rem; z-index: 1020; }
+    .timer { font-size: 1.2rem; font-weight: 600; color: var(--cor-primaria); }
+    .questao-card { background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); box-shadow: var(--sombra-caixa); margin-bottom: 2rem; overflow: hidden; }
+    .card-questao-header { background-color: transparent; border-bottom: 1px solid var(--cor-borda); padding: 1rem 1.5rem; font-weight: 500; color: var(--cor-secundaria); }
+    .enunciado-formatado p:last-child { margin-bottom: 0; }
+    .alternativas { display: flex; flex-direction: column; gap: 1rem; margin-top: 2rem; }
+    .alternativa-item .form-check-input { display: none; }
+    .alternativa-item .form-check-label { display: flex; align-items: center; padding: 0.75rem 1rem; border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); cursor: pointer; transition: all 0.2s ease; width: 100%; }
+    .alternativa-item .form-check-label:hover { border-color: var(--cor-primaria); background-color: #f8f9fa; }
+    .alternativa-item .form-check-input:checked + .form-check-label { border-color: var(--cor-primaria); background-color: #eef5ff; }
+    .alternativa-letra { width: 32px; height: 32px; min-width: 32px; border-radius: 50%; border: 1px solid var(--cor-borda); display: grid; place-items: center; font-weight: 600; margin-right: 1rem; transition: var(--transicao-padrao); }
+    .alternativa-item .form-check-input:checked + .form-check-label .alternativa-letra { background-color: var(--cor-primaria); border-color: var(--cor-primaria); color: var(--cor-texto-claro); }
+    .revisao-item { transition: background-color 0.2s ease; cursor: pointer; }
+    .revisao-item:hover { background-color: #f1f3f5; }
+    .revisao-item.respondida { background-color: #eef5ff; border-left: 3px solid var(--cor-primaria); }
+    .revisao-item.marcada-revisao { border-right: 3px solid var(--cor-aviso); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="simulado-container my-5" id="app-simulado" v-cloak>
+    <!-- Cabeçalho Fixo -->
+    <div class="simulado-header d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h4 class="mb-0 h5">[[ simulado.nome ]]</h4>
+            <span class="text-muted small">Questão [[ questaoAtualNumero ]] de {{ total_questoes }}</span>
+        </div>
+        <div class="text-center">
+            <div id="timer" class="timer">[[ tempoFormatado ]]</div>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#revisarModal">Revisar</button>
+            <button class="btn btn-sm btn-danger ms-2" @click="confirmarFinalizar">Finalizar</button>
+        </div>
+    </div>
+
+    <!-- Card da Questão -->
+    <div class="questao-card" v-if="questaoAtual">
+        <div class="card-questao-header d-flex justify-content-between align-items-center">
+            <span><strong>[[ questaoAtual.disciplina ]]</strong> › [[ questaoAtual.banca ]] › [[ questaoAtual.ano ]]</span>
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" v-model="questaoAtual.marcada_revisao" :id="'revisao-' + questaoAtual.id">
+                <label class="form-check-label" :for="'revisao-' + questaoAtual.id">Marcar para revisão</label>
+            </div>
+        </div>
+        <div class="card-body p-4 p-md-5">
+            <div class="enunciado-formatado" v-html="questaoAtual.enunciado_html"></div>
+            <div class="alternativas">
+                <div class="alternativa-item" v-for="(texto, letra) in questaoAtual.alternativas">
+                    <input class="form-check-input" type="radio" :name="'q-' + questaoAtual.id" :id="'q-' + questaoAtual.id + '-' + letra" :value="letra.toUpperCase()" v-model="questaoAtual.resposta_usuario" @change="registrarResposta">
+                    <label class="form-check-label" :for="'q-' + questaoAtual.id + '-' + letra">
+                        <span class="alternativa-letra">[[ letra.toUpperCase() ]]</span>
+                        <span class="alternativa-texto">[[ texto ]]</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navegação Inferior -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <button class="btn btn-primary" @click="irParaAnterior" :disabled="questaoAtualNumero <= 1">
+            <i class="fas fa-arrow-left me-2"></i>Anterior
+        </button>
+        <div class="d-flex align-items-center gap-2">
+            <label for="irParaQuestaoInput" class="form-label mb-0 small">Ir para:</label>
+            <input type="number" class="form-control form-control-sm" style="width: 70px;" id="irParaQuestaoInput" v-model.number="irParaQuestaoInput" @keyup.enter="irParaQuestao(irParaQuestaoInput)">
+        </div>
+        <button class="btn" :class="eAUltimaQuestao ? 'btn-danger' : 'btn-primary'" @click="proximaOuFinalizar">
+            <span v-if="eAUltimaQuestao">Finalizar Simulado<i class="fas fa-flag-checkered ms-2"></i></span>
+            <span v-else>Próxima<i class="fas fa-arrow-right ms-2"></i></span>
+        </button>
+    </div>
+
+    <!-- Modal de Revisão -->
+    <div class="modal fade" id="revisarModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Revisar Questões</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <div class="list-group list-group-flush">
+                        <div v-for="q in questoes" :key="q.id" 
+                             class="list-group-item d-flex justify-content-between align-items-center revisao-item"
+                             :class="{ 'respondida': q.resposta_usuario, 'marcada-revisao': q.marcada_revisao }"
+                             @click="irParaQuestao(q.numero)">
+                             <span>Questão [[ q.numero ]]</span>
+                             <span class="d-flex align-items-center gap-2">
+                                <i v-if="q.marcada_revisao" class="fas fa-flag text-warning" title="Marcada para revisão"></i>
+                                <span class="badge" :class="q.resposta_usuario ? 'bg-primary' : 'bg-secondary'">
+                                    [[ q.resposta_usuario ? 'Respondida: ' + q.resposta_usuario : 'Não Respondida' ]]
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Genérico para Notificações e Confirmações -->
+    <div class="modal fade" id="genericModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="genericModalTitle"></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="genericModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="genericModalCancelBtn">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="genericModalConfirmBtn">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Formulário de Finalização -->
+<form id="form-finalizar" method="POST" action="{% url 'simulados:finalizar_simulado' sessao.id %}">{% csrf_token %}</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const { createApp } = Vue;
+
+    createApp({
+        data() {
+            return {
+                simulado: { id: {{ sessao.simulado.id }}, nome: "{{ sessao.simulado.nome|escapejs }}" },
+                questoes: {{ questoes_data|safe }}.map(q => ({ ...q, marcada_revisao: false })),
+                questaoAtualNumero: 1,
+                irParaQuestaoInput: 1,
+                tempoRestante: Math.floor({{ tempo_restante_segundos }}),
+                timerInterval: null
+            }
+        },
+        delimiters: ['[[', ']]'],
+        computed: {
+            questaoAtual() { return this.questoes[this.questaoAtualNumero - 1]; },
+            totalQuestoes() { return this.questoes.length; },
+            eAUltimaQuestao() { return this.questaoAtualNumero === this.totalQuestoes; },
+            tempoFormatado() {
+                let seg = this.tempoRestante;
+                if (seg < 0) seg = 0;
+                const h = Math.floor(seg / 3600).toString().padStart(2, '0');
+                const m = Math.floor((seg % 3600) / 60).toString().padStart(2, '0');
+                const s = (seg % 60).toString().padStart(2, '0');
+                return `${h}:${m}:${s}`;
+            }
+        },
+        methods: {
+            iniciarTimer() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+                this.timerInterval = setInterval(() => {
+                    this.tempoRestante--;
+                    if (this.tempoRestante <= 0) {
+                        clearInterval(this.timerInterval);
+                        this.tempoRestante = 0;
+                        this.showNotificationModal('Tempo Esgotado!', 'Seu tempo acabou. O simulado será finalizado agora.', () => {
+                            document.getElementById('form-finalizar').submit();
+                        });
+                    }
+                }, 1000);
+            },
+            pausarTimer() {
+                if (this.timerInterval) clearInterval(this.timerInterval);
+            },
+            irParaQuestao(numero) {
+                numero = parseInt(numero, 10);
+                if (Number.isInteger(numero) && numero >= 1 && numero <= this.totalQuestoes) {
+                    this.questaoAtualNumero = numero;
+                    this.irParaQuestaoInput = numero;
+                    const revisarModalEl = document.getElementById('revisarModal');
+                    const revisarModalInstance = bootstrap.Modal.getInstance(revisarModalEl);
+                    if (revisarModalInstance && revisarModalEl.classList.contains('show')) {
+                        revisarModalInstance.hide();
+                    }
+                } else {
+                    this.irParaQuestaoInput = this.questaoAtualNumero;
+                }
+            },
+            irParaAnterior() { if (this.questaoAtualNumero > 1) this.irParaQuestao(this.questaoAtualNumero - 1); },
+            irParaProxima() { if (!this.eAUltimaQuestao) this.irParaQuestao(this.questaoAtualNumero + 1); },
+            proximaOuFinalizar() { if (this.eAUltimaQuestao) this.confirmarFinalizar(); else this.irParaProxima(); },
+            async registrarResposta() {
+                const questao = this.questaoAtual;
+                try {
+                    await fetch("{% url 'simulados:registrar_resposta_simulado' sessao.id %}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                        body: JSON.stringify({ questao_id: questao.id, alternativa: questao.resposta_usuario })
+                    });
+                } catch (error) {
+                    console.error("Erro ao registrar resposta:", error);
+                }
+            },
+            confirmarFinalizar() {
+                const naoRespondidas = this.questoes.filter(q => !q.resposta_usuario).length;
+                const marcadasRevisao = this.questoes.filter(q => q.marcada_revisao).length;
+                let message = 'Deseja realmente finalizar o simulado e ver seu resultado?';
+                if (naoRespondidas > 0 || marcadasRevisao > 0) {
+                    message = 'Atenção! Você ainda tem:<ul>';
+                    if (naoRespondidas > 0) message += `<li><b>${naoRespondidas} questão(ões) em branco.</b></li>`;
+                    if (marcadasRevisao > 0) message += `<li><b>${marcadasRevisao} questão(ões) marcada(s) para revisão.</b></li>`;
+                    message += '</ul>Deseja finalizar mesmo assim?';
+                }
+                this.showConfirmationModal('Finalizar Simulado', message, () => {
+                    document.getElementById('form-finalizar').submit();
+                });
+            },
+            // Modal Genérico
+            showNotificationModal(title, message, onConfirm) {
+                const genericModalEl = document.getElementById('genericModal');
+                const genericModal = new bootstrap.Modal(genericModalEl);
+                const modalTitle = document.getElementById('genericModalTitle');
+                const modalBody = document.getElementById('genericModalBody');
+                const confirmBtn = document.getElementById('genericModalConfirmBtn');
+                const cancelBtn = document.getElementById('genericModalCancelBtn');
+
+                modalTitle.textContent = title;
+                modalBody.innerHTML = message;
+                cancelBtn.style.display = 'none';
+                confirmBtn.textContent = 'Ok';
+                confirmBtn.className = 'btn btn-primary';
+
+                const confirmHandler = () => {
+                    genericModal.hide();
+                    if (onConfirm) onConfirm();
+                    confirmBtn.removeEventListener('click', confirmHandler);
+                };
+                confirmBtn.addEventListener('click', confirmHandler);
+                genericModal.show();
+            },
+            showConfirmationModal(title, message, onConfirm) {
+                const genericModalEl = document.getElementById('genericModal');
+                const genericModal = new bootstrap.Modal(genericModalEl);
+                const modalTitle = document.getElementById('genericModalTitle');
+                const modalBody = document.getElementById('genericModalBody');
+                const confirmBtn = document.getElementById('genericModalConfirmBtn');
+                const cancelBtn = document.getElementById('genericModalCancelBtn');
+
+                modalTitle.textContent = title;
+                modalBody.innerHTML = message;
+                cancelBtn.style.display = 'inline-block';
+                confirmBtn.textContent = 'Confirmar';
+                confirmBtn.className = 'btn btn-danger';
+
+                const confirmHandler = () => {
+                    genericModal.hide();
+                    if (onConfirm) onConfirm();
+                    confirmBtn.removeEventListener('click', confirmHandler);
+                };
+                confirmBtn.addEventListener('click', confirmHandler);
+                genericModal.show();
+            }
+        },
+        mounted() {
+            this.iniciarTimer();
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) this.pausarTimer();
+                else this.iniciarTimer();
+            });
+        }
+    }).mount('#app-simulado');
+});
+</script>
+{% endblock %}

@@ -1,4 +1,5 @@
-<!-- templates/pratica/includes/_secao_comentarios.html -->
+<!-- pratica/templates/pratica/includes/_secao_comentarios.html -->
+
 <div class="d-flex justify-content-between align-items-center mb-4 px-3">
     <h4 class="h6 mb-0">Comentários</h4>
     <div class="dropdown">
@@ -13,15 +14,21 @@
 </div>
 
 <!-- A lista de comentários será populada via JS aqui -->
-<div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}"></div>
+<div class="comentarios-list mb-4" id="comentarios-list-{{ questao.id }}">
+    <p class="text-center text-muted py-4">Carregando comentários...</p>
+</div>
 
-<!-- Formulário para adicionar um novo comentário -->
-<div class="p-3">
-    <hr>
+<!-- =========================================================== -->
+<!-- INÍCIO DA CORREÇÃO: Formulário de novo comentário adicionado -->
+<!-- =========================================================== -->
+<div class="p-3 border-top">
     <h5 class="h6 mb-3 text-center">Deixe seu comentário</h5>
-    <div class="new-comment-form-container">
-        <div class="comment-avatar"><div class="avatar-icon"><i class="fas fa-user"></i></div></div>
+    <div class="new-comment-form-container d-flex align-items-start gap-3">
+        <div class="comment-avatar">
+            <div class="avatar-icon"><i class="fas fa-user"></i></div>
+        </div>
         <form class="form-comentario flex-grow-1" data-questao-id="{{ questao.id }}">
+            {% csrf_token %}
             <div class="tiptap-toolbar">
                 <button type="button" data-command="toggleBold" title="Negrito"><b>B</b></button>
                 <button type="button" data-command="toggleItalic" title="Itálico"><i>I</i></button>
@@ -31,9 +38,12 @@
             </div>
             <div class="tiptap-editor" id="editor-{{ questao.id }}"></div>
             <textarea name="conteudo" class="d-none" required></textarea>
-            <div class="d-flex justify-content-center mt-2">
-                <button type="submit" class="btn btn-primary btn-sm">Enviar Comentário</button>
+            <div class="text-center mt-2">
+                <button type="submit" class="btn btn-primary btn-sm px-4">Enviar Comentário</button>
             </div>
         </form>
     </div>
 </div>
+<!-- =========================================================== -->
+<!-- FIM DA CORREÇÃO                                               -->
+<!-- =========================================================== -->

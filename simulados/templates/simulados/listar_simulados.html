@@ -1,0 +1,212 @@
+<!-- simulados/templates/simulados/listar_simulados.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load questoes_extras %}
+
+{% block title %}Simulados Disponíveis{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+<style>
+    .simulado-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border-left: 4px solid var(--cor-primaria);
+    }
+    .simulado-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .simulado-card .card-footer {
+        background-color: #f8f9fa;
+    }
+    .gerar-simulado-card {
+        border-style: dashed;
+        border-width: 2px;
+        transition: all 0.2s ease-in-out;
+    }
+    .gerar-simulado-card:hover {
+        border-color: var(--cor-primaria) !important;
+        background-color: #f8f9fa;
+    }
+    /* Estilo para o botão de excluir */
+    .btn-delete-simulado {
+        --bs-btn-padding-y: .1rem; 
+        --bs-btn-padding-x: .4rem; 
+        --bs-btn-font-size: .75rem;
+        z-index: 10;
+        opacity: 0.5;
+        transition: opacity 0.2s;
+    }
+    .simulado-card:hover .btn-delete-simulado {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h1 class="display-6">Simulados Preparatórios</h1>
+        <p class="lead text-muted">Teste seus conhecimentos em um ambiente que simula as condições reais de prova.</p>
+    </div>
+
+    {% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+    <div class="row mb-5">
+        <div class="col">
+            <a href="{% url 'simulados:gerar_simulado_usuario' %}" class="text-decoration-none">
+                <div class="card h-100 shadow-sm gerar-simulado-card border-secondary">
+                    <div class="card-body text-center p-4 d-flex flex-column justify-content-center">
+                        <div class="display-4 text-primary mb-3">
+                            <i class="fas fa-cogs"></i>
+                        </div>
+                        <h5 class="card-title">Gerar Simulado Personalizado</h5>
+                        <p class="card-text text-muted">Crie uma prova com seus próprios filtros e número de questões.</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <h3 class="mb-4">Simulados Prontos</h3>
+    <div class="row g-4">
+        {% for simulado in simulados %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100 shadow-sm simulado-card position-relative">
+                
+                <!-- =========================================================== -->
+                <!-- INÍCIO DA ADIÇÃO: Botão de Excluir                          -->
+                <!-- =========================================================== -->
+                {% if simulado.criado_por == user %}
+                <button type="button" 
+                        class="btn btn-outline-danger position-absolute top-0 end-0 m-2 btn-delete-simulado"
+                        data-bs-toggle="modal" 
+                        data-bs-target="#confirmDeleteModal"
+                        data-simulado-id="{{ simulado.id }}"
+                        data-simulado-nome="{{ simulado.nome }}"
+                        title="Excluir Simulado">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+                {% endif %}
+                <!-- =========================================================== -->
+                <!-- FIM DA ADIÇÃO                                               -->
+                <!-- =========================================================== -->
+
+                <div class="card-body p-4 d-flex flex-column">
+                    <div>
+                        <h5 class="card-title">{{ simulado.nome }}</h5>
+                        <p class="card-text text-muted">
+                            <i class="fas fa-list-ol me-2"></i>{{ simulado.num_questoes }} questões
+                        </p>
+                    </div>
+                    <div class="mt-auto text-center">
+                        {% if simulado.sessao_ativa_id %}
+                            <a href="{% url 'simulados:realizar_simulado' simulado.sessao_ativa_id %}" class="btn btn-warning w-100">
+                                <i class="fas fa-play-circle me-2"></i>Continuar Simulado
+                            </a>
+                        {% elif simulado.sessao_concluida_id %}
+                             <a href="{% url 'simulados:resultado_simulado' simulado.sessao_concluida_id %}" class="btn btn-success w-100">
+                                <i class="fas fa-poll me-2"></i>Ver Resultado
+                            </a>
+                        {% else %}
+                            <a href="{% url 'simulados:iniciar_ou_continuar_sessao' simulado.id %}" class="btn btn-primary w-100">
+                                <i class="fas fa-rocket me-2"></i>Iniciar Simulado
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center p-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum simulado pronto disponível no momento.</h5>
+                <p>Nossa equipe está preparando novos materiais. Enquanto isso, você pode <a href="{% url 'simulados:gerar_simulado_usuario' %}">gerar um simulado personalizado</a>.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object page_numbers=page_numbers %}
+
+    </div>
+</div>
+
+<!-- =========================================================== -->
+<!-- INÍCIO DA ADIÇÃO: Modal de Confirmação para Excluir         -->
+<!-- =========================================================== -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-labelledby="confirmDeleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmDeleteModalLabel">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Você tem certeza de que deseja excluir o simulado <strong id="simuladoNomeParaExcluir"></strong>?</p>
+        <p class="text-danger small">Atenção: Esta ação não pode ser desfeita e todo o histórico de sessões associado será perdido.</p>
+      </div>
+      <div class="modal-footer">
+        <form id="deleteForm" method="POST" action="">
+          {% csrf_token %}
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-danger">Excluir Permanentemente</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- =========================================================== -->
+<!-- FIM DA ADIÇÃO                                               -->
+<!-- =========================================================== -->
+
+{% endblock %}
+
+{% block scripts %}
+<!-- =========================================================== -->
+<!-- INÍCIO DA ADIÇÃO: Script para o Modal de Exclusão           -->
+<!-- =========================================================== -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    if (confirmDeleteModal) {
+        confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const simuladoId = button.getAttribute('data-simulado-id');
+            const simuladoNome = button.getAttribute('data-simulado-nome');
+            
+            const modalBodyStrong = confirmDeleteModal.querySelector('#simuladoNomeParaExcluir');
+            const deleteForm = confirmDeleteModal.querySelector('#deleteForm');
+            
+            modalBodyStrong.textContent = `"${simuladoNome}"`;
+            
+            // Constrói a URL para a action do formulário dinamicamente
+            const url = `/simulados/${simuladoId}/excluir/`;
+            deleteForm.setAttribute('action', url);
+        });
+    }
+});
+</script>
+<!-- =========================================================== -->
+<!-- FIM DA ADIÇÃO                                               -->
+<!-- =========================================================== -->
+
+<script>
+    window.addEventListener('pageshow', function(event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+    </script>
+{% endblock %}

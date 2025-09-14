@@ -1,0 +1,52 @@
+{% load gestao_extras %}
+
+<div class="card h-100 shadow-sm simulado-card">
+    <div class="card-body d-flex flex-column p-4">
+        <div>
+            <div class="d-flex justify-content-between align-items-start mb-2">
+                <h5 class="card-title mb-0">
+                    {# O link agora está apenas no nome, não no card inteiro #}
+                    <a href="{% url 'gestao:editar_simulado' simulado.id %}" class="text-decoration-none" id="simulado-nome-{{ simulado.id }}">
+                        {{ simulado.nome }}
+                    </a>
+                </h5>
+                <span class="badge {{ simulado.status|get_status_badge_class }}" id="simulado-status-{{ simulado.id }}">{{ simulado.get_status_display }}</span>
+            </div>
+            <h6 class="card-subtitle mb-3 text-muted small">{{ simulado.codigo|default:"SML-N/A" }}</h6>
+            
+            <p class="card-text small text-muted">
+                <i class="fas fa-list-ol fa-fw me-1"></i> {{ simulado.num_questoes }} questões<br>
+                <i class="fas fa-user-cog fa-fw me-1"></i> Criado por: {{ simulado.criado_por.username|default:"Sistema" }}<br>
+                <i class="far fa-calendar-alt fa-fw me-1"></i> Em: {{ simulado.data_criacao|date:"d/m/Y" }}
+            </p>
+        </div>
+        <div class="mt-auto pt-3">
+            <!-- ======================================================================= -->
+            <!-- INÍCIO DA CORREÇÃO: Grupo de botões com Ações Rápidas               -->
+            <!-- ======================================================================= -->
+            <div class="btn-group w-100">
+                <a href="{% url 'gestao:editar_simulado' simulado.id %}" class="btn btn-sm btn-primary w-100">
+                    <i class="fas fa-edit me-2"></i>Gerenciar Questões
+                </a>
+                <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#editSimuladoMetaModal" data-simulado-id="{{ simulado.id }}">
+                            <i class="fas fa-tags fa-fw me-2"></i>Editar Nome/Status
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item text-danger" href="#">
+                            <i class="fas fa-trash-alt fa-fw me-2"></i>Excluir Simulado
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            <!-- ======================================================================= -->
+            <!-- FIM DA CORREÇÃO                                                         -->
+            <!-- ======================================================================= -->
+        </div>
+    </div>
+</div>

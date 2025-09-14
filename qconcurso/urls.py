@@ -17,8 +17,9 @@ urlpatterns = [
     path('desempenho/', include('desempenho.urls')),
     path('gestao/', include('gestao.urls', namespace='gestao')),
     path('questoes/', include('questoes.urls', namespace='questoes')),
-
+    path('simulados/', include('simulados.urls', namespace='simulados')),
     path('', home, name='home'),
+    path('', include('gamificacao.urls', namespace='gamificacao')),
 
 ]
 

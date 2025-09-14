@@ -1,4 +1,4 @@
-<!-- templates/base.html -->
+<!-- templates/base.html (ARQUIVO CORRIGIDO E COMPLETO) -->
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
@@ -18,27 +18,17 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
 
-    <!-- ======================================================= -->
-    <!-- INÍCIO DA CORREÇÃO: Forçar texto claro no rodapé       -->
-    <!-- ======================================================= -->
     <style>
         .footer-custom .text-muted {
-            /* Esta regra sobrescreve a cor padrão do Bootstrap (.text-muted)
-               APENAS dentro do nosso rodapé com a classe .footer-custom. */
             color: rgba(255, 255, 255, 0.7) !important;
         }
     </style>
-    <!-- ======================================================= -->
-    <!-- FIM DA CORREÇÃO                                         -->
-    <!-- ======================================================= -->
 
     {% block head %}{% endblock %}
 </head>
 <body>
 
-    <!-- ================================== -->
-    <!-- NAVBAR ATUALIZADA                  -->
-    <!-- ================================== -->
+    <!-- NAVBAR ATUALIZADA -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{% url 'home' %}">
@@ -61,16 +51,34 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'pratica:listar_questoes' %}">Praticar</a>
                     </li>
+                    <!-- =========================================================== -->
+                    <!-- INÍCIO DA ADIÇÃO: Link para a página de Simulados         -->
+                    <!-- =========================================================== -->
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a>
+                    </li>
+                    <!-- =========================================================== -->
+                    <!-- FIM DA ADIÇÃO                                               -->
+                    <!-- =========================================================== -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'dashboard' %}">Meu Desempenho</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'gamificacao:ranking' %}">Ranking</a>
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="fas fa-user-circle me-2 fs-5"></i>Olá, {{ user.userprofile.nome }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-edit me-2"></i>Editar Perfil</a></li>
-                            <li><a class="dropdown-item" href="{% url 'alterar_senha' %}"><i class="fas fa-key me-2"></i>Alterar Senha</a></li>
+                            <!-- =========================================================== -->
+                            <!-- INÍCIO DA CORREÇÃO: Links de Perfil atualizados           -->
+                            <!-- =========================================================== -->
+                            <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user me-2"></i>Meu Perfil</a></li>
+                            <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog me-2"></i>Editar Conta</a></li>
+                            <!-- =========================================================== -->
+                            <!-- FIM DA CORREÇÃO                                               -->
+                            <!-- =========================================================== -->
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
                         </ul>
@@ -93,9 +101,7 @@
         {% endblock %}
     </main>
 
-    <!-- ================================== -->
-    <!-- RODAPÉ ATUALIZADO                  -->
-    <!-- ================================== -->
+    <!-- RODAPÉ ATUALIZADO -->
     <footer class="footer-custom mt-auto">
         <div class="container py-5">
             <div class="row">
@@ -110,6 +116,13 @@
                         <li class="mb-2"><a href="{% url 'home' %}" class="footer-link">Início</a></li>
                         <li class="mb-2"><a href="{% url 'pratica:listar_questoes' %}" class="footer-link">Praticar</a></li>
                         {% if user.is_authenticated %}
+                        <!-- =========================================================== -->
+                        <!-- INÍCIO DA ADIÇÃO: Link para Simulados no rodapé           -->
+                        <!-- =========================================================== -->
+                        <li class="mb-2"><a href="{% url 'simulados:listar_simulados' %}" class="footer-link">Simulados</a></li>
+                        <!-- =========================================================== -->
+                        <!-- FIM DA ADIÇÃO                                               -->
+                        <!-- =========================================================== -->
                         <li class="mb-2"><a href="{% url 'dashboard' %}" class="footer-link">Desempenho</a></li>
                         {% endif %}
                     </ul>
@@ -149,16 +162,13 @@
     <!-- SCRIPT PARA MENSAGENS AUTO-DISMISS -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Seleciona todas as mensagens de alerta
             const alerts = document.querySelectorAll('.alert[role="alert"]');
             
             alerts.forEach(function(alert) {
-                // Define um tempo para remover o alerta
                 setTimeout(function() {
-                    // Usa a API do Bootstrap para fechar o alerta com animação
                     const bsAlert = new bootstrap.Alert(alert);
                     bsAlert.close();
-                }, 7000); // 7000 milissegundos = 7 segundos
+                }, 7000);
             });
         });
         </script>

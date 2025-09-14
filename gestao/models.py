@@ -1,4 +1,4 @@
-# gestao/models.py
+# gestao/models.py (ARQUIVO CORRIGIDO)
 
 import hashlib
 import json
@@ -29,7 +29,8 @@ class SolicitacaoExclusao(models.Model):
         verbose_name_plural = "Solicitações de Exclusão"
         ordering = ['-data_solicitacao']
     def __str__(self):
-        return f"Solicitação para excluir {self.usuario_a_ser_excluido.username} por {self.solicitado_por.username}"
+        solicitado_por_user = self.solicitado_por.username if self.solicitado_por else "(usuário deletado)"
+        return f"Solicitação para excluir {self.usuario_a_ser_excluido.username} por {solicitado_por_user}"
 
 
 class PromocaoSuperuser(models.Model):
@@ -202,13 +203,10 @@ class LogAtividade(models.Model):
         NOTIFICACOES_REJEITADAS = 'NOTIFICACOES_REJEITADAS', 'Notificações Rejeitadas'
         NOTIFICACOES_DELETADAS = 'NOTIFICACOES_DELETADAS', 'Notificações Deletadas'
         LOG_DELETADO = 'LOG_DELETADO', 'Log Deletado'
-        # =======================================================================
-        # INÍCIO DA ADIÇÃO: Nova ação para segurança
-        # =======================================================================
         TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA = 'TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA', 'Tentativa de Exclusão em Massa Excedida'
-        # =======================================================================
-        # FIM DA ADIÇÃO
-        # =======================================================================
+        SIMULADO_CRIADO = 'SIMULADO_CRIADO', 'Simulado Criado'
+        SIMULADO_EDITADO = 'SIMULADO_EDITADO', 'Simulado Editado'
+        SIMULADO_DELETADO = 'SIMULADO_DELETADO', 'Simulado Deletado'
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)
@@ -230,9 +228,19 @@ class LogAtividade(models.Model):
         verbose_name = "Registro de Atividade"
         verbose_name_plural = "Registros de Atividades"
 
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Método __str__ robusto
+    # =======================================================================
     def __str__(self):
-        ator_nome = self.ator.username if self.ator else "Sistema"
+        """
+        Gera uma representação em string segura para o log.
+        Verifica se `self.ator` não é None antes de tentar acessar `self.ator.username`.
+        """
+        ator_nome = self.ator.username if self.ator else "(Usuário Deletado)"
         return f'{self.get_acao_display()} por {ator_nome} em {self.data_criacao.strftime("%d/%m/%Y %H:%M")}'
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
     
     def delete(self, user=None):
         self.is_deleted = True

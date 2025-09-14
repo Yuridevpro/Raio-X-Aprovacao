@@ -10,7 +10,8 @@ from django.db.models import Count, Q
 from .models import Notificacao # Adicione a importação do novo modelo
 from django.utils import formats # <-- 1. ADICIONE ESTA IMPORTAÇÃO
 from django.utils.timezone import localtime # <-- 1. ADICIONE ESTA IMPORTAÇÃO
-
+from django.db import IntegrityError
+from django.contrib.contenttypes.models import ContentType
 # Modelos
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 from .models import RespostaUsuario, Comentario, FiltroSalvo
@@ -391,20 +392,34 @@ from django.db import IntegrityError # Adicione esta importação
 def notificar_erro(request):
     try:
         data = json.loads(request.body)
-        questao_id = data.get('questao_id')
+        # =======================================================================
+        # INÍCIO DA MODIFICAÇÃO: Generalizando a view
+        # =======================================================================
+        tipo_alvo = data.get('tipo_alvo') # 'questao' ou 'comentario'
+        alvo_id = data.get('alvo_id')
         tipo_erro = data.get('tipo_erro')
         descricao = data.get('descricao')
 
-        if not all([questao_id, tipo_erro, descricao]):
+        if not all([tipo_alvo, alvo_id, tipo_erro, descricao]):
             return JsonResponse({'status': 'error', 'message': 'Todos os campos são obrigatórios.'}, status=400)
 
-        questao = get_object_or_404(Questao, id=questao_id)
+        Model = None
+        if tipo_alvo == 'questao':
+            Model = Questao
+        elif tipo_alvo == 'comentario':
+            Model = Comentario
+        
+        if not Model:
+            return JsonResponse({'status': 'error', 'message': 'Tipo de alvo inválido.'}, status=400)
 
-        # --- INÍCIO DA NOVA LÓGICA ---
-        # A constraint do modelo já previne a criação, mas aqui tratamos o erro de forma amigável
+        alvo = get_object_or_404(Model, id=alvo_id)
+        # =======================================================================
+        # FIM DA MODIFICAÇÃO
+        # =======================================================================
+
         try:
             Notificacao.objects.create(
-                questao=questao,
+                alvo=alvo, # Agora usa a relação genérica
                 usuario_reportou=request.user,
                 tipo_erro=tipo_erro,
                 descricao=descricao
@@ -412,12 +427,10 @@ def notificar_erro(request):
             return JsonResponse({'status': 'success', 'message': 'Obrigado! Sua notificação foi enviada e será analisada pela nossa equipe.'})
         
         except IntegrityError:
-            # Este erro será disparado pela constraint que criamos no modelo
             return JsonResponse({
                 'status': 'error', 
-                'message': 'Você já possui uma notificação ativa para esta questão. Nossa equipe já está ciente e analisará em breve.'
-            }, status=409) # 409 Conflict é um bom status para este caso
+                'message': 'Você já possui uma notificação ativa para este item. Nossa equipe já está ciente e analisará em breve.'
+            }, status=409)
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-# --- FIM DA NOVA LÓGICA ---

@@ -1,0 +1,169 @@
+<!-- simulados/templates/simulados/resultado_simulado.html (ARQUIVO MODIFICADO) -->
+
+{% extends 'base.html' %}
+{% load pratica_extras %}
+{% block title %}Resultado do Simulado{% endblock %}
+
+{% block head %}
+<style>
+    :root {
+        --cor-sucesso: #198754;
+        --cor-erro: #dc3545;
+        --cor-sucesso-leve: #e9f7ec;
+        --cor-erro-leve: #fbebed;
+        --cor-branco-leve: #f8f9fa;
+        --cor-borda: #dee2e6;
+        --sombra-caixa: 0 4px 12px rgba(0,0,0,0.05);
+        --raio-borda: 12px;
+    }
+    body { background-color: var(--cor-branco-leve); }
+    .stat-card { text-align: center; border-radius: var(--raio-borda); padding: 1.5rem; box-shadow: var(--sombra-caixa); }
+    .stat-card .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .stat-card .stat-value { font-size: 2rem; font-weight: 700; }
+
+    .resultado-header { background-color: #fff; border-radius: var(--raio-borda); box-shadow: var(--sombra-caixa); }
+
+    .revisao-questao-card {
+        background-color: #fff;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+        box-shadow: var(--sombra-caixa);
+    }
+    .revisao-questao-header {
+        background-color: var(--cor-branco-leve);
+        padding: 0.75rem 1.25rem;
+        font-weight: 600;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+    .alternativa-revisao {
+        padding: 0.75rem 1.25rem;
+        border: 2px solid transparent;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        background-color: #f8f9fa;
+    }
+    .alternativa-letra {
+        font-weight: 700;
+        margin-right: 1rem;
+    }
+    .alternativa-revisao.correta {
+        background-color: var(--cor-sucesso-leve);
+        border-color: var(--cor-sucesso);
+    }
+    .alternativa-revisao.incorreta {
+        background-color: var(--cor-erro-leve);
+        border-color: var(--cor-erro);
+    }
+    .status-icon {
+        font-size: 1.2rem;
+        margin-left: auto;
+    }
+    .enunciado-formatado img { max-width: 100%; height: auto; border-radius: 8px; }
+    
+    /* =========================================================== */
+    /* INÍCIO DA ADIÇÃO: Estilos para a seção da Explicação        */
+    /* =========================================================== */
+    .explicacao-container {
+        background-color: #f0f6ff; /* Um azul bem claro para diferenciar */
+        border-left: 4px solid var(--cor-primaria);
+        border-radius: 8px;
+    }
+    .explicacao-container p:last-child {
+        margin-bottom: 0;
+    }
+    /* =========================================================== */
+    /* FIM DA ADIÇÃO                                               */
+    /* =========================================================== */
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Cabeçalho do Resultado -->
+    <div class="resultado-header p-4 mb-5 text-center">
+        <h1 class="h3">Resultado do Simulado</h1>
+        <h2 class="h5 text-muted fw-normal">{{ sessao.simulado.nome }}</h2>
+        <p class="mb-0">Finalizado em: {{ sessao.data_fim|date:"d/m/Y \à\s H:i" }}</p>
+    </div>
+
+    <!-- Estatísticas Gerais -->
+    <div class="row g-4 mb-5">
+        <!-- ... (código dos cards de estatísticas, sem alterações) ... -->
+    </div>
+
+    <!-- Revisão Detalhada das Questões -->
+    <h3 class="mb-4 text-center">Revisão Detalhada</h3>
+    {% for item in revisao_detalhada %}
+    <div class="revisao-questao-card">
+        <div class="revisao-questao-header d-flex justify-content-between align-items-center">
+            <span>Questão {{ item.numero }} ({{ item.questao.codigo }})</span>
+            <span>
+                {% if item.foi_correta %}
+                    <span class="badge bg-success">Correta</span>
+                {% elif item.resposta_usuario %}
+                    <span class="badge bg-danger">Incorreta</span>
+                {% else %}
+                    <span class="badge bg-secondary">Em Branco</span>
+                {% endif %}
+            </span>
+        </div>
+        <div class="card-body p-4">
+             <div class="text-muted small mb-3">
+                <strong>Disciplina:</strong> {{ item.questao.disciplina.nome }} | 
+                <strong>Banca:</strong> {{ item.questao.banca.nome|default:"N/A" }} | 
+                <strong>Ano:</strong> {{ item.questao.ano|default:"N/A" }}
+            </div>
+            <div class="enunciado-formatado mb-4">
+                {{ item.questao.enunciado|render_markdown|safe }} 
+            </div>
+            <div class="alternativas-container">
+                {% for letra, texto in item.questao.get_alternativas_dict.items %}
+                <div class="alternativa-revisao 
+                    {% if letra == item.questao.gabarito %}correta{% endif %}
+                    {% if letra == item.resposta_usuario and not item.foi_correta %}incorreta{% endif %}">
+                    
+                    <span class="alternativa-letra">{{ letra }})</span>
+                    <span class="alternativa-texto">{{ texto|render_markdown|safe }}</span>
+
+                    {% if letra == item.questao.gabarito %}
+                        <i class="fas fa-check-circle text-success status-icon" title="Alternativa Correta"></i>
+                    {% elif letra == item.resposta_usuario %}
+                        <i class="fas fa-times-circle text-danger status-icon" title="Sua Resposta"></i>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            <!-- =========================================================== -->
+            <!-- INÍCIO DA ADIÇÃO: Seção da Explicação                     -->
+            <!-- =========================================================== -->
+            {% if item.explicacao_html %}
+            <div class="mt-4">
+                <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#explicacao-{{ item.questao.id }}" aria-expanded="false" aria-controls="explicacao-{{ item.questao.id }}">
+                    <i class="fas fa-graduation-cap me-2"></i>Ver Explicação
+                </button>
+                <div class="collapse mt-2" id="explicacao-{{ item.questao.id }}">
+                    <div class="explicacao-container p-3">
+                        {{ item.explicacao_html|safe }}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            <!-- =========================================================== -->
+            <!-- FIM DA ADIÇÃO                                               -->
+            <!-- =========================================================== -->
+        </div>
+    </div>
+    {% endfor %}
+
+    <div class="text-center mt-5">
+        <a href="{% url 'simulados:listar_simulados' %}" class="btn btn-primary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i>Voltar para a Lista de Simulados
+        </a>
+    </div>
+
+</div>
+{% endblock %}

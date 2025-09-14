@@ -1,0 +1,45 @@
+<!-- simulados/templates/simulados/gerar_simulado_usuario.html (ARQUIVO MODIFICADO) -->
+
+{% extends 'base.html' %}
+{% block title %}Gerar Simulado Personalizado{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="text-center mb-4">
+                <h1 class="h3">Monte seu Simulado Personalizado</h1>
+                <p class="text-muted">Selecione os filtros e a quantidade de questões para criar uma prova sob medida.</p>
+            </div>
+
+            {% include 'gestao/includes/_messages.html' %}
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        <div class="row g-3">
+                            <div class="col-md-8">
+                                {{ form.disciplina.label_tag }}
+                                {{ form.disciplina }}
+                                {{ form.disciplina.errors }}
+                            </div>
+                            <div class="col-md-4">
+                                {{ form.num_questoes.label_tag }}
+                                {{ form.num_questoes }}
+                                {{ form.num_questoes.errors }}
+                            </div>
+                            <!-- Adicionar mais filtros aqui no futuro (assunto, banca, etc.) -->
+                        </div>
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-cogs me-2"></i>Gerar e Iniciar Simulado
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

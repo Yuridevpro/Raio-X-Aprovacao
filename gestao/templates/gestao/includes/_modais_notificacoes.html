@@ -60,3 +60,39 @@
         </div>
     </div>
 </div>
+
+<!-- =========================================================== -->
+<!-- INÍCIO DA ADIÇÃO: Novo Modal de Visualização de Comentário  -->
+<!-- =========================================================== -->
+<div class="modal fade" id="visualizarComentarioModal" tabindex="-1" aria-labelledby="visualizarComentarioModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="visualizarComentarioModalLabel">Revisão de Comentário Denunciado</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalComentarioSpinner" class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>
+                <div id="modalComentarioContent" style="display: none;">
+                    
+                    <h6 class="text-muted">Comentário Denunciado:</h6>
+                    <div id="modalComentarioDetalhes" class="mb-4 p-3 bg-light rounded border">
+                        <!-- Conteúdo injetado via JS -->
+                    </div>
+                    
+                    <h6 class="text-muted">Na Questão: <span id="modalComentarioQuestaoCodigo" class="fw-bold"></span></h6>
+                    <div id="modalComentarioQuestaoEnunciado" class="enunciado-formatado p-3 border rounded">
+                        <!-- Conteúdo injetado via JS -->
+                    </div>
+
+                </div>
+            </div>
+            <div class="modal-footer d-flex justify-content-center">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- =========================================================== -->
+<!-- FIM DA ADIÇÃO                                               -->
+<!-- =========================================================== -->

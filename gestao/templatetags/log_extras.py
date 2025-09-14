@@ -1,4 +1,5 @@
 # gestao/templatetags/log_extras.py
+
 from django import template
 from django.utils.safestring import mark_safe
 from django.utils.html import escape
@@ -42,6 +43,16 @@ def get_log_icon(log):
         # Ações de Entidades (Disciplina, Banca, etc.)
         'ENTIDADE_CRIADA': 'fas fa-folder-plus text-success',
         'ASSUNTO_CRIADO': 'fas fa-tag text-success',
+        
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Ícones para as novas ações de Simulado
+        # =======================================================================
+        'SIMULADO_CRIADO': 'fas fa-file-alt text-success',
+        'SIMULADO_EDITADO': 'fas fa-file-signature text-info',
+        'SIMULADO_DELETADO': 'fas fa-file-excel text-danger',
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
 
         # Ações de Notificação de Erro
         'NOTIFICACOES_RESOLVIDAS': 'fas fa-check-double text-success',
@@ -60,153 +71,147 @@ def generate_log_message(log):
     ator = f"<strong>{escape(log.ator.username if log.ator else 'Sistema')}</strong>"
     detalhes = log.detalhes
     
-    # Mensagens para Ações de Usuário e Solicitações
+    # =======================================================================
+    # LÓGICA CENTRALIZADA PARA OBTER O NOME DO ALVO
+    # Esta abordagem garante que sempre teremos um nome para exibir.
+    # =======================================================================
+    alvo_str = detalhes.get('alvo_str') or \
+               detalhes.get('codigo_questao') or \
+               detalhes.get('usuario_alvo') or \
+               detalhes.get('usuario_deletado') or \
+               detalhes.get('usuario_excluido') or \
+               detalhes.get('simulado_deletado') or \
+               detalhes.get('nome') or \
+               'N/A'
+    alvo_html = f"<strong>{escape(alvo_str)}</strong>"
+    
+    message = "" # Inicializa a variável de mensagem
+
+    # =======================================================================
+    # GERAÇÃO DAS MENSAGENS COM BASE NA AÇÃO
+    # =======================================================================
+    
+    # Ações de Usuário e Solicitações (usam 'alvo_html' como padrão)
     if log.acao == 'USUARIO_DELETADO':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', detalhes.get('usuario_deletado', 'N/A')))}</strong>"
         if "Confirmação final pelo solicitante" in detalhes.get('motivo', ''):
-            message = f"{ator} confirmou sua própria solicitação, excluindo o <strong>superusuário</strong> {usuario}."
+            message = f"{ator} confirmou sua própria solicitação, excluindo o <strong>superusuário</strong> {alvo_html}."
         else:
-            message = f"{ator} deletou o usuário {usuario}."
+            message = f"{ator} deletou o usuário {alvo_html}."
     
     elif log.acao == 'SOLICITACAO_EXCLUSAO_CRIADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} criou uma solicitação para excluir o usuário {usuario}."
+        message = f"{ator} criou uma solicitação para excluir o usuário {alvo_html}."
     
     elif log.acao == 'SOLICITACAO_EXCLUSAO_APROVADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_excluido', 'N/A'))}</strong>"
         solicitante = f"<strong>{escape(detalhes.get('solicitado_por', 'N/A'))}</strong>"
-        message = f"{ator} aprovou a solicitação de {solicitante} para excluir o usuário {usuario}."
+        message = f"{ator} aprovou a solicitação de {solicitante} para excluir o usuário {alvo_html}."
     
     elif log.acao == 'SOLICITACAO_EXCLUSAO_REJEITADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
         solicitante = f"<strong>{escape(detalhes.get('solicitado_por', 'N/A'))}</strong>"
-        message = f"{ator} rejeitou a solicitação de {solicitante} para excluir o usuário {usuario}."
+        message = f"{ator} rejeitou a solicitação de {solicitante} para excluir o usuário {alvo_html}."
         
     elif log.acao == 'SOLICITACAO_EXCLUSAO_CANCELADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} cancelou sua própria solicitação para excluir o usuário {usuario}."
+        message = f"{ator} cancelou sua própria solicitação para excluir o usuário {alvo_html}."
 
     elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_CRIADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} criou uma solicitação para excluir o <strong>superusuário</strong> {usuario}."
+        message = f"{ator} criou uma solicitação para excluir o <strong>superusuário</strong> {alvo_html}."
 
     elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_APROVADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} registrou uma aprovação na solicitação para excluir o <strong>superusuário</strong> {usuario}."
+        message = f"{ator} registrou uma aprovação na solicitação para excluir o <strong>superusuário</strong> {alvo_html}."
 
     elif log.acao == 'SOLICITACAO_EXCLUSAO_SUPERUSER_CANCELADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} cancelou sua solicitação para excluir o <strong>superusuário</strong> {usuario}."
+        message = f"{ator} cancelou sua solicitação para excluir o <strong>superusuário</strong> {alvo_html}."
 
     elif log.acao in ['SOLICITACAO_PROMOCAO_CRIADA', 'SOLICITACAO_DESPROMOCAO_CRIADA']:
         acao_texto = "promoção" if log.acao == 'SOLICITACAO_PROMOCAO_CRIADA' else "despromoção"
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} criou uma solicitação de {acao_texto} para {usuario}."
+        message = f"{ator} criou uma solicitação de {acao_texto} para {alvo_html}."
 
     elif log.acao in ['SOLICITACAO_PROMOCAO_APROVADA', 'SOLICITACAO_DESPROMOCAO_APROVADA']:
         acao_texto = "promoção" if log.acao == 'SOLICITACAO_PROMOCAO_APROVADA' else "despromoção"
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} registrou uma aprovação na solicitação de {acao_texto} de {usuario}."
+        message = f"{ator} registrou uma aprovação na solicitação de {acao_texto} de {alvo_html}."
     
     elif log.acao == 'SOLICITACAO_PROMOCAO_CANCELADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} cancelou sua solicitação de promoção para {usuario}."
+        message = f"{ator} cancelou sua solicitação de promoção para {alvo_html}."
         
     elif log.acao == 'SOLICITACAO_DESPROMOCAO_CANCELADA':
-        usuario = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} cancelou sua solicitação de despromoção para {usuario}."
+        message = f"{ator} cancelou sua solicitação de despromoção para {alvo_html}."
 
-    # Mensagens para Permissões
     elif log.acao == 'PERMISSOES_ALTERADAS':
-        alvo = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
         de = f"<em>{escape(detalhes.get('de', 'N/A'))}</em>"
         para = f"<em>{escape(detalhes.get('para', 'N/A'))}</em>"
-        message = f"{ator} alterou as permissões do usuário {alvo} de {de} para {para}."
+        message = f"{ator} alterou as permissões do usuário {alvo_html} de {de} para {para}."
 
     elif log.acao == 'USUARIO_PROMOVIDO_SUPERUSER':
-        alvo = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
-        message = f"{ator} promoveu o usuário {alvo} a Superusuário."
+        message = f"{ator} promoveu o usuário {alvo_html} a Superusuário."
 
     elif log.acao == 'USUARIO_DESPROMOVIDO_SUPERUSER':
-        alvo = f"<strong>{escape(detalhes.get('usuario_alvo', 'N/A'))}</strong>"
         if "Confirmação final pelo solicitante" in detalhes.get('motivo', ''):
-            message = f"{ator} confirmou sua própria solicitação, despromovendo o <strong>superusuário</strong> {alvo}."
+            message = f"{ator} confirmou sua própria solicitação, despromovendo o <strong>superusuário</strong> {alvo_html}."
         else:
-            message = f"{ator} removeu as permissões de Superusuário do usuário {alvo}."
+            message = f"{ator} removeu as permissões de Superusuário do usuário {alvo_html}."
     
-    # Mensagens para Ações de Questão
     elif log.acao == 'QUESTAO_CRIADA':
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
-        message = f"{ator} criou a questão {codigo}."
+        message = f"{ator} criou a questão {alvo_html}."
 
     elif log.acao == 'QUESTAO_EDITADA':
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
-        message = f"{ator} editou a questão {codigo}."
+        message = f"{ator} editou a questão {alvo_html}."
 
-    # =======================================================================
-    # INÍCIO DA MODIFICAÇÃO
-    # =======================================================================
     elif log.acao == 'QUESTAO_DELETADA':
-        # Verifica se o log é de uma ação em massa (procurando pela chave 'count')
         if 'count' in detalhes:
             count = detalhes.get('count', 0)
             plural = 'questão' if count == 1 else 'questões'
             message = f"{ator} moveu <strong>{count}</strong> {plural} para a lixeira em massa."
-        # Senão, trata como uma exclusão individual
         else:
-            codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
-            message = f"{ator} moveu a questão {codigo} para a lixeira."
-    # =======================================================================
-    # FIM DA MODIFICAÇÃO
-    # =======================================================================
+            message = f"{ator} moveu a questão {alvo_html} para a lixeira."
 
     elif log.acao == 'QUESTAO_RESTAURADA':
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
-        message = f"{ator} restaurou a questão {codigo} da lixeira."
+        message = f"{ator} restaurou a questão {alvo_html} da lixeira."
 
     elif log.acao == 'QUESTAO_DELETADA_PERMANENTEMENTE':
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
-        message = f"{ator} excluiu permanentemente a questão {codigo}."
+        message = f"{ator} excluiu permanentemente a questão {alvo_html}."
         
     elif log.acao == 'TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA':
         quantidade = detalhes.get('quantidade_tentada', 'N/A')
         limite = detalhes.get('limite', 'N/A')
         message = f"{ator} tentou uma ação em massa com <strong>{quantidade}</strong> itens, mas foi bloqueado pelo limite de <strong>{limite}</strong>."
 
-    # Mensagens para Entidades
     elif log.acao == 'ENTIDADE_CRIADA':
         tipo = escape(detalhes.get('tipo', 'entidade')).lower()
-        nome = f"<strong>{escape(detalhes.get('nome', 'N/A'))}</strong>"
-        message = f"{ator} criou a {tipo} {nome}."
+        message = f"{ator} criou a {tipo} {alvo_html}."
 
     elif log.acao == 'ASSUNTO_CRIADO':
-        assunto = f"<strong>{escape(detalhes.get('assunto', 'N/A'))}</strong>"
         disciplina = f"<strong>{escape(detalhes.get('disciplina', 'N/A'))}</strong>"
+        assunto = f"<strong>{escape(detalhes.get('assunto', 'N/A'))}</strong>"
         message = f"{ator} criou o assunto {assunto} para a disciplina {disciplina}."
 
-    # Mensagens para Notificações de Erro
     elif log.acao == 'NOTIFICACOES_RESOLVIDAS':
         count = detalhes.get('count', 0)
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
         plural = 'notificação' if count == 1 else 'notificações'
-        message = f"{ator} marcou {count} {plural} como resolvidas para a questão {codigo}."
+        message = f"{ator} marcou {count} {plural} como resolvidas para o item {alvo_html}."
 
     elif log.acao == 'NOTIFICACOES_REJEITADAS':
         count = detalhes.get('count', 0)
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
         plural = 'notificação' if count == 1 else 'notificações'
-        message = f"{ator} rejeitou {count} {plural} da questão {codigo}."
+        message = f"{ator} rejeitou {count} {plural} do item {alvo_html}."
 
     elif log.acao == 'NOTIFICACOES_DELETADAS':
         count = detalhes.get('count', 0)
-        codigo = f"<strong>{escape(detalhes.get('codigo_questao', 'N/A'))}</strong>"
         plural = 'notificação' if count == 1 else 'notificações'
-        message = f"{ator} deletou {count} {plural} da questão {codigo}."
+        message = f"{ator} deletou {count} {plural} do item {alvo_html}."
+        
+    elif log.acao == 'SIMULADO_CRIADO':
+        message = f"{ator} criou o simulado {alvo_html}."
+
+    elif log.acao == 'SIMULADO_EDITADO':
+        message = f"{ator} editou o simulado {alvo_html}."
+
+    elif log.acao == 'SIMULADO_DELETADO':
+        message = f"{ator} deletou o simulado {alvo_html}."
     
     elif log.acao == 'LOG_DELETADO':
         message = f"{ator} moveu um registro para a lixeira."
         
-    else:
+    # Fallback para qualquer ação não mapeada
+    if not message:
         acao = log.get_acao_display()
         message = f"{ator} realizou a ação: {acao.lower()}."
         

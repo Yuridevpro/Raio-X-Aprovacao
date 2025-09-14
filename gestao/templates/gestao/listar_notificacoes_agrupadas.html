@@ -3,7 +3,7 @@
 {% load static %}
 {% load questoes_extras %}
 
-{% block title %}Gerenciar Notificações{% endblock %}
+{% block title %}Painel de Moderação{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
@@ -21,15 +21,29 @@
     .card-notification-group.status-RESOLVIDO { border-left: 5px solid var(--cor-sucesso); }
     .card-notification-group.status-REJEITADO { border-left: 5px solid var(--cor-erro); }
     
-    .card-notification-group.removing { transform: scale(0.95); opacity: 0; }
-
-    .reports-container.is-expanded {
-        max-height: 250px;
-        overflow-y: auto;
-        border-radius: 0.5rem;
-        border: 1px solid var(--cor-borda);
-        padding: 0.5rem;
+    .card-notification-group.removing {
+        transform: scale(0.95);
+        opacity: 0;
     }
+/* ======================================================================= */
+/* INÍCIO DA CORREÇÃO CSS: Versão única e correta dos estilos              */
+/* ======================================================================= */
+.reports-container {
+    /* Estado inicial: mostra só alguns itens */
+    max-height: 120px;       /* altura inicial controlada */
+    overflow: hidden;        /* esconde o restante */
+    transition: max-height 0.35s ease-in-out;
+}
+
+.reports-container.is-expanded {
+    /* Estado expandido: mostra tudo até um limite */
+    max-height: 600px;       /* altura maior para expandir */
+    overflow-y: auto;        /* ativa a barra de rolagem se necessário */
+}
+/* ======================================================================= */
+/* FIM DA CORREÇÃO CSS                                                     */
+/* ======================================================================= */
+
 </style>
 {% endblock %}
 
@@ -38,48 +52,63 @@
     <div class="mb-4"><a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar ao Painel</a></div>
     
     <div class="text-center mb-5">
-        <h2 class="display-6">Gerenciamento de Notificações</h2>
-        <p class="text-muted fs-5">Revise e gerencie os erros reportados pelos usuários.</p>
+        <h2 class="display-6">Painel de Moderação</h2>
+        <p class="text-muted fs-5">Revise e gerencie os erros e denúncias reportados pelos usuários.</p>
     </div>
     
-    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">{{ message }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button></div>{% endfor %}{% endif %}
+    {% if messages %}{% include 'gestao/includes/_messages.html' %}{% endif %}
 
-    <!-- CARDS DE RESUMO -->
-    <div class="row g-4 mb-5">
-        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-danger">{{ stats.pendentes_total }}</h5><p class="card-text text-muted mb-0">Pendentes</p></div></div></div>
-        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title text-success">{{ stats.resolvidas_total }}</h5><p class="card-text text-muted mb-0">Corrigidos</p></div></div></div>
-        <div class="col-6 col-md-4"><div class="card h-100 summary-card"><div class="card-body text-center"><h5 class="card-title">{{ stats.rejeitadas_total }}</h5><p class="card-text text-muted mb-0">Rejeitados</p></div></div></div>
-    </div>
-
-    <!-- NAVEGAÇÃO POR STATUS -->
-    <ul class="nav nav-pills justify-content-center border-bottom pb-3 mb-4">
-        <li class="nav-item"><a class="nav-link {% if status_ativo == 'PENDENTE' %}active{% endif %}" href="?status=PENDENTE">Pendentes</a></li>
-        <li class="nav-item"><a class="nav-link {% if status_ativo == 'RESOLVIDO' %}active{% endif %}" href="?status=RESOLVIDO">Corrigidos</a></li>
-        <li class="nav-item"><a class="nav-link {% if status_ativo == 'REJEITADO' %}active{% endif %}" href="?status=REJEITADO">Rejeitados</a></li>
-        <li class="nav-item"><a class="nav-link {% if status_ativo == 'TODAS' %}active{% endif %}" href="?status=TODAS">Todos</a></li>
+    <!-- Abas Principais por Tipo de Conteúdo -->
+    <ul class="nav nav-tabs nav-fill mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if tipo_ativo == 'questao' %}active{% endif %}" href="?tipo=questao&status={{ status_ativo }}">
+                <i class="fas fa-book me-2"></i>Erros em Questões
+                {% if stats.pendentes_questao > 0 %}<span class="badge rounded-pill bg-danger ms-2">{{ stats.pendentes_questao }}</span>{% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if tipo_ativo == 'comentario' %}active{% endif %}" href="?tipo=comentario&status={{ status_ativo }}">
+                <i class="fas fa-comments me-2"></i>Denúncias de Comentários
+                {% if stats.pendentes_comentario > 0 %}<span class="badge rounded-pill bg-danger ms-2">{{ stats.pendentes_comentario }}</span>{% endif %}
+            </a>
+        </li>
     </ul>
 
-    <!-- CONTROLES E AÇÕES EM MASSA -->
+    <!-- Navegação Secundária por Status -->
+    <ul class="nav nav-pills justify-content-center border-bottom pb-3 mb-4">
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'PENDENTE' %}active{% endif %}" href="?tipo={{ tipo_ativo }}&status=PENDENTE">Pendentes</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'RESOLVIDO' %}active{% endif %}" href="?tipo={{ tipo_ativo }}&status=RESOLVIDO">Resolvidos</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'REJEITADO' %}active{% endif %}" href="?tipo={{ tipo_ativo }}&status=REJEITADO">Rejeitados</a></li>
+        <li class="nav-item"><a class="nav-link {% if status_ativo == 'TODAS' %}active{% endif %}" href="?tipo={{ tipo_ativo }}&status=TODAS">Todos</a></li>
+    </ul>
+
+    <!-- Controles de Ordenação e Ações em Massa -->
     <div class="my-4">
-        {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=questoes_agrupadas sort_options=sort_options sort_by=sort_by per_page=per_page %}
+        {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
     </div>
     {% if status_ativo != 'TODAS' %}
         {% include 'gestao/includes/_barra_acoes_em_massa_notificacoes.html' %}
     {% endif %}
 
-    <!-- LISTA DE NOTIFICAÇÕES AGRUPADAS -->
-    {% for questao in questoes_agrupadas %}
-        {% include 'gestao/includes/_card_notificacao_agrupada.html' %}
+    <!-- Lista de Notificações Agrupadas (Conteúdo dinâmico) -->
+    <div id="notification-list-container">
+    {% for objeto in objetos_agrupados %}
+        {% if tipo_ativo == 'questao' %}
+            {% include 'gestao/includes/_card_notificacao_agrupada.html' with questao=objeto %}
+        {% elif tipo_ativo == 'comentario' %}
+            {% include 'gestao/includes/_card_denuncia_comentario_agrupada.html' with comentario=objeto %}
+        {% endif %}
     {% empty %}
         <div class="text-center p-5 border rounded bg-light mt-4">
             <h4 class="h5">Nenhuma notificação encontrada</h4>
-            <p class="text-muted mb-0">Não há notificações com os filtros aplicados.</p>
+            <p class="text-muted mb-0">Não há notificações com os filtros aplicados nesta aba.</p>
         </div>
     {% endfor %}
+    </div>
 
-    <!-- PAGINAÇÃO -->
+    <!-- Paginação -->
     <div class="mt-4">
-        {% include 'includes/_paginacao.html' with paginated_object=questoes_agrupadas %}
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
     </div>
 </div>
 {% include 'gestao/includes/_modais_notificacoes.html' %}
@@ -87,119 +116,203 @@
 
 {% block scripts %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Função genérica para realizar uma ação (individual ou em massa)
-    const performAction = (action, ids, status, successCallback) => {
-        const url = (ids.length === 1) ? `/gestao/notificacoes/${ids[0]}/acao-agrupada/` : "{% url 'gestao:notificacoes_acoes_em_massa' %}";
-        const isBulk = ids.length > 1;
-        const body = isBulk ? JSON.stringify({ ids, action, status_original: status }) : new FormData();
-        if (!isBulk) {
-            body.append('action', action);
-            body.append('status_original', status);
-        }
-
-        fetch(url, {
-            method: 'POST',
-            body: body,
-            headers: isBulk ? {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'} : {'X-CSRFToken': '{{ csrf_token }}'}
-        })
-        .then(response => response.json().then(data => ({ ok: response.ok, data })))
-        .then(({ ok, data }) => {
-            if (ok) {
-                showNotificationModal('Sucesso!', data.message, 'success', () => {
-                    if (isBulk) window.location.reload();
-                });
-                if (successCallback) successCallback(data);
-            } else {
-                throw new Error(data.message || 'Ocorreu um erro.');
-            }
-        })
-        .catch(err => showNotificationModal('Erro', err.message, 'error'));
-    };
-    
-    // Delegação de eventos para ações
-    document.body.addEventListener('click', function(e) {
-        const individualBtn = e.target.closest('.individual-action-btn');
-        const bulkBtn = e.target.closest('.bulk-action-btn');
-        const toggleReportsBtn = e.target.closest('.toggle-reports-visibility');
-
-        if (individualBtn) {
-            e.preventDefault();
-            showConfirmationModal('Confirmar Ação', individualBtn.dataset.confirmMessage, () => {
-                performAction(individualBtn.dataset.action, [individualBtn.dataset.questaoId], '{{ status_ativo }}', (data) => {
-                    const card = document.getElementById(data.removed_card_id);
-                    if (card) {
-                        card.classList.add('removing');
-                        setTimeout(() => card.remove(), 500);
-                    }
-                });
-            });
-        }
-
-        if (bulkBtn) {
-            e.preventDefault();
-            const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.dataset.id);
-            if (selectedIds.length === 0) {
-                showNotificationModal('Atenção', 'Nenhuma questão selecionada.', 'info');
-                return;
-            }
-            showConfirmationModal('Confirmar Ação em Massa', `Aplicar esta ação para ${selectedIds.length} questão(ões)?`, () => {
-                performAction(bulkBtn.dataset.action, selectedIds, '{{ status_ativo }}');
-            });
-        }
+    document.addEventListener('DOMContentLoaded', function() {
         
-        if (toggleReportsBtn) {
-            e.preventDefault();
-            const container = document.querySelector(toggleReportsBtn.dataset.target);
-            const isExpanded = container.classList.toggle('is-expanded');
-            toggleReportsBtn.textContent = isExpanded ? 'Ver menos' : `Ver todos os ${toggleReportsBtn.dataset.total} reports`;
+        // Função genérica para realizar uma ação (individual ou em massa)
+        const performAction = (action, ids, status, tipo, successCallback) => {
+            const isBulk = Array.isArray(ids);
+            
+            let url;
+            let body;
+            let headers = { 'X-CSRFToken': '{{ csrf_token }}' };
+    
+            if (isBulk) {
+                url = "{% url 'gestao:notificacoes_acoes_em_massa' %}";
+                body = JSON.stringify({ ids: ids, action: action, status_original: status, tipo_alvo: tipo });
+                headers['Content-Type'] = 'application/json';
+            } else {
+                const alvoId = ids.alvoId;
+                const contentTypeId = ids.contentTypeId;
+                url = `/gestao/notificacoes/acao/${contentTypeId}/${alvoId}/`;
+                body = new FormData();
+                body.append('action', action);
+                body.append('status_original', status);
+            }
+    
+            return fetch(url, { method: 'POST', body: body, headers: headers })
+                .then(response => response.json().then(data => {
+                    if (!response.ok) {
+                        // Se a resposta não for OK, lança um erro para ser pego pelo .catch()
+                        throw new Error(data.message || 'Ocorreu um erro no servidor.');
+                    }
+                    return { ok: response.ok, data };
+                }))
+                .then(({ ok, data }) => {
+                    showNotificationModal('Sucesso!', data.message, 'success', () => {
+                        // Sempre recarrega a página para garantir a consistência dos dados (contagens, etc.)
+                        window.location.reload();
+                    });
+                    if (successCallback) successCallback(data);
+                });
+        };
+        
+        // Delegação de eventos para ações
+        document.body.addEventListener('click', function(e) {
+            const individualBtn = e.target.closest('.individual-action-btn');
+            const bulkBtn = e.target.closest('.bulk-action-btn');
+            const toggleReportsBtn = e.target.closest('.toggle-reports-visibility');
+    
+            if (individualBtn) {
+                e.preventDefault();
+                const actionData = {
+                    alvoId: individualBtn.dataset.alvoId,
+                    contentTypeId: individualBtn.dataset.contentTypeId
+                };
+                
+                showConfirmationModal('Confirmar Ação', individualBtn.dataset.confirmMessage, () => {
+                    const spinner = individualBtn.querySelector('.spinner-border');
+                    const btnText = individualBtn.querySelector('.btn-text');
+                    
+                    // Ativa o estado de carregamento
+                    individualBtn.disabled = true;
+                    if (spinner) spinner.style.display = 'inline-block';
+                    if (btnText) btnText.style.display = 'none';
+    
+                    performAction(individualBtn.dataset.action, actionData, '{{ status_ativo }}', '{{ tipo_ativo }}', (data) => {
+                        const card = document.getElementById(data.removed_card_id);
+                        if (card) {
+                            card.classList.add('removing');
+                        }
+                    }).catch(err => {
+                        // Em caso de erro, reativa o botão
+                        showNotificationModal('Erro', err.message, 'error');
+                        individualBtn.disabled = false;
+                        if (spinner) spinner.style.display = 'none';
+                        if (btnText) btnText.style.display = 'inline-block';
+                    });
+                });
+            }
+    
+            if (bulkBtn) {
+                e.preventDefault();
+                const selectedIds = Array.from(document.querySelectorAll('.notification-checkbox:checked')).map(cb => cb.dataset.id);
+                if (selectedIds.length === 0) {
+                    showNotificationModal('Atenção', 'Nenhum item selecionado.', 'info');
+                    return;
+                }
+                showConfirmationModal('Confirmar Ação em Massa', `Aplicar esta ação para ${selectedIds.length} item(ns)?`, () => {
+                    const spinner = bulkBtn.querySelector('.spinner-border');
+                    const btnText = bulkBtn.querySelector('.btn-text');
+    
+                    bulkBtn.disabled = true;
+                    if (spinner) spinner.style.display = 'inline-block';
+                    if (btnText) btnText.style.display = 'none';
+    
+                    performAction(bulkBtn.dataset.action, selectedIds, '{{ status_ativo }}', '{{ tipo_ativo }}')
+                        .catch(err => {
+                            showNotificationModal('Erro', err.message, 'error');
+                        })
+                        .finally(() => {
+                            // Reativa o botão independentemente do resultado
+                            bulkBtn.disabled = false;
+                            if (spinner) spinner.style.display = 'none';
+                            if (btnText) btnText.style.display = 'inline-block';
+                        });
+                });
+            }
+            
+            if (toggleReportsBtn) {
+                e.preventDefault();
+                const container = document.querySelector(toggleReportsBtn.dataset.target);
+                const isExpanded = container.classList.toggle('is-expanded');
+                toggleReportsBtn.textContent = isExpanded ? 'Ver menos' : `Ver todos os ${toggleReportsBtn.dataset.total} reports`;
+            }
+        });
+        
+        // Lógica para checkboxes e barra de ações em massa
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const checkboxes = document.querySelectorAll('.notification-checkbox');
+        const bulkActionsBar = document.getElementById('bulk-actions-bar');
+        const selectedCountSpan = document.getElementById('selected-count');
+    
+        const updateBulkActionBar = () => {
+            if (!bulkActionsBar) return;
+            const count = document.querySelectorAll('.notification-checkbox:checked').length;
+            bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+            if (selectedCountSpan) selectedCountSpan.textContent = count;
+            if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === checkboxes.length;
+        };
+    
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', () => {
+                checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
+                updateBulkActionBar();
+            });
+        }
+        checkboxes.forEach(cb => cb.addEventListener('change', updateBulkActionBar));
+    
+        // Script do modal de visualização rápida de questão
+        const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
+        if (visualizarQuestaoModalEl) {
+            visualizarQuestaoModalEl.addEventListener('show.bs.modal', function(event) {
+                const questaoId = event.relatedTarget.dataset.questaoId;
+                const content = this.querySelector('#modalQuestaoContent');
+                const spinner = this.querySelector('#modalQuestaoSpinner');
+                content.style.display = 'none';
+                spinner.style.display = 'block';
+    
+                fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
+                    .then(r => r.ok ? r.json() : Promise.reject('Erro ao carregar questão'))
+                    .then(data => {
+                        this.querySelector('#modalQuestaoCodigo').textContent = data.codigo;
+                        this.querySelector('#modalQuestaoEnunciado').innerHTML = data.enunciado;
+                        this.querySelector('#modalQuestaoAlternativas').innerHTML = Object.entries(data.alternativas).map(([k, v]) => `<li class="list-group-item ${k===data.gabarito ? 'list-group-item-success fw-bold':''}">${k}) ${v}</li>`).join('');
+                    })
+                    .catch(err => this.querySelector('#modalQuestaoEnunciado').innerHTML = `<div class="alert alert-danger">${err}</div>`)
+                    .finally(() => { spinner.style.display = 'none'; content.style.display = 'block'; });
+            });
+        }
+    
+        // Lógica para o modal de visualização de comentário
+        const visualizarComentarioModalEl = document.getElementById('visualizarComentarioModal');
+        if (visualizarComentarioModalEl) {
+            visualizarComentarioModalEl.addEventListener('show.bs.modal', function(event) {
+                const comentarioId = event.relatedTarget.dataset.comentarioId;
+                if (!comentarioId) return; // Garante que só execute se o data-attribute existir
+    
+                const content = this.querySelector('#modalComentarioContent');
+                const spinner = this.querySelector('#modalComentarioSpinner');
+                content.style.display = 'none';
+                spinner.style.display = 'block';
+    
+                fetch(`/gestao/api/visualizar-comentario/${comentarioId}/`)
+                    .then(r => r.ok ? r.json() : Promise.reject('Erro ao carregar comentário'))
+                    .then(data => {
+                        if (data.status === 'success') {
+                            const comentarioDetalhes = `
+                                <blockquote class="blockquote mb-0">
+                                    <div class="mb-2">${data.comentario.conteudo_html}</div>
+                                    <footer class="blockquote-footer">
+                                        ${data.comentario.autor} em ${data.comentario.data_criacao}
+                                    </footer>
+                                </blockquote>
+                            `;
+                            this.querySelector('#modalComentarioDetalhes').innerHTML = comentarioDetalhes;
+                            this.querySelector('#modalComentarioQuestaoCodigo').textContent = data.questao.codigo;
+                            this.querySelector('#modalComentarioQuestaoEnunciado').innerHTML = data.questao.enunciado_html;
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    })
+                    .catch(err => {
+                        this.querySelector('#modalComentarioDetalhes').innerHTML = `<div class="alert alert-danger">${err}</div>`;
+                    })
+                    .finally(() => {
+                        spinner.style.display = 'none';
+                        content.style.display = 'block';
+                    });
+            });
         }
     });
-    
-    // Lógica para checkboxes e barra de ações em massa
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const checkboxes = document.querySelectorAll('.notification-checkbox');
-    const bulkActionsBar = document.getElementById('bulk-actions-bar');
-    const selectedCountSpan = document.getElementById('selected-count');
-
-    const updateBulkActionBar = () => {
-        if (!bulkActionsBar) return;
-        const count = document.querySelectorAll('.notification-checkbox:checked').length;
-        bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
-        selectedCountSpan.textContent = count;
-        if (selectAllCheckbox) selectAllCheckbox.checked = count > 0 && count === checkboxes.length;
-    };
-
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', () => {
-            checkboxes.forEach(cb => cb.checked = selectAllCheckbox.checked);
-            updateBulkActionBar();
-        });
-    }
-    checkboxes.forEach(cb => cb.addEventListener('change', updateBulkActionBar));
-
-    // Script do modal de visualização rápida (reutilizado)
-    const visualizarQuestaoModalEl = document.getElementById('visualizarQuestaoModal');
-    if (visualizarQuestaoModalEl) {
-        visualizarQuestaoModalEl.addEventListener('show.bs.modal', function(event) {
-            const questaoId = event.relatedTarget.dataset.questaoId;
-            const content = this.querySelector('#modalQuestaoContent');
-            const spinner = this.querySelector('#modalQuestaoSpinner');
-            content.style.display = 'none';
-            spinner.style.display = 'block';
-
-            fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
-                .then(r => r.ok ? r.json() : Promise.reject('Erro'))
-                .then(data => {
-                    this.querySelector('#modalQuestaoCodigo').textContent = data.codigo;
-                    this.querySelector('#modalQuestaoEnunciado').innerHTML = data.enunciado;
-                    this.querySelector('#modalQuestaoAlternativas').innerHTML = Object.entries(data.alternativas).map(([k, v]) => `<li class="list-group-item ${k===data.gabarito ? 'list-group-item-success fw-bold':''}">${k}) ${v}</li>`).join('');
-                })
-                .catch(err => this.querySelector('#modalQuestaoEnunciado').innerHTML = `<div class="alert alert-danger">Erro ao carregar.</div>`)
-                .finally(() => { spinner.style.display = 'none'; content.style.display = 'block'; });
-        });
-    }
-});
-</script>
+    </script>
 {% endblock %}

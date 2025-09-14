@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load pratica_extras %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+    :root { --cor-fundo-body: #F8F9FC; --cor-borda: #EAECEF; }
+    .sticky-top { top: 1.5rem; }
+    .filtro-inicial-tag { font-size: 0.8rem; background-color: var(--cor-fundo-body); border: 1px solid var(--cor-borda); }
+    .summary-badge { cursor: pointer; transition: all 0.2s ease; }
+    .summary-badge:hover { transform: scale(1.05); }
+    .lista-questoes-selecionadas { max-height: 400px; overflow-y: auto; }
+    .questao-selecionada-item { display: flex; justify-content: space-between; align-items: center; font-size: 0.9rem; padding: 0.5rem 0.75rem; }
+    .questao-selecionada-item:nth-child(odd) { background-color: #f8f9fa; }
+    .questao-selecionada-item .actions { display: flex; align-items: center; gap: 0.25rem; }
+    .table .actions-cell { width: 1%; white-space: nowrap; }
+    .filter-card, .filter-card .collapse { overflow: visible; }
+    .dropdown { position: relative; }
+    .dropdown-menu { width: 100%; max-height: 300px; overflow-y: auto; }
+    .dropdown-menu .form-check-label { white-space: normal; word-wrap: break-word; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items: center mb-4 flex-wrap gap-2">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:listar_simulados_gestao' %}" class="btn btn-primary"><i class="fas fa-check me-2"></i>Concluir Edição</a>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="row g-4">
+        <!-- Coluna Esquerda: Resumo e Questões Selecionadas -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm sticky-top">
+                <div class="card-header"><h5 class="mb-0">Resumo do Simulado</h5></div>
+                <div class="card-body">
+                    <form method="POST" action="">
+                        {% csrf_token %}
+                        <div class="input-group mb-3">
+                            {{ form.nome }}
+                            <button type="submit" class="btn btn-outline-secondary" title="Salvar novo nome"><i class="fas fa-save"></i></button>
+                        </div>
+                    </form>
+                    
+                    <div id="summary-container">
+                        <p class="mb-2"><strong>Total de Questões:</strong> <span id="total-questoes-badge" class="badge bg-primary rounded-pill">{{ simulado.questoes.count }}</span></p>
+                        <div id="summary-disciplinas" class="mb-2">
+                            <strong class="d-block mb-1">Por Disciplina:</strong>
+                            <!-- Badges de disciplina serão inseridos aqui pelo JS -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-footer p-0">
+                    <div class="p-3" data-bs-toggle="collapse" href="#collapseQuestoesSelecionadas" role="button" style="cursor: pointer;">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">Questões Adicionadas</h6><i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="collapse show" id="collapseQuestoesSelecionadas">
+                        <div class="list-group list-group-flush lista-questoes-selecionadas" id="lista-questoes-selecionadas">
+                            {% for q in questoes_no_simulado %}
+                            <div class="list-group-item questao-selecionada-item" id="selecionada-{{ q.id }}" data-disciplina-id="{{ q.disciplina.id }}" data-disciplina-nome="{{ q.disciplina.nome }}">
+                                <span class="text-truncate me-2" title="{{ q.codigo }}: {{ q.disciplina.nome }}"><strong>{{ q.codigo }}:</strong> {{ q.disciplina.nome }}</span>
+                                <div class="actions">
+                                    <!-- =========================================================== -->
+                                    <!-- ADIÇÃO 1: Botão de visualização na lista de questões adicionadas -->
+                                    <!-- =========================================================== -->
+                                    <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1 btn-visualizar-questao" data-questao-id="{{ q.id }}" data-bs-toggle="modal" data-bs-target="#visualizarQuestaoModal" title="Visualizar Questão"><i class="fas fa-eye"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-1 btn-remover-da-lista" data-questao-id="{{ q.id }}" title="Remover do Simulado"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="list-group-item text-center text-muted small py-3" id="placeholder-lista-vazia">Nenhuma questão adicionada.</div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coluna Direita: Biblioteca de Questões -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Biblioteca de Questões Disponíveis</h5></div>
+                <div class="card-body">
+                    
+                    <div class="mb-3 p-3 rounded" style="background-color: var(--cor-fundo-body);">
+                        <strong>Filtros Iniciais Aplicados:</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-1">
+                        {% for categoria, valores in filtros_iniciais_info.items %}
+                            {% for valor in valores %}
+                                {% if valor %}<span class="badge rounded-pill text-dark filtro-inicial-tag">{{ valor }}</span>{% endif %}
+                            {% endfor %}
+                        {% empty %}
+                             <span class="text-muted small">Nenhum filtro inicial foi definido. Todas as questões estão disponíveis.</span>
+                        {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-4 shadow-sm filter-card">
+                        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" style="cursor: pointer;"><h5 class="mb-0 d-flex justify-content-between"><span><i class="fas fa-filter me-2"></i>Refinar Busca</span><span class="icon-toggle"></span></h5></div>
+                        <div class="collapse" id="collapseFilters"><div class="card-body p-4">
+                            {% include 'gestao/includes/_filtros_questoes_avancado.html' with form_action_url=form_action_url prefix=prefix disciplinas=disciplinas bancas=bancas instituicoes=instituicoes anos=anos assuntos_url=assuntos_url selected_disciplinas=selected_disciplinas selected_assuntos=selected_assuntos selected_bancas=selected_bancas selected_instituicoes=selected_instituicoes selected_anos=selected_anos selected_assuntos_json=selected_assuntos_json palavra_chave_buscada=palavra_chave_buscada %}
+                        </div></div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Código</th><th>Disciplina</th><th>Banca</th><th class="text-center">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabela-questoes-disponiveis">
+                                {% for q in questoes %}
+                                <tr id="questao-row-{{ q.id }}" data-codigo="{{ q.codigo }}" data-disciplina-nome="{{ q.disciplina.nome }}" data-disciplina-id="{{ q.disciplina.id }}">
+                                    <td>{{ q.codigo }}</td>
+                                    <td>{{ q.disciplina.nome }}</td>
+                                    <td>
+                                        {% if q.is_inedita %}<span class="badge bg-info text-dark">Inédita</span>{% else %}{{ q.banca.nome|default:"-" }}{% endif %}
+                                    </td>
+                                    <td class="text-center actions-cell">
+                                        <!-- =========================================================== -->
+                                        <!-- ADIÇÃO 2: Botão de visualização na tabela da biblioteca     -->
+                                        <!-- =========================================================== -->
+                                        <div class="d-flex gap-1 justify-content-center">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary btn-visualizar-questao" data-questao-id="{{ q.id }}" data-bs-toggle="modal" data-bs-target="#visualizarQuestaoModal" title="Visualizar Questão"><i class="fas fa-eye"></i></button>
+                                            {% if q.id in questoes_no_simulado_ids %}
+                                                <button class="btn btn-sm btn-outline-danger btn-manage-questao" data-action="remove" data-questao-id="{{ q.id }}">Remover</button>
+                                            {% else %}
+                                                <button class="btn btn-sm btn-outline-success btn-manage-questao" data-action="add" data-questao-id="{{ q.id }}">Adicionar</button>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="4" class="text-center text-muted p-4"><i class="fas fa-search fa-2x mb-2"></i><br>Nenhuma questão encontrada.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% include 'gestao/includes/_paginacao_com_prefixo.html' with paginated_object=questoes prefix=prefix page_numbers=page_numbers %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- =========================================================== -->
+<!-- ADIÇÃO 3: Inclusão do HTML do Modal                         -->
+<!-- =========================================================== -->
+{% include 'gestao/includes/_modais_gestao_questoes.html' %}
+
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+{{ questoes_no_simulado_ids|json_script:"questoes-ids" }}
+<script src="{% static 'js/filtros-questoes-avancado.js' %}"></script>
+<script src="{% static 'gestao/js/simulado-builder.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa o builder principal da página
+    new SimuladoBuilder({
+        simuladoId: {{ simulado.id }},
+        questoesNoSimulado: "questoes-ids",
+        csrfToken: '{{ csrf_token }}'
+    });
+
+    // ===========================================================
+    // ADIÇÃO 4: JavaScript para controlar o modal de visualização
+    // ===========================================================
+    const visualizarQuestaoModal = document.getElementById('visualizarQuestaoModal');
+    if(visualizarQuestaoModal) {
+        visualizarQuestaoModal.addEventListener('show.bs.modal', function(event) {
+            const questaoId = event.relatedTarget.dataset.questaoId;
+            const content = this.querySelector('#modalQuestaoContent');
+            const spinner = this.querySelector('#modalQuestaoSpinner');
+            content.style.display = 'none';
+            spinner.style.display = 'block';
+
+            fetch(`/gestao/api/visualizar-questao/${questaoId}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        return Promise.reject('Não foi possível carregar os dados da questão.');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    this.querySelector('#modalQuestaoCodigo').textContent = data.codigo;
+                    this.querySelector('#modalQuestaoEnunciado').innerHTML = data.enunciado;
+                    const alternativasList = this.querySelector('#modalQuestaoAlternativas');
+                    alternativasList.innerHTML = Object.entries(data.alternativas).map(([key, value]) => 
+                        `<li class="list-group-item ${key === data.gabarito ? 'list-group-item-success fw-bold' : ''}"><strong>${key})</strong> ${value}</li>`
+                    ).join('');
+                })
+                .catch(error => {
+                    this.querySelector('#modalQuestaoEnunciado').innerHTML = `<div class="alert alert-danger">${error}</div>`;
+                })
+                .finally(() => {
+                    spinner.style.display = 'none';
+                    content.style.display = 'block';
+                });
+        });
+    }
+});
+</script>
+{% endblock %}

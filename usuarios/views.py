@@ -15,6 +15,7 @@ from gestao.views import criar_log
 from gestao.models import LogAtividade
 from .utils import enviar_email_com_template
 from django.db import transaction  # 1. IMPORTAR transaction
+from gamificacao.models import ProfileStreak, ConquistaUsuario
 
 
 # =======================================================================
@@ -211,7 +212,39 @@ def home(request):
     return render(request, 'home.html', context)
 
 @login_required
+def meu_perfil(request):
+    """
+    Exibe a página de perfil do usuário logado, com suas estatísticas
+    de gamificação (streaks e conquistas).
+    """
+    user_profile = request.user.userprofile
+    
+    # Busca os dados de streak do usuário. get_or_create garante que ele exista.
+    streak_data, _ = ProfileStreak.objects.get_or_create(user_profile=user_profile)
+    
+    # Busca as conquistas desbloqueadas pelo usuário, otimizando com select_related
+    conquistas_usuario = ConquistaUsuario.objects.filter(
+        user_profile=user_profile
+    ).select_related('conquista').order_by('-data_conquista')
+
+    context = {
+        'user_profile': user_profile,
+        'streak_data': streak_data,
+        'conquistas_usuario': conquistas_usuario,
+    }
+    
+    return render(request, 'usuarios/meu_perfil.html', context)
+# =======================================================================
+# FIM DA ADIÇÃO
+# =======================================================================
+
+
+@login_required
 def editar_perfil(request):
+    """
+    Página dedicada para o usuário editar suas informações pessoais.
+    A lógica de gamificação foi movida para a view `meu_perfil`.
+    """
     user_profile, created = UserProfile.objects.get_or_create(user=request.user)
     if request.method == 'POST':
         nome = request.POST.get('nome')
@@ -223,7 +256,10 @@ def editar_perfil(request):
             user_profile.sobrenome = sobrenome
             user_profile.save()
             messages.success(request, 'Perfil atualizado com sucesso!')
-            return redirect('home')
+            # Redireciona para a nova página de perfil após salvar
+            return redirect('meu_perfil') 
+            
+    # O contexto agora é mais simples, apenas com os dados do formulário.
     return render(request, 'usuarios/editar_perfil.html', {'user_profile': user_profile})
 
 @login_required
@@ -284,3 +320,40 @@ def deletar_conta(request):
         return redirect('home')
     
     return redirect('editar_perfil')
+
+
+def reenviar_ativacao(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            if user.is_active:
+                messages.info(request, 'Esta conta já está ativa. Você pode fazer o login.')
+                return redirect('login')
+            
+            # Deleta qualquer token de ativação antigo para garantir que apenas o mais recente seja válido
+            Ativacao.objects.filter(user=user).delete()
+            
+            # Cria um novo token de ativação
+            ativacao = Ativacao.objects.create(user=user)
+            
+            # Envia o e-mail de confirmação
+            enviar_email_com_template(
+                request,
+                subject='Confirme seu Cadastro no Raio-X da Aprovação',
+                template_name='usuarios/email_confirmacao.html',
+                context={'user': user, 'token': ativacao.token},
+                recipient_list=[user.email]
+            )
+            
+            messages.success(request, 'Um novo e-mail de ativação foi enviado para o seu endereço. Verifique sua caixa de entrada e spam.')
+            return redirect('login')
+            
+        except User.DoesNotExist:
+            messages.error(request, 'Nenhum usuário inativo encontrado com este e-mail.')
+            return redirect('reenviar_ativacao')
+
+    return render(request, 'usuarios/reenviar_ativacao.html')
+# =======================================================================
+# FIM DA ADIÇÃO
+# =======================================================================

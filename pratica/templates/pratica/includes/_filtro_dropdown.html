@@ -1,0 +1,54 @@
+<div class="dropdown">
+    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+            id="dropdown{{ prefix|default:'' }}{{ name|capfirst }}" 
+            data-bs-toggle="dropdown" 
+            data-bs-auto-close="outside" 
+            aria-expanded="false"
+            {% if name == 'assunto' %}disabled{% endif %}>
+        
+        {{ label }}
+        
+        <!-- ======================================================================= -->
+        <!-- INÍCIO DA CORREÇÃO: Condição para exibir o contador                   -->
+        <!-- O span agora só é renderizado se houver itens selecionados.         -->
+        <!-- ======================================================================= -->
+        <span class="badge bg-primary rounded-pill ms-1" id="count-{{ prefix }}{{ name }}" style="{% if not selected_ids %}display: none;{% endif %}">
+              {{ selected_ids|length }}
+        </span>
+        <!-- ======================================================================= -->
+        <!-- FIM DA CORREÇÃO                                                         -->
+        <!-- ======================================================================= -->
+    </button>
+    
+    <ul class="dropdown-menu p-0" aria-labelledby="dropdown{{ prefix|default:'' }}{{ name|capfirst }}" 
+        style="min-width: 280px;" 
+        id="options-{{ prefix }}{{ name }}">
+        
+        {% if name != 'assunto' %}
+            <li class="px-2 py-1 sticky-top bg-white">
+                <input type="text" class="form-control form-control-sm" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
+            </li>
+            <li><hr class="dropdown-divider my-0"></li>
+        {% endif %}
+
+        <div class="dropdown-options-container px-2" style="max-height: 250px; overflow-y: auto;">
+            {% if name != 'assunto' %}
+                {% for item in items %}
+                <li>
+                    <div class="form-check dropdown-item-text">
+                        {% if is_simple_list %}
+                            <input class="form-check-input" type="checkbox" name="{{ prefix }}{{ name }}" value="{{ item }}" id="{{ prefix }}{{ name }}-{{ item }}" {% if item|stringformat:"s" in selected_ids|stringformat:"s" %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ prefix }}{{ name }}-{{ item }}">{{ item }}</label>
+                        {% else %}
+                            <input class="form-check-input" type="checkbox" name="{{ prefix }}{{ name }}" value="{{ item.id }}" id="{{ prefix }}{{ name }}-{{ item.id }}" {% if item.id in selected_ids %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ prefix }}{{ name }}-{{ item.id }}">{{ item.nome }}</label>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            {% else %}
+                <!-- Conteúdo dos assuntos será carregado aqui pelo JS -->
+            {% endif %}
+        </div>
+    </ul>
+</div>

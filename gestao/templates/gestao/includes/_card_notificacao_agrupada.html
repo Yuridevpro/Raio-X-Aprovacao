@@ -1,6 +1,7 @@
-<!-- gestao/templates/gestao/includes/_card_notificacao_agrupada.html -->
 
-<div class="card mb-4 card-notification-group status-{{ status_ativo }}" id="card-group-{{ questao.id }}">
+<!-- gestao/templates/gestao/includes/_card_notificacao_agrupada.html (ARQUIVO CORRIGIDO) -->
+
+<div class="card mb-4 card-notification-group status-{{ status_ativo }}" id="card-group-questao-{{ questao.id }}">
     <div class="card-header bg-white py-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div class="d-flex align-items-center gap-3">
@@ -9,8 +10,14 @@
                 {% endif %}
                 <div>
                     <h5 class="mb-0">
+                        <!-- =========================================================== -->
+                        <!-- INÍCIO DA CORREÇÃO: O link agora é robusto                  -->
+                        <!-- =========================================================== -->
                         Questão: <a href="{% url 'gestao:editar_questao' questao.id %}" target="_blank">{{ questao.codigo }}</a>
-                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 btn-visualizar-questao" data-questao-id="{{ questao.id }}" title="Visualização Rápida"><i class="fas fa-eye"></i></button>
+                        <!-- =========================================================== -->
+                        <!-- FIM DA CORREÇÃO                                               -->
+                        <!-- =========================================================== -->
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 btn-visualizar-questao" data-questao-id="{{ questao.id }}" title="Visualização Rápida" data-bs-toggle="modal" data-bs-target="#visualizarQuestaoModal"><i class="fas fa-eye"></i></button>
                     </h5>
                     <small class="text-muted">Último report: {{ questao.ultima_notificacao|date:"d/m/Y H:i" }}</small>
                 </div>
@@ -47,12 +54,31 @@
                 <h6 class="mb-3 small text-uppercase fw-bold">Ações</h6>
                 <div class="d-grid gap-2 w-100 w-md-75 mx-auto">
                     {% if status_ativo == 'PENDENTE' %}
-                        <button type="button" class="btn btn-success individual-action-btn" data-action="resolver" data-questao-id="{{ questao.id }}" data-confirm-message="Corrigir todos os {{ questao.num_reports }} reports?"><i class="fas fa-check me-2"></i>Marcar Como Corrigido</button>
-                        <button type="button" class="btn btn-danger individual-action-btn" data-action="rejeitar" data-questao-id="{{ questao.id }}" data-confirm-message="Rejeitar todos os reports da questão?"><i class="fas fa-times me-2"></i>Marcar Como Rejeitado</button>
+                        <button type="button" class="btn btn-success individual-action-btn" 
+                                data-action="resolver" 
+                                data-alvo-id="{{ questao.id }}"
+                                data-content-type-id="{{ questao.notificacoes.first.content_type.id }}"
+                                data-confirm-message="Corrigir todos os {{ questao.num_reports }} reports? Um e-mail será enviado aos usuários.">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-check me-2"></i>Marcar Como Corrigido</span>
+                        </button>
+                        <button type="button" class="btn btn-danger individual-action-btn" 
+                                data-action="rejeitar" 
+                                data-alvo-id="{{ questao.id }}"
+                                data-content-type-id="{{ questao.notificacoes.first.content_type.id }}"
+                                data-confirm-message="Rejeitar todos os reports da questão?">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-times me-2"></i>Marcar Como Rejeitado</span>
+                        </button>
                     {% elif status_ativo == 'RESOLVIDO' or status_ativo == 'REJEITADO' %}
-                        <button type="button" class="btn btn-outline-danger individual-action-btn" data-action="excluir" data-questao-id="{{ questao.id }}" data-confirm-message="EXCLUIR PERMANENTEMENTE todos os {{ questao.num_reports }} reports?"><i class="fas fa-trash me-2"></i>Excluir</button>
-                    {% else %}
-                        <p class="text-muted text-center small">Nenhuma ação disponível.</p>
+                        <button type="button" class="btn btn-outline-danger individual-action-btn" 
+                                data-action="excluir" 
+                                data-alvo-id="{{ questao.id }}"
+                                data-content-type-id="{{ questao.notificacoes.first.content_type.id }}"
+                                data-confirm-message="EXCLUIR PERMANENTEMENTE todos os {{ questao.num_reports }} reports?">
+                            <span class="spinner-border spinner-border-sm" style="display: none;"></span>
+                            <span class="btn-text"><i class="fas fa-trash me-2"></i>Excluir</span>
+                        </button>
                     {% endif %}
                 </div>
             </div>

@@ -50,3 +50,31 @@ def url_replace(context, **kwargs):
         
     # Retorna a string de query final, pronta para ser usada no href
     return query.urlencode()
+
+@register.simple_tag(takes_context=True)
+def update_query_params(context, prefix='', **kwargs):
+    """
+    Atualiza ou adiciona parâmetros a uma URL de querystring existente,
+    suportando um prefixo para os novos parâmetros.
+    Esta é a versão definitiva que substitui as outras.
+    
+    Uso sem prefixo: {% update_query_params page=3 %}
+    Uso com prefixo: {% update_query_params prefix='q_' page=3 %} -> ?q_page=3
+    """
+    # Pega uma cópia mutável de todos os parâmetros GET da requisição atual
+    query = context['request'].GET.copy()
+    
+    # Itera sobre os argumentos passados para a tag (ex: page=3)
+    for key, value in kwargs.items():
+        # Constrói a chave final, adicionando o prefixo se ele existir
+        prefixed_key = f"{prefix}{key}"
+        
+        # Se o valor for válido, define o parâmetro na query
+        if value is not None and str(value) != '':
+            query[prefixed_key] = value
+        # Se o valor for inválido/vazio e a chave existir, remove-a
+        elif prefixed_key in query:
+            del query[prefixed_key]
+            
+    # Retorna a string de query final, pronta para ser usada no href
+    return query.urlencode()

@@ -39,24 +39,45 @@
     </div>
 </div>
 
-<!-- Modal para Notificar Erro -->
+<!-- Modal para Notificar Erro (Agora Generalizado) -->
 <div class="modal fade" id="modalNotificarErro" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Qual o tipo do erro encontrado?</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header">
+                <h5 class="modal-title">Reportar um Problema</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <div class="modal-body">
                 <form id="form-notificar-erro">
                     {% csrf_token %}
-                    <input type="hidden" name="questao_id" id="notificar-erro-questao-id">
-                    <div class="mb-4" id="botoes-tipo-erro">
-                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="ENUNCIADO_ALTERNATIVA">Enunciado/alternativa errada</button>
-                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="DISCIPLINA_ASSUNTO">Disciplina ou assunto errado</button>
+                    <input type="hidden" name="alvo_id" id="notificar-erro-alvo-id">
+                    <input type="hidden" name="tipo_alvo" id="notificar-erro-tipo-alvo">
+
+                    <h6 class="mb-3">Qual o tipo do problema encontrado?</h6>
+                    
+                    <!-- =========================================================== -->
+                    <!-- INÍCIO DA MODIFICAÇÃO: Grupos de botões separados         -->
+                    <!-- =========================================================== -->
+                    <div id="botoes-tipo-erro-questao" class="mb-4">
+                        <small class="text-muted d-block mb-2">Problemas na Questão:</small>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="ENUNCIADO_ALTERNATIVA">Enunciado/alternativa</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="DISCIPLINA_ASSUNTO">Disciplina/assunto</button>
                         <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_ANULADA">Questão anulada</button>
-                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DESATUALIZADA">Questão desatualizada</button>
                         <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="QUESTAO_DUPLICADA">Questão duplicada</button>
                     </div>
+                    
+                    <div id="botoes-tipo-erro-comentario" class="mb-4">
+                        <small class="text-muted d-block mb-2">Problemas no Comentário:</small>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="COMENTARIO_OFENSIVO">Ofensivo/Inadequado</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="COMENTARIO_SPAM">Spam/Propaganda</button>
+                        <button type="button" class="btn btn-outline-secondary me-2 mb-2" data-tipo="COMENTARIO_OUTRO">Outro</button>
+                    </div>
+                    <!-- =========================================================== -->
+                    <!-- FIM DA MODIFICAÇÃO                                          -->
+                    <!-- =========================================================== -->
+                    
                     <div class="mb-3">
-                        <textarea class="form-control" name="descricao" rows="4" placeholder="Comente sobre o erro encontrado (Obrigatório)" required></textarea>
+                        <textarea class="form-control" name="descricao" rows="4" placeholder="Comente sobre o problema encontrado (Obrigatório)" required></textarea>
                     </div>
                     <div class="d-grid"><button type="submit" class="btn btn-primary">Enviar Notificação</button></div>
                 </form>

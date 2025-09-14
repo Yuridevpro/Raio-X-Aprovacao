@@ -1,0 +1,44 @@
+<!-- gestao/templates/includes/_paginacao_com_prefixo.html -->
+{% load pratica_extras %}
+
+{% if paginated_object.has_other_pages %}
+<nav class="nav-pagination d-flex justify-content-center">
+    <ul class="pagination">
+        <!-- Botão 'Anterior' -->
+        {% if paginated_object.has_previous %}
+            <li class="page-item">
+                <!-- ✅ CORREÇÃO AQUI: Sintaxe limpa e funcional -->
+                <a class="page-link" href="?{% update_query_params prefix=prefix page=paginated_object.previous_page_number %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+
+        <!-- Números das Páginas -->
+        {% for page_num in page_numbers %}
+            {% if page_num == '...' %}
+                <li class="page-item disabled"><span class="page-link">...</span></li>
+            {% else %}
+                <li class="page-item {% if paginated_object.number == page_num %}active{% endif %}">
+                    <!-- ✅ CORREÇÃO AQUI: Sintaxe limpa e funcional -->
+                    <a class="page-link" href="?{% update_query_params prefix=prefix page=page_num %}">{{ page_num }}</a>
+                </li>
+            {% endif %}
+        {% endfor %}
+
+        <!-- Botão 'Próximo' -->
+        {% if paginated_object.has_next %}
+            <li class="page-item">
+                <!-- ✅ CORREÇÃO AQUI: Sintaxe limpa e funcional -->
+                <a class="page-link" href="?{% update_query_params prefix=prefix page=paginated_object.next_page_number %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        {% else %}
+            <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

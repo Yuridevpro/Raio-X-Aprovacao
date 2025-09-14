@@ -140,12 +140,10 @@
         box-shadow: var(--sombra-caixa);
         margin-bottom: 2.5rem;
         overflow: hidden;
-        /* A transição foi removida para desativar a animação no hover */
     }
     .card-questao:hover {
-        /* Efeitos de hover foram removidos */
-        box-shadow: var(--sombra-caixa); /* Mantém a mesma sombra do estado normal */
-        transform: none; /* Garante que não haverá nenhuma transformação */
+        box-shadow: var(--sombra-caixa);
+        transform: none;
     }
 
     .card-questao .card-header {
@@ -198,7 +196,7 @@
     }
     
     .alternativa-item .form-check-input {
-        display: none; /* Esconde o radio button original */
+        display: none;
     }
 
     .alternativa-item .form-check-label {
@@ -233,10 +231,9 @@
         line-height: 1.6;
     }
 
-    /* Estilo da alternativa SELECIONADA (antes de responder) */
     .alternativa-item .form-check-input:checked + .form-check-label {
         border-color: var(--cor-primaria);
-        background-color: #eef5ff; /* Tom de azul bem claro */
+        background-color: #eef5ff;
     }
     .alternativa-item .form-check-input:checked + .form-check-label .alternativa-letra {
         background-color: var(--cor-primaria);
@@ -244,7 +241,6 @@
         color: var(--cor-texto-claro);
     }
 
-    /* Feedback de Resposta */
     .alternativas.respondido .form-check-label {
         cursor: default;
         background-color: transparent !important;
@@ -284,7 +280,6 @@
     /* AJUSTES PARA MOBILE (ATÉ 768px)
     /* ========================================================================= */
     @media (max-width: 768px) {
-        /* Garante que o container não tenha paddings laterais que atrapalhem o 100% de largura */
         .container {
             padding-left: 0;
             padding-right: 0;
@@ -305,14 +300,11 @@
             border-top: 1px solid var(--cor-borda);
         }
 
-        /* AJUSTES PARA COMENTÁRIOS NO MOBILE */
         .comment-wrapper {
-            /* Reduz o espaçamento para o avatar, dando mais espaço ao conteúdo */
             padding-left: 55px; 
         }
 
         .comment-replies {
-            /* Reduz drasticamente a indentação da resposta para não espremer o texto */
             margin-left: 1.25rem; 
             padding-left: 0.75rem;
         }
@@ -361,9 +353,7 @@
         
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
-                <!-- CONTAGEM ADICIONADA AQUI -->
                 <strong class="me-2">{{ forloop.counter0|add:questoes.start_index }}.</strong>
-
                 <span class="q-code">{{ questao.codigo }}</span>
                 <span class="ms-2">
                     <strong>{{ questao.disciplina.nome }}</strong> › {{ questao.assunto.nome }}
@@ -427,7 +417,13 @@
 
         <!-- Seção de Comentários (Oculta) -->
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
-            {% include 'pratica/includes/_secao_comentarios.html' %}
+            <!-- =========================================================== -->
+            <!-- INÍCIO DA CORREÇÃO: Passando a variável `questao`           -->
+            <!-- =========================================================== -->
+            {% include 'pratica/includes/_secao_comentarios.html' with questao=questao %}
+            <!-- =========================================================== -->
+            <!-- FIM DA CORREÇÃO                                               -->
+            <!-- =========================================================== -->
         </div>
     </div>
     {% empty %}
@@ -888,20 +884,34 @@
     
         function criarElementoComentario(c) {
             const template = document.createElement('template');
+            
+            let podeEditarHtml = '';
+            if (c.pode_editar) {
+                podeEditarHtml = `
+                    <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-edit me-2"></i>Editar</button></li>
+                    <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-trash me-2"></i>Excluir</button></li>
+                    <li><hr class="dropdown-divider"></li>`;
+            }
+
             template.innerHTML = `
                 <div class="comment-wrapper" id="comment-wrapper-${c.id}">
                     <div class="comment-avatar"><div class="avatar-icon">${c.usuario.charAt(0).toUpperCase()}</div></div>
                     <div class="comment-card" id="comentario-${c.id}">
                         <div class="comment-header d-flex justify-content-between">
                             <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
-                            ${c.pode_editar ? `
                             <div class="comment-actions dropdown">
-                                <button class="btn btn-sm" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-h"></i></button>
+                                <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
                                 <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}">Editar</button></li>
-                                    <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}">Excluir</button></li>
+                                    ${podeEditarHtml}
+                                    <li>
+                                        <button class="dropdown-item text-warning" type="button" 
+                                                data-bs-toggle="modal" data-bs-target="#modalNotificarErro" 
+                                                data-comentario-id="${c.id}">
+                                            <i class="fas fa-flag me-2"></i>Denunciar
+                                        </button>
+                                    </li>
                                 </ul>
-                            </div>` : ''}
+                            </div>
                         </div>
                         <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
                             <div class="comment-body">${c.conteudo}</div>
@@ -937,14 +947,15 @@
         }
         
         function handleNotificarErro(form) {
-            const tipoErroSelecionado = form.querySelector('#botoes-tipo-erro button.active')?.dataset.tipo;
+            const tipoErroSelecionado = form.querySelector('button[data-tipo].active')?.dataset.tipo;
             if (!tipoErroSelecionado) {
-                showNotificationModal('Atenção', 'Selecione o tipo do erro.', 'error');
+                showNotificationModal('Atenção', 'Por favor, selecione o tipo do problema.', 'error');
                 return;
             }
     
             const data = {
-                questao_id: form.querySelector('#notificar-erro-questao-id').value,
+                alvo_id: form.querySelector('#notificar-erro-alvo-id').value,
+                tipo_alvo: form.querySelector('#notificar-erro-tipo-alvo').value,
                 tipo_erro: tipoErroSelecionado,
                 descricao: form.querySelector('textarea[name="descricao"]').value
             };
@@ -960,8 +971,6 @@
                 modal.hide();
                 if (result.status === 'success') {
                     showNotificationModal('Notificação Enviada!', result.message, 'success');
-                    form.reset();
-                    form.querySelectorAll('#botoes-tipo-erro button').forEach(b => b.classList.remove('active', 'btn-dark'));
                 } else {
                     showNotificationModal('Erro no Envio', result.message, 'error');
                 }
@@ -970,16 +979,45 @@
     
         const modalNotificarErroEl = document.getElementById('modalNotificarErro');
         if (modalNotificarErroEl) {
+            const alvoIdInput = modalNotificarErroEl.querySelector('#notificar-erro-alvo-id');
+            const tipoAlvoInput = modalNotificarErroEl.querySelector('#notificar-erro-tipo-alvo');
+            const questaoButtonsDiv = modalNotificarErroEl.querySelector('#botoes-tipo-erro-questao');
+            const comentarioButtonsDiv = modalNotificarErroEl.querySelector('#botoes-tipo-erro-comentario');
+            const allErrorButtons = modalNotificarErroEl.querySelectorAll('button[data-tipo]');
+
             modalNotificarErroEl.addEventListener('show.bs.modal', function (event) {
-                document.getElementById('notificar-erro-questao-id').value = event.relatedTarget.dataset.questaoId;
+                const triggerButton = event.relatedTarget;
+                const questaoId = triggerButton.dataset.questaoId;
+                const comentarioId = triggerButton.dataset.comentarioId;
+
+                if (questaoId) {
+                    alvoIdInput.value = questaoId;
+                    tipoAlvoInput.value = 'questao';
+                    questaoButtonsDiv.style.display = 'block';
+                    comentarioButtonsDiv.style.display = 'none';
+                } else if (comentarioId) {
+                    alvoIdInput.value = comentarioId;
+                    tipoAlvoInput.value = 'comentario';
+                    questaoButtonsDiv.style.display = 'none';
+                    comentarioButtonsDiv.style.display = 'block';
+                }
             });
-            modalNotificarErroEl.querySelectorAll('#botoes-tipo-erro button').forEach(btn => {
+
+            modalNotificarErroEl.addEventListener('hidden.bs.modal', function() {
+                modalNotificarErroEl.querySelector('form').reset();
+                allErrorButtons.forEach(b => b.classList.remove('active', 'btn-dark'));
+            });
+            
+            allErrorButtons.forEach(btn => {
                 btn.addEventListener('click', function() {
-                    modalNotificarErroEl.querySelectorAll('#botoes-tipo-erro button').forEach(b => b.classList.remove('active', 'btn-dark'));
+                    allErrorButtons.forEach(b => b.classList.remove('active', 'btn-dark'));
                     this.classList.add('active', 'btn-dark');
                 });
             });
         }
+        // =======================================================================
+        // FIM DA ALTERAÇÃO
+        // =======================================================================
     });
 </script>
 {% endblock %}

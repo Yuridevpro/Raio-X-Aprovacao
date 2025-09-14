@@ -1,69 +1,79 @@
-<!-- gestao/templates/gestao/includes/_filtros_questoes.html -->
+{% comment %}
+Este formulário foi adaptado para funcionar com o JavaScript fornecido,
+usando dropdowns com checkboxes para seleção múltipla.
+{% endcomment %}
+<form id="form-filtros" 
+      method="GET" 
+      action="{{ request.path }}"
+      data-assuntos-url="{% url 'questoes:api_get_assuntos_por_disciplina' %}"
+      data-selected-assuntos="{{ selected_assuntos|safe|default:'[]' }}">
 
-<form method="GET" action="{{ form_action_url }}">
-    <div class="row g-3 align-items-end">
-        
-        <!-- Campo de Busca por Termo ou Código -->
-        <div class="col-lg-12">
-            <label for="q" class="form-label fw-bold">Buscar por palavra-chave ou código</label>
-            <div class="input-group">
-                <span class="input-group-text"><i class="fas fa-search"></i></span>
-                <input type="text" class="form-control" id="q" name="q" value="{{ active_filters.q|default:'' }}" placeholder="Ex: Q123, etc.">
+    <!-- Input oculto para manter o filtro de status ao submeter -->
+    {% if request.GET.status %}
+        <input type="hidden" name="status" value="{{ request.GET.status }}">
+    {% endif %}
+
+    <div class="row g-3">
+        <!-- Busca por Palavra-chave -->
+        <div class="col-12">
+            <label for="palavra_chave" class="form-label">Busca por termo ou código</label>
+            <input type="text" class="form-control" name="palavra_chave" id="palavra_chave" value="{{ palavra_chave_buscada|default:'' }}" placeholder="Ex: Direito Constitucional, Q12345">
+        </div>
+
+        <!-- Coluna de Filtros -->
+        <div class="col-12">
+            <div class="row g-2">
+                <!-- Dropdown Disciplinas -->
+                <div class="col-md-3">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownDisciplina" data-bs-toggle="dropdown" aria-expanded="false">
+                            Disciplina <span class="badge bg-primary rounded-pill" id="count-disciplina" style="display: none;">0</span>
+                        </button>
+                        <ul class="dropdown-menu p-3 w-100" aria-labelledby="dropdownDisciplina" onclick="(event) => event.stopPropagation()">
+                            <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar disciplina..." onkeyup="filterDropdownOptions(this)">
+                            <div class="dropdown-options-container">
+                                {% for disciplina in disciplinas %}
+                                <li>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="disciplina" value="{{ disciplina.id }}" id="disciplina-{{ disciplina.id }}" {% if disciplina.id in selected_disciplinas %}checked{% endif %}>
+                                        <label class="form-check-label" for="disciplina-{{ disciplina.id }}">{{ disciplina.nome }}</label>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </div>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Dropdown Assuntos (Dinâmico) -->
+                <div class="col-md-3">
+                    <div class="dropdown">
+                        <button class="btn btn-outline-secondary dropdown-toggle w-100" type="button" id="dropdownAssunto" data-bs-toggle="dropdown" aria-expanded="false" disabled>
+                            Assunto <span class="badge bg-primary rounded-pill" id="count-assunto" style="display: none;">0</span>
+                        </button>
+                        <ul class="dropdown-menu p-3 w-100" aria-labelledby="dropdownAssunto" onclick="(event) => event.stopPropagation()">
+                            <input type="text" class="form-control form-control-sm mb-2" placeholder="Buscar assunto..." onkeyup="filterDropdownOptions(this)">
+                            <div class="dropdown-options-container" id="options-assunto">
+                                <!-- As opções serão carregadas aqui pelo JavaScript -->
+                            </div>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Outros filtros (Banca, Instituição, etc.) podem seguir o mesmo padrão de dropdown -->
+
             </div>
         </div>
+    </div>
 
-        <!-- Filtro por Disciplina -->
-        <div class="col-lg-3 col-md-6">
-            <label for="disciplina" class="form-label fw-bold">Disciplina</label>
-            <select name="disciplina" id="disciplina" class="form-select">
-                <option value="">Todas</option>
-                {% for d in disciplinas_para_filtro %}
-                    <option value="{{ d.id }}" {% if active_filters.disciplina == d.id|stringformat:"s" %}selected{% endif %}>{{ d.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Filtro por Banca -->
-        <div class="col-lg-3 col-md-6">
-            <label for="banca" class="form-label fw-bold">Banca</label>
-            <select name="banca" id="banca" class="form-select">
-                <option value="">Todas</option>
-                {% for b in bancas_para_filtro %}
-                    <option value="{{ b.id }}" {% if active_filters.banca == b.id|stringformat:"s" %}selected{% endif %}>{{ b.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-        
-        <!-- Filtro por Instituição -->
-        <div class="col-lg-3 col-md-6">
-            <label for="instituicao" class="form-label fw-bold">Instituição</label>
-            <select name="instituicao" id="instituicao" class="form-select">
-                <option value="">Todas</option>
-                {% for i in instituicoes_para_filtro %}
-                    <option value="{{ i.id }}" {% if active_filters.instituicao == i.id|stringformat:"s" %}selected{% endif %}>{{ i.nome }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Filtro por Ano -->
-        <div class="col-lg-3 col-md-6">
-            <label for="ano" class="form-label fw-bold">Ano</label>
-            <select name="ano" id="ano" class="form-select">
-                <option value="">Todos</option>
-                {% for a in anos_para_filtro %}
-                    <option value="{{ a }}" {% if active_filters.ano == a|stringformat:"s" %}selected{% endif %}>{{ a }}</option>
-                {% endfor %}
-            </select>
-        </div>
-
-        <!-- Botões de Ação -->
-        <div class="col-12 text-center mt-4">
-            <button type="submit" class="btn btn-primary px-5">
-                <i class="fas fa-filter me-2"></i>Aplicar Filtros
-            </button>
-            <a href="{{ form_action_url }}" class="btn btn-outline-secondary px-4 ms-2">
-                Limpar
-            </a>
-        </div>
+    <!-- Filtros Ativos e Botões -->
+    <div id="active-filters-container" class="mt-4" style="display: none;"></div>
+    <div class="text-center mt-4">
+        <button type="submit" class="btn btn-primary px-5">
+            <i class="fas fa-filter me-2"></i>Aplicar Filtros
+        </button>
+        <a href="{{ request.path }}" class="btn btn-outline-secondary px-4 ms-2">
+            Limpar
+        </a>
     </div>
 </form>

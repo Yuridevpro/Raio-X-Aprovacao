@@ -1,0 +1,11 @@
+{% csrf_token %}
+<div class="mb-3">
+    {{ form.nome.label_tag }}
+    {{ form.nome }}
+    <div class="invalid-feedback" data-field="nome"></div>
+</div>
+<div class="mb-3">
+    {{ form.status.label_tag }}
+    {{ form.status }}
+    <div class="invalid-feedback" data-field="status"></div>
+</div>

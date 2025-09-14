@@ -8,6 +8,7 @@ from django.dispatch import receiver
 from django.utils import timezone
 from datetime import timedelta  # Importar timedelta
 from storages.backends.s3boto3 import S3Boto3Storage
+from django.contrib.contenttypes.fields import GenericRelation
 
 # ... (outros modelos como Disciplina, Banca, etc. permanecem os mesmos) ...
 
@@ -60,6 +61,8 @@ class Questao(models.Model):
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     deleted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name="questoes_deletadas")
+    notificacoes = GenericRelation('pratica.Notificacao')
+
 
     objects = QuestaoManager()
     all_objects = models.Manager()

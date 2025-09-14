@@ -1,0 +1,148 @@
+<!-- gamificacao/templates/gamificacao/ranking.html (NOVO ARQUIVO) -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% load gestao_extras %}
+{% block title %}Ranking de Usuários{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+<style>
+    .ranking-header {
+        background: linear-gradient(135deg, rgba(74, 144, 226, 0.9) 0%, rgba(44, 62, 80, 1) 100%);
+        color: white;
+    }
+    .ranking-table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+    }
+    .ranking-table .rank-position {
+        font-size: 1.2rem;
+        font-weight: 700;
+        width: 60px;
+        text-align: center;
+    }
+    .ranking-table .user-name {
+        font-weight: 500;
+    }
+    .ranking-table .streak-icon {
+        color: #fc4a1a;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+    .user-highlight {
+        background-color: var(--cor-sucesso-leve) !important;
+        border: 2px solid var(--cor-sucesso);
+    }
+    .user-position-card {
+        position: sticky;
+        top: 80px; /* Abaixo da navbar */
+        z-index: 100;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- Cabeçalho -->
+    <div class="ranking-header text-center p-5 mb-5 rounded shadow">
+        <i class="fas fa-trophy fa-3x mb-3" style="color: #f7b733;"></i>
+        <h1 class="display-5 fw-bold">Ranking Geral</h1>
+        <p class="lead">Veja sua posição e compare seu desempenho com outros estudantes.</p>
+    </div>
+
+    <!-- Posição do Usuário Logado -->
+    {% if posicao_usuario_logado %}
+    <div class="card shadow-sm mb-4 user-position-card">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-1 text-center">
+                    <strong class="h4">#{{ posicao_usuario_logado.rank }}</strong>
+                </div>
+                <div class="col-md-5">
+                    <h5 class="mb-0">Sua Posição</h5>
+                    <p class="text-muted mb-0">Continue assim!</p>
+                </div>
+                <div class="col-md-3 text-center text-md-start mt-2 mt-md-0">
+                    <i class="fas fa-check-circle text-success me-2"></i>
+                    <strong>{{ posicao_usuario_logado.total_acertos }}</strong> Acertos
+                </div>
+                <div class="col-md-3 text-center text-md-start mt-2 mt-md-0">
+                    <i class="fas fa-fire streak-icon me-2"></i>
+                    <strong>{{ posicao_usuario_logado.streak_data.current_streak }}</strong> Dias de Sequência
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Controles de Ordenação -->
+    <div class="d-flex justify-content-end mb-3">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                Ordenar por: 
+                <strong>
+                    {% if sort_by == 'acertos' %}Mais Acertos
+                    {% elif sort_by == 'streak' %}Maior Sequência
+                    {% elif sort_by == 'respostas' %}Mais Respostas
+                    {% endif %}
+                </strong>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item {% if sort_by == 'acertos' %}active{% endif %}" href="?{% update_query_params sort_by='acertos' page=1 %}">Mais Acertos</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'streak' %}active{% endif %}" href="?{% update_query_params sort_by='streak' page=1 %}">Maior Sequência</a></li>
+                <li><a class="dropdown-item {% if sort_by == 'respostas' %}active{% endif %}" href="?{% update_query_params sort_by='respostas' page=1 %}">Mais Respostas</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Tabela do Ranking -->
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            {% if ranking_list %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 ranking-table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="rank-position">Posição</th>
+                            <th>Usuário</th>
+                            <th class="text-center">Total de Acertos</th>
+                            <th class="text-center">Total de Respostas</th>
+                            <th class="text-center">Sequência Atual</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in ranking_list %}
+                        <tr class="{% if item.user == request.user %}user-highlight{% endif %}">
+                            <td class="rank-position">#{{ item.rank }}</td>
+                            <td>
+                                <span class="user-name">{{ item.nome }} {{ item.sobrenome }}</span>
+                            </td>
+                            <td class="text-center">{{ item.total_acertos }}</td>
+                            <td class="text-center">{{ item.total_respostas }}</td>
+                            <td class="text-center">
+                                <i class="fas fa-fire streak-icon me-1"></i>{{ item.streak_data.current_streak }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center p-5">
+                <p class="text-muted">Nenhum usuário no ranking ainda. Seja o primeiro!</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Paginação -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% load pratica_extras %}
+
+{# A tag <form> NÃO está aqui. Ela deve estar no template pai. #}
+
+<div class="row">
+    <div class="col-12 mb-3">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" class="form-control" name="{{ prefix }}palavra_chave" placeholder="Buscar por palavra-chave ou código..." value="{{ palavra_chave_buscada }}">
+        </div>
+    </div>
+
+    <div class="col-12">
+        <div class="d-flex flex-wrap gap-2">
+            {% include 'pratica/includes/_filtro_dropdown.html' with name="disciplina" prefix=prefix label="Disciplina" items=disciplinas selected_ids=selected_disciplinas %}
+            {% include 'pratica/includes/_filtro_dropdown.html' with name="assunto" prefix=prefix label="Assunto" items=None selected_ids=selected_assuntos %}
+            {% include 'pratica/includes/_filtro_dropdown.html' with name="banca" prefix=prefix label="Banca" items=bancas selected_ids=selected_bancas %}
+            {% include 'pratica/includes/_filtro_dropdown.html' with name="instituicao" prefix=prefix label="Instituição" items=instituicoes selected_ids=selected_instituicoes %}
+            {% include 'pratica/includes/_filtro_dropdown.html' with name="ano" prefix=prefix label="Ano" items=anos selected_ids=selected_anos is_simple_list=True %}
+        </div>
+    </div>
+</div>
+
+<div id="active-filters-container-{{ prefix }}" class="mt-4" style="display: none;"></div>
+
+<!-- ✅ CORREÇÃO: Bloco de feedback e botões foram ADICIONADOS DE VOLTA -->
+<div class="filtro-feedback mt-4" id="filtro-feedback-container">
+    {# Este container será usado pelo JS da Etapa 1 para mostrar a contagem #}
+</div>
+
+<div class="text-center mt-4">
+    <button type="submit" class="btn btn-primary px-5"><i class="fas fa-filter me-2"></i>Aplicar Filtros</button>
+    <a href="{{ form_action_url }}" class="btn btn-outline-secondary px-4 ms-2">Limpar</a>
+</div>

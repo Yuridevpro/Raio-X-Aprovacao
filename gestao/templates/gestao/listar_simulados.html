@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load pratica_extras %}
+{% load gestao_extras %}
+
+{% block title %}Gerenciar Simulados{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+<style>
+    .simulado-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; border-left: 4px solid var(--cor-borda); }
+    .simulado-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+    .badge.bg-status-ativo { background-color: var(--cor-sucesso) !important; }
+    .badge.bg-status-em-breve { background-color: var(--cor-aviso) !important; color: #000 !important; }
+    .badge.bg-status-arquivado { background-color: var(--cor-texto-muted) !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <!-- ... (cabeçalho da página e barra de ferramentas, sem alterações) ... -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 class="h3 mb-0 d-flex align-items-center gap-2"><i class="fas fa-file-alt text-info"></i> Gerenciar Simulados</h2>
+        <a href="{% url 'gestao:criar_simulado' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Novo Simulado</a>
+    </div>
+    {% include 'gestao/includes/_messages.html' %}
+    <div class="card card-body mb-4 shadow-sm">
+        <form method="GET" action=""><!-- ... (formulário de filtro, sem alterações) ... --></form>
+    </div>
+    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=simulados sort_options=sort_options sort_by=sort_by per_page=per_page %}
+
+    <!-- GRID DE CARDS DE SIMULADOS -->
+    <div class="row g-4">
+        {% for simulado in simulados %}
+            <div class="col-lg-4 col-md-6" id="simulado-card-container-{{ simulado.id }}">
+                {% include 'gestao/includes/_simulado_card.html' with simulado=simulado %}
+            </div>
+        {% empty %}
+            <div class="col-12"><div class="text-center py-5 card card-body">...</div></div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINAÇÃO -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=simulados %}
+    </div>
+</div>
+
+<!-- ======================================================================= -->
+<!-- INÍCIO DA ADIÇÃO: Modal para Edição Rápida de Metadados             -->
+<!-- ======================================================================= -->
+<div class="modal fade" id="editSimuladoMetaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form id="form-edit-meta">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar Detalhes do Simulado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="modal-body-edit-meta">
+                    <div class="text-center p-5"><div class="spinner-border text-primary" role="status"></div></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- ======================================================================= -->
+<!-- FIM DA ADIÇÃO                                                           -->
+<!-- ======================================================================= -->
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const editModalEl = document.getElementById('editSimuladoMetaModal');
+    if (editModalEl) {
+        const modal = new bootstrap.Modal(editModalEl);
+        const modalBody = document.getElementById('modal-body-edit-meta');
+        const form = document.getElementById('form-edit-meta');
+        let currentSimuladoId = null;
+
+        // 1. Ao abrir o modal, busca o formulário no backend
+        editModalEl.addEventListener('show.bs.modal', function(event) {
+            currentSimuladoId = event.relatedTarget.dataset.simuladoId;
+            modalBody.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-primary"></div></div>';
+            
+            fetch(`/gestao/simulados/api/editar-meta/${currentSimuladoId}/`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        modalBody.innerHTML = data.form_html;
+                    } else {
+                        modalBody.innerHTML = '<div class="alert alert-danger">Não foi possível carregar o formulário.</div>';
+                    }
+                });
+        });
+
+        // 2. Ao submeter o formulário, envia os dados via AJAX
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(form);
+
+            fetch(`/gestao/simulados/api/editar-meta/${currentSimuladoId}/`, {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // 3. Atualiza o card na página sem recarregar
+                    const nomeEl = document.getElementById(`simulado-nome-${currentSimuladoId}`);
+                    const statusEl = document.getElementById(`simulado-status-${currentSimuladoId}`);
+                    if (nomeEl) nomeEl.textContent = data.simulado_data.nome;
+                    if (statusEl) {
+                        statusEl.textContent = data.simulado_data.status_display;
+                        statusEl.className = `badge ${data.simulado_data.status_class}`;
+                    }
+                    modal.hide();
+                    showNotificationModal('Sucesso!', data.message, 'success');
+                } else {
+                    // Exibe erros de validação
+                    Object.keys(data.errors).forEach(fieldName => {
+                        const field = form.querySelector(`[name=${fieldName}]`);
+                        field.classList.add('is-invalid');
+                        const errorDiv = form.querySelector(`.invalid-feedback[data-field=${fieldName}]`);
+                        errorDiv.textContent = data.errors[fieldName][0];
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

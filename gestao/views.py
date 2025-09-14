@@ -18,6 +18,15 @@ from django_ratelimit.decorators import ratelimit
 from datetime import datetime, timedelta
 import json
 import markdown
+from django.http import HttpResponseBadRequest
+from django.urls import reverse
+from collections import defaultdict
+from .forms import SimuladoWizardForm, SimuladoForm
+from .forms import SimuladoMetaForm # Adicionar importação
+
+from simulados.models import Simulado, StatusSimulado
+
+from django.template.loader import render_to_string # Adicionar importação
 
 # Importações de modelos de outros apps
 from pratica.models import Notificacao
@@ -28,12 +37,20 @@ from questoes.forms import GestaoQuestaoForm, EntidadeSimplesForm, AssuntoForm
 
 # Importações de utils de outros apps
 from usuarios.utils import enviar_email_com_template
-from questoes.utils import paginar_itens, filtrar_e_paginar_questoes, filtrar_e_paginar_lixeira
+from questoes.utils import paginar_itens, filtrar_e_paginar_questoes, filtrar_e_paginar_lixeira, filtrar_e_paginar_questoes_com_prefixo
 
 # Importações locais do app 'gestao'
 from .models import SolicitacaoExclusao, PromocaoSuperuser, LogAtividade, DespromocaoSuperuser, ExclusaoSuperuser
 from .forms import StaffUserForm, ExclusaoUsuarioForm
 from .utils import criar_log
+
+from pratica.models import Comentario
+from gamificacao.models import Conquista
+from simulados.models import Simulado
+from .forms import StaffUserForm, ExclusaoUsuarioForm, ConquistaForm, SimuladoForm
+from django.contrib.contenttypes.models import ContentType
+
+from .forms import SimuladoForm # A view agora usa o SimuladoForm
 
 
 # =======================================================================
@@ -59,17 +76,22 @@ def dashboard_gestao(request):
     Renderiza a página principal do painel de gestão com estatísticas gerais.
     Acessível por todos os membros da equipe (staff e superusers).
     """
-    # Contagens gerais para todos os membros da equipe
     total_questoes = Questao.objects.count()
     notificacoes_pendentes = Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count()
     solicitacoes_pendentes_count = SolicitacaoExclusao.objects.filter(status=SolicitacaoExclusao.Status.PENDENTE).count()
     
-    # Contagens específicas para superusuários (inicializadas com 0)
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Contando apenas os simulados oficiais
+    # =======================================================================
+    total_simulados = Simulado.objects.filter(is_oficial=True).count()
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+    
     promocoes_pendentes_count = 0
     despromocoes_pendentes_count = 0
     exclusoes_superuser_pendentes_count = 0
 
-    # Se o usuário for superuser, obtém as contagens adicionais
     if request.user.is_superuser:
         promocoes_pendentes_count = PromocaoSuperuser.objects.filter(status=PromocaoSuperuser.Status.PENDENTE).count()
         despromocoes_pendentes_count = DespromocaoSuperuser.objects.filter(status=DespromocaoSuperuser.Status.PENDENTE).count()
@@ -79,11 +101,13 @@ def dashboard_gestao(request):
         'total_questoes': total_questoes,
         'notificacoes_pendentes': notificacoes_pendentes,
         'solicitacoes_pendentes_count': solicitacoes_pendentes_count,
+        'total_simulados': total_simulados, # Passa a contagem correta para o template
         'promocoes_pendentes_count': promocoes_pendentes_count,
         'despromocoes_pendentes_count': despromocoes_pendentes_count,
         'exclusoes_superuser_pendentes_count': exclusoes_superuser_pendentes_count,
     }
     return render(request, 'gestao/dashboard.html', context)
+
 
 
 # =======================================================================
@@ -444,143 +468,273 @@ def visualizar_questao_ajax(request, questao_id):
 # BLOKO 4: GERENCIAMENTO DE NOTIFICAÇÕES DE QUESTÕES
 # =======================================================================
 
+# gestao/views.py
+
+# ... (todos os seus outros imports devem estar aqui)
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.shortcuts import render
+from django.db.models import Count, Q, Max, Prefetch
+from django.contrib.contenttypes.models import ContentType
+from pratica.models import Notificacao, Questao, Comentario
+from questoes.utils import paginar_itens
+# ... (etc)
+
+
 @user_passes_test(is_staff_member)
 @login_required
 def listar_notificacoes(request):
     """
-    Lista as notificações de problemas em questões, agrupadas por questão.
-    Permite filtrar por status (Pendente, Resolvido, Rejeitado) e ordenar.
+    Renderiza o Painel de Moderação, com a lógica de contagem e da aba "Todos" corrigida.
     """
+    tipo_ativo = request.GET.get('tipo', 'questao')
     status_filtro = request.GET.get('status', 'PENDENTE')
-    base_queryset = Questao.objects.annotate(num_notificacoes=Count('notificacoes')).filter(num_notificacoes__gt=0)
+    sort_by = request.GET.get('sort_by')
     
-    # Filtra as questões para mostrar apenas aquelas que têm notificações no status selecionado
-    if status_filtro != 'TODAS':
-        reports_na_aba_atual = Notificacao.objects.filter(questao_id=OuterRef('pk'), status=status_filtro)
-        base_queryset = base_queryset.filter(Exists(reports_na_aba_atual))
-    
-    filtro_anotacao = Q(notificacoes__status=status_filtro) if status_filtro != 'TODAS' else Q()
+    objetos_reportados = None
+    sort_options = {}
 
-    # Lógica de ordenação
-    sort_by = request.GET.get('sort_by', '-ultima_notificacao')
-    sort_options = {
-        '-ultima_notificacao': 'Mais Recentes', 'ultima_notificacao': 'Mais Antigas',
-        '-num_reports': 'Mais Reportadas', 'num_reports': 'Menos Reportadas',
-    }
+    filtro_status_q = Q(notificacoes__status=status_filtro) if status_filtro != 'TODAS' else Q()
     
-    # Anota o queryset com o número de reports e a data do último, para ordenação
-    questoes_reportadas = base_queryset.annotate(
-        num_reports=Count('notificacoes', filter=filtro_anotacao),
-        ultima_notificacao=Max('notificacoes__data_criacao', filter=filtro_anotacao)
-    )
+    # Busca os ContentTypes uma vez para usar em toda a view
+    ct_questao = ContentType.objects.get_for_model(Questao)
+    ct_comentario = ContentType.objects.get_for_model(Comentario)
 
-    if sort_by in sort_options:
-        questoes_reportadas = questoes_reportadas.order_by(sort_by)
+    if tipo_ativo == 'questao':
+        base_queryset = Questao.objects.filter(filtro_status_q).distinct()
+        
+        sort_by = sort_by or '-ultima_notificacao'
+        sort_options = {
+            '-ultima_notificacao': 'Mais Recentes', 'ultima_notificacao': 'Mais Antigas',
+            '-num_reports': 'Mais Reportadas',
+        }
+        
+        objetos_reportados = base_queryset.annotate(
+            num_reports=Count('notificacoes', filter=filtro_status_q),
+            ultima_notificacao=Max('notificacoes__data_criacao', filter=filtro_status_q)
+        ).order_by(sort_by)
 
-    # Otimiza a busca das notificações relacionadas usando prefetch_related
-    prefetch_queryset = Notificacao.objects.select_related('usuario_reportou__userprofile')
-    if status_filtro != 'TODAS':
-        prefetch_queryset = prefetch_queryset.filter(status=status_filtro)
+        prefetch_queryset = Notificacao.objects.select_related('usuario_reportou__userprofile')
+        if status_filtro != 'TODAS':
+            prefetch_queryset = prefetch_queryset.filter(status=status_filtro)
+        
+        objetos_reportados = objetos_reportados.prefetch_related(
+            Prefetch('notificacoes', queryset=prefetch_queryset.order_by('-data_criacao'), to_attr='reports_filtrados')
+        )
+        
+    elif tipo_ativo == 'comentario':
+        base_queryset = Comentario.objects.filter(filtro_status_q).distinct()
+
+        sort_by = sort_by or '-ultima_notificacao'
+        sort_options = {'-ultima_notificacao': 'Mais Recentes', '-num_reports': 'Mais Reportados'}
+        
+        objetos_reportados = base_queryset.annotate(
+            num_reports=Count('notificacoes', filter=filtro_status_q),
+            ultima_notificacao=Max('notificacoes__data_criacao', filter=filtro_status_q)
+        ).select_related('usuario__userprofile', 'questao').order_by(sort_by)
+
+        prefetch_queryset = Notificacao.objects.select_related('usuario_reportou__userprofile')
+        if status_filtro != 'TODAS':
+            prefetch_queryset = prefetch_queryset.filter(status=status_filtro)
+        
+        objetos_reportados = objetos_reportados.prefetch_related(
+            Prefetch('notificacoes', queryset=prefetch_queryset.order_by('-data_criacao'), to_attr='reports_filtrados')
+        )
     
-    questoes_reportadas = questoes_reportadas.prefetch_related(
-        Prefetch('notificacoes', queryset=prefetch_queryset.order_by('-data_criacao'), to_attr='reports_filtrados')
-    )
+    else:
+        objetos_reportados = Questao.objects.none()
+
+    page_obj, page_numbers, per_page = paginar_itens(request, objetos_reportados, 10)
     
-    page_obj, page_numbers, per_page = paginar_itens(request, questoes_reportadas, 10)
-    
-    # Estatísticas para as abas da interface
     stats = {
-        'pendentes_total': Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count(),
-        'resolvidas_total': Notificacao.objects.filter(status=Notificacao.Status.RESOLVIDO).count(),
-        'rejeitadas_total': Notificacao.objects.filter(status=Notificacao.Status.REJEITADO).count(),
+        'pendentes_questao': Notificacao.objects.filter(status='PENDENTE', content_type=ct_questao).count(),
+        'pendentes_comentario': Notificacao.objects.filter(status='PENDENTE', content_type=ct_comentario).count(),
+        'resolvidas_total': Notificacao.objects.filter(status='RESOLVIDO').count(),
+        'rejeitadas_total': Notificacao.objects.filter(status='REJEITADO').count(),
     }
-    
+
     context = {
-        'questoes_agrupadas': page_obj, 'paginated_object': page_obj, 'page_numbers': page_numbers,
-        'status_ativo': status_filtro, 'stats': stats, 'per_page': per_page, 'sort_by': sort_by, 'sort_options': sort_options,
+        'objetos_agrupados': page_obj,
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
+        'stats': stats,
+        'tipo_ativo': tipo_ativo,
+        'status_ativo': status_filtro,
     }
+
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO: Passando o ID do ContentType para o contexto
+    # =======================================================================
+    # Adiciona o ID do ContentType de Comentário ao contexto se essa for a aba ativa.
+    # Isso torna a informação disponível para o template do card de denúncia.
+    if tipo_ativo == 'comentario':
+        context['comentario_content_type_id'] = ct_comentario.id
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
     return render(request, 'gestao/listar_notificacoes_agrupadas.html', context)
 
 @require_POST
 @user_passes_test(is_staff_member)
 @login_required
-def notificacao_acao_agrupada(request, questao_id):
+@transaction.atomic # Adiciona transação para garantir a integridade de todas as operações
+def notificacao_acao_agrupada(request, content_type_id, object_id):
     """
-    Aplica uma ação (resolver, rejeitar, excluir) a todas as notificações de um mesmo status
-    para uma única questão. Acessada via AJAX a partir dos cards de notificação.
+    Aplica uma ação a todas as notificações de um mesmo alvo e envia os e-mails
+    apropriados para os usuários envolvidos (quem reportou e/ou o autor do conteúdo).
     """
-    questao = get_object_or_404(Questao, id=questao_id)
+    try:
+        content_type = get_object_or_404(ContentType, pk=content_type_id)
+        alvo = content_type.get_object_for_this_type(pk=object_id)
+    except:
+        return JsonResponse({'status': 'error', 'message': 'Alvo da notificação não encontrado.'}, status=404)
+
     action = request.POST.get('action')
     status_original = request.POST.get('status_original', 'PENDENTE')
-    notificacoes = Notificacao.objects.filter(questao=questao, status=status_original)
+    
+    # Busca as notificações relacionadas, otimizando a busca dos perfis de usuário
+    notificacoes = Notificacao.objects.filter(
+        content_type=content_type, 
+        object_id=object_id, 
+        status=status_original
+    ).select_related('usuario_reportou__userprofile')
+
     count = notificacoes.count()
+    alvo_log_str = alvo.codigo if isinstance(alvo, Questao) else str(alvo)
+    log_details = {'count': count, 'alvo_str': alvo_log_str}
+    
+    # --- LÓGICA DE AÇÕES E NOTIFICAÇÕES POR E-MAIL ---
     
     if action == 'resolver':
+        # Para erros de questão, notifica todos que reportaram que o problema foi corrigido.
+        if isinstance(alvo, Questao):
+            for n in notificacoes:
+                if n.usuario_reportou and n.usuario_reportou.email:
+                    enviar_email_com_template(
+                        request, 
+                        'Sua Notificação foi Resolvida!',
+                        'gestao/email_notificacao_resolvida.html',
+                        {'user': n.usuario_reportou, 'questao': alvo},
+                        [n.usuario_reportou.email]
+                    )
+        
+        # Atualiza o status das notificações
         notificacoes.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
-        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_RESOLVIDAS, alvo=questao, detalhes={'count': count, 'codigo_questao': questao.codigo})
-        message = f'{count} report(s) da questão {questao.codigo} marcados como "Corrigido".'
-        return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
+        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_RESOLVIDAS, alvo=alvo, detalhes=log_details)
+        message = f'{count} notificação(ões) para o item "{alvo}" foram marcadas como "Resolvido".'
     
     elif action == 'rejeitar':
         notificacoes.update(status=Notificacao.Status.REJEITADO)
-        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_REJEITADAS, alvo=questao, detalhes={'count': count, 'codigo_questao': questao.codigo})
-        message = f'{count} report(s) da questão {questao.codigo} foram rejeitados.'
-        return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
+        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_REJEITADAS, alvo=alvo, detalhes=log_details)
+        message = f'{count} notificação(ões) para o item "{alvo}" foram rejeitadas.'
+
+    elif action == 'deletar_comentario_e_resolver' and isinstance(alvo, Comentario):
+        comentario = alvo
+        autor = comentario.usuario
+        
+        # 1. Notifica o autor do comentário sobre a remoção
+        if autor and autor.email:
+            enviar_email_com_template(
+                request,
+                'Aviso Sobre Seu Comentário',
+                'gestao/email_comentario_removido.html',
+                {
+                    'user_profile': autor.userprofile,
+                    'questao': comentario.questao,
+                    'comentario_conteudo': comentario.conteudo
+                },
+                [autor.email]
+            )
+        
+        # 2. Deleta o comentário e resolve todas as denúncias associadas a ele
+        comentario_conteudo_log = comentario.conteudo
+        comentario.delete()
+        notificacoes.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
+        
+        # 3. Cria um log detalhado da ação
+        log_details['comentario_deletado'] = comentario_conteudo_log
+        log_details['autor_notificado'] = autor.username if autor else 'N/A'
+        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_RESOLVIDAS, alvo=None, detalhes=log_details)
+        message = f'O comentário foi deletado, o autor notificado e {count} denúncia(s) foram resolvidas.'
 
     elif action == 'excluir' and status_original in ['RESOLVIDO', 'REJEITADO']:
+        log_details['status_original'] = status_original
         count, _ = notificacoes.delete()
-        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_DELETADAS, alvo=questao, detalhes={'count': count, 'codigo_questao': questao.codigo, 'status_original': status_original})
-        message = f'{count} report(s) da questão {questao.codigo} foram excluídos.'
-        return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': f'card-group-{questao.id}'})
+        criar_log(ator=request.user, acao=LogAtividade.Acao.NOTIFICACOES_DELETADAS, alvo=alvo, detalhes=log_details)
+        message = f'{count} notificação(ões) para o item "{alvo}" foram excluídas.'
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Ação inválida ou não permitida.'}, status=400)
+        
+    removed_card_id = f'card-group-{content_type.model}-{alvo.id}'
+    return JsonResponse({'status': 'success', 'message': message, 'removed_card_id': removed_card_id})
 
-    return JsonResponse({'status': 'error', 'message': 'Ação inválida ou não permitida.'}, status=400)
+
 
 @require_POST
 @user_passes_test(is_staff_member)
 def notificacoes_acoes_em_massa(request):
     """
-    Aplica uma ação (resolver, rejeitar, excluir) a notificações de múltiplas questões
-    selecionadas de uma só vez. Acessada via AJAX.
+    Aplica uma ação em massa a notificações de múltiplos alvos
+    (sejam eles Questões ou Comentários).
     """
     try:
         data = json.loads(request.body)
-        questao_ids = data.get('ids', [])
+        alvo_ids = data.get('ids', [])
         action = data.get('action')
         status_original = data.get('status_original', 'PENDENTE')
+        tipo_alvo = data.get('tipo_alvo')
 
-        if not questao_ids or not action:
-            return JsonResponse({'status': 'error', 'message': 'IDs ou ação ausentes.'}, status=400)
+        if not all([alvo_ids, action, status_original, tipo_alvo]):
+            return JsonResponse({'status': 'error', 'message': 'Parâmetros ausentes.'}, status=400)
         
-        queryset = Notificacao.objects.filter(questao_id__in=questao_ids, status=status_original)
+        if tipo_alvo == 'questao':
+            ct = ContentType.objects.get_for_model(Questao)
+        elif tipo_alvo == 'comentario':
+            ct = ContentType.objects.get_for_model(Comentario)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Tipo de alvo inválido.'}, status=400)
         
-        # Cria um log para cada grupo de notificações (por questão) afetado
-        for q_id in questao_ids:
-            questao = get_object_or_404(Questao, id=q_id)
-            count = queryset.filter(questao_id=q_id).count()
+        queryset = Notificacao.objects.filter(content_type=ct, object_id__in=alvo_ids, status=status_original)
+        
+        alvos_afetados = ct.model_class().objects.filter(pk__in=alvo_ids)
+        for alvo in alvos_afetados:
+            count = queryset.filter(object_id=alvo.pk).count()
             if count > 0:
-                log_acao_map = {'resolver': LogAtividade.Acao.NOTIFICACOES_RESOLVIDAS, 'rejeitar': LogAtividade.Acao.NOTIFICACOES_REJEITADAS, 'excluir': LogAtividade.Acao.NOTIFICACOES_DELETADAS}
+                log_acao_map = {
+                    'resolver': LogAtividade.Acao.NOTIFICACOES_RESOLVIDAS, 
+                    'rejeitar': LogAtividade.Acao.NOTIFICACOES_REJEITADAS, 
+                    'excluir': LogAtividade.Acao.NOTIFICACOES_DELETADAS
+                }
                 log_acao = log_acao_map.get(action)
                 if log_acao:
-                    criar_log(ator=request.user, acao=log_acao, alvo=questao, detalhes={'count': count, 'codigo_questao': questao.codigo, 'status_original': status_original, 'motivo': 'Ação em massa'})
+                    # =======================================================================
+                    # INÍCIO DA CORREÇÃO: Usar .codigo para Questões no log em massa
+                    # =======================================================================
+                    alvo_log_str = alvo.codigo if isinstance(alvo, Questao) else str(alvo)
+                    log_details = {'count': count, 'alvo_str': alvo_log_str, 'motivo': 'Ação em massa'}
+                    # =======================================================================
+                    # FIM DA CORREÇÃO
+                    # =======================================================================
+                    if action == 'excluir':
+                        log_details['status_original'] = status_original
+                    criar_log(ator=request.user, acao=log_acao, alvo=alvo, detalhes=log_details)
 
-        # Executa a ação no banco de dados
         if action == 'resolver':
-            queryset.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
+            updated_count = queryset.update(status=Notificacao.Status.RESOLVIDO, resolvido_por=request.user, data_resolucao=timezone.now())
         elif action == 'rejeitar':
-            queryset.update(status=Notificacao.Status.REJEITADO)
+            updated_count = queryset.update(status=Notificacao.Status.REJEITADO)
         elif action == 'excluir' and status_original in ['RESOLVIDO', 'REJEITADO']:
-            queryset.delete()
+            updated_count, _ = queryset.delete()
         else:
             return JsonResponse({'status': 'error', 'message': 'Ação inválida ou não permitida.'}, status=400)
         
-        return JsonResponse({'status': 'success', 'message': 'Ação aplicada com sucesso.'})
+        return JsonResponse({'status': 'success', 'message': f'{updated_count} notificação(ões) foram atualizadas com sucesso.'})
+
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
-
-
-# =======================================================================
-# BLOKO 5: GERENCIAMENTO DE USUÁRIOS (GERAL)
-# =======================================================================
 
 @login_required
 @user_passes_test(is_staff_member)
@@ -1322,3 +1476,405 @@ def listar_logs_deletados(request):
         'filtro_data_inicio': filtro_data_inicio, 'filtro_data_fim': filtro_data_fim, 'acao_choices': LogAtividade.Acao.choices,
     }
     return render(request, 'gestao/listar_logs_deletados.html', context)
+
+
+@login_required
+def ranking(request):
+    """
+    Exibe a página de ranking dos usuários, com base em critérios de desempenho
+    como total de acertos e sequência de prática (streak).
+    """
+    # 1. Obter parâmetros de filtro e ordenação da URL
+    sort_by = request.GET.get('sort_by', 'acertos') # 'acertos' como padrão
+
+    # 2. Construir o queryset base, otimizado para performance.
+    # Filtramos para incluir apenas usuários ativos e que não são da equipe de gestão.
+    base_queryset = UserProfile.objects.filter(
+        user__is_active=True,
+        user__is_staff=False
+    ).select_related(
+        'streak_data' # Usa JOIN para buscar os dados de streak na mesma query
+    ).annotate(
+        # Conta o total de respostas do usuário
+        total_respostas=Count('user__respostausuario'),
+        # Conta apenas as respostas corretas
+        total_acertos=Count('user__respostausuario', filter=Q(user__respostausuario__foi_correta=True))
+    ).filter(
+        total_respostas__gt=0 # Exibe apenas usuários que já responderam pelo menos uma questão
+    )
+
+    # 3. Definir as opções de ordenação e aplicar a selecionada
+    sort_options = {
+        'acertos': ('-total_acertos', '-streak_data__current_streak'),
+        'streak': ('-streak_data__current_streak', '-total_acertos'),
+        'respostas': ('-total_respostas', '-total_acertos'),
+    }
+    
+    # Define a ordenação padrão se um parâmetro inválido for passado
+    ordenacao = sort_options.get(sort_by, sort_options['acertos'])
+    
+    # Anotação com a função de janela `Rank` para calcular a posição de cada usuário
+    # A ordenação dentro do Rank() deve ser a mesma do order_by() final.
+    queryset_ranqueado = base_queryset.annotate(
+        rank=Window(
+            expression=Rank(),
+            order_by=[F(field[1:]).desc() if field.startswith('-') else F(field).asc() for field in ordenacao]
+        )
+    ).order_by(*ordenacao)
+
+    # 4. Encontrar a posição do usuário logado no ranking
+    # Como já temos o rank anotado, podemos simplesmente filtrar e pegar o valor.
+    posicao_usuario_logado = queryset_ranqueado.filter(user=request.user).first()
+
+    # 5. Paginar os resultados
+    page_obj, page_numbers, per_page = paginar_itens(request, queryset_ranqueado, 25) # 25 usuários por página
+
+    context = {
+        'ranking_list': page_obj,
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'posicao_usuario_logado': posicao_usuario_logado,
+    }
+    
+    return render(request, 'gamificacao/ranking.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def visualizar_comentario_ajax(request, comentario_id):
+    """
+    Retorna os detalhes de um comentário e da sua questão associada
+    em formato JSON para visualização em um modal.
+    """
+    try:
+        comentario = get_object_or_404(
+            Comentario.objects.select_related('usuario__userprofile', 'questao'), 
+            id=comentario_id
+        )
+        questao = comentario.questao
+        
+        data = {
+            'status': 'success',
+            'comentario': {
+                'id': comentario.id,
+                'autor': comentario.usuario.userprofile.nome,
+                'conteudo_html': markdown.markdown(comentario.conteudo),
+                'data_criacao': comentario.data_criacao.strftime("%d/%m/%Y às %H:%M"),
+            },
+            'questao': {
+                'id': questao.id,
+                'codigo': questao.codigo,
+                'enunciado_html': markdown.markdown(questao.enunciado),
+            }
+        }
+        return JsonResponse(data)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_simulados_gestao(request):
+    """
+    Lista, filtra, busca e ordena todos os simulados oficiais usando
+    um layout de cards detalhados com paginação.
+    """
+    base_queryset = Simulado.objects.filter(is_oficial=True)
+
+    # --- Lógica de Busca ---
+    termo_busca = request.GET.get('q', '').strip()
+    if termo_busca:
+        base_queryset = base_queryset.filter(
+            Q(nome__icontains=termo_busca) | Q(codigo__iexact=termo_busca)
+        )
+
+    # --- Lógica de Filtragem ---
+    filtro_status = request.GET.get('status')
+    if filtro_status:
+        base_queryset = base_queryset.filter(status=filtro_status)
+
+    # --- Lógica de Ordenação ---
+    sort_by = request.GET.get('sort_by', '-data_criacao')
+    sort_options = {
+        '-data_criacao': 'Mais Recentes',
+        'data_criacao': 'Mais Antigos',
+        'nome': 'Nome (A-Z)',
+        '-num_questoes': 'Nº de Questões (Maior)',
+    }
+    
+    # Anota o número de questões para ordenação e exibição
+    simulados_list = base_queryset.annotate(
+        num_questoes=Count('questoes')
+    ).select_related('criado_por') # Otimiza a busca pelo criador
+
+    if sort_by in sort_options:
+        simulados_list = simulados_list.order_by(sort_by)
+
+    # --- Paginação ---
+    page_obj, page_numbers, per_page = paginar_itens(request, simulados_list, items_per_page=9)
+
+    context = {
+        'simulados': page_obj,
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_options': sort_options,
+        'sort_by': sort_by,
+        'status_choices': StatusSimulado.choices,
+        'active_filters': request.GET, # Passa os filtros ativos para o template
+    }
+    return render(request, 'gestao/listar_simulados.html', context)
+
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def criar_simulado(request):
+    """
+    ETAPA 1 DO ASSISTENTE: Define o nome e os filtros iniciais do simulado.
+    Agora usa o mesmo sistema de filtros da página de edição para consistência.
+    """
+    if request.method == 'POST':
+        # A lógica de POST já está correta e não precisa de alterações.
+        form = SimuladoWizardForm(request.POST)
+        if form.is_valid():
+            simulado = Simulado.objects.create(
+                nome=form.cleaned_data['nome'],
+                criado_por=request.user,
+                is_oficial=True
+            )
+            
+            filtros = {
+                'disciplinas': [int(d) for d in request.POST.getlist('disciplina')],
+                'assuntos': [int(a) for a in request.POST.getlist('assunto')],
+                'bancas': [int(b) for b in request.POST.getlist('banca')],
+                'instituicoes': [int(i) for i in request.POST.getlist('instituicao')],
+                'anos': request.POST.getlist('ano'),
+            }
+            simulado.filtros_iniciais = filtros
+            simulado.save()
+
+            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_CRIADO, alvo=simulado, detalhes={'nome_simulado': simulado.nome, 'filtros_definidos': True})
+            messages.info(request, f'Simulado "{simulado.nome}" criado. Agora, selecione as questões que farão parte dele.')
+            
+            return redirect('gestao:editar_simulado', simulado_id=simulado.id)
+    else:
+        form = SimuladoWizardForm()
+
+    # ✅ CORREÇÃO: Monta um contexto completo para alimentar o template do filtro.
+    context = {
+        'form': form, # Usado apenas para o campo 'nome'
+        'titulo': 'Criar Novo Simulado (Etapa 1 de 2)',
+        
+        # Variáveis EXATAMENTE como as da página de edição, para o componente de filtro funcionar.
+        'form_action_url': reverse('gestao:criar_simulado'),
+        'prefix': '',
+        'disciplinas': Disciplina.objects.all().order_by('nome'),
+        'bancas': Banca.objects.all().order_by('nome'),
+        'instituicoes': Instituicao.objects.all().order_by('nome'),
+        'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
+        'assuntos_url': reverse('questoes:get_assuntos_por_disciplina'),
+        
+        # Mesmo que vazias na criação, estas variáveis precisam existir.
+        'selected_disciplinas': [],
+        'selected_assuntos': [],
+        'selected_bancas': [],
+        'selected_instituicoes': [],
+        'selected_anos': [],
+        'selected_assuntos_json': "[]",
+        'palavra_chave_buscada': "",
+        'exibir_filtro_palavra': False,  
+        'form_classes': 'hide-palavra'
+    }
+    return render(request, 'gestao/form_criar_simulado_etapa1.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_simulado(request, simulado_id):
+    """ ETAPA 2 DO ASSISTENTE: Workspace para selecionar e gerenciar questões. """
+    simulado = get_object_or_404(
+        Simulado.objects.prefetch_related(
+            Prefetch('questoes', queryset=Questao.objects.select_related('disciplina'))
+        ), 
+        id=simulado_id, 
+        is_oficial=True
+    )
+    
+    if request.method == 'POST' and 'nome' in request.POST:
+        form = SimuladoForm(request.POST, instance=simulado, fields_to_show=['nome'])
+        if form.is_valid():
+            simulado_salvo = form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_EDITADO, alvo=simulado_salvo, detalhes={'campo_alterado': 'nome', 'novo_nome': simulado_salvo.nome})
+            messages.success(request, 'O nome do simulado foi atualizado com sucesso!')
+            return redirect(f"{request.path}?{request.GET.urlencode()}")
+    else:
+        form = SimuladoForm(instance=simulado, fields_to_show=['nome'])
+
+    questoes_disponiveis = Questao.objects.all()
+    filtros_iniciais_info = {}
+    if simulado.filtros_iniciais:
+        filtros = simulado.filtros_iniciais
+        if filtros.get('disciplinas'):
+            questoes_disponiveis = questoes_disponiveis.filter(disciplina_id__in=filtros['disciplinas'])
+        if filtros.get('assuntos'):
+            questoes_disponiveis = questoes_disponiveis.filter(assunto_id__in=filtros['assuntos'])
+        if filtros.get('bancas'):
+            questoes_disponiveis = questoes_disponiveis.filter(banca_id__in=filtros['bancas'])
+        if filtros.get('instituicoes'):
+            questoes_disponiveis = questoes_disponiveis.filter(instituicao_id__in=filtros['instituicoes'])
+        if filtros.get('anos'):
+            questoes_disponiveis = questoes_disponiveis.filter(ano__in=filtros['anos'])
+
+        filtros_iniciais_info = {
+            'Disciplinas': Disciplina.objects.filter(id__in=filtros.get('disciplinas', [])).values_list('nome', flat=True),
+            'Assuntos': Assunto.objects.filter(id__in=filtros.get('assuntos', [])).values_list('nome', flat=True),
+            'Bancas': Banca.objects.filter(id__in=filtros.get('bancas', [])).values_list('nome', flat=True),
+            'Instituições': Instituicao.objects.filter(id__in=filtros.get('instituicoes', [])).values_list('nome', flat=True),
+            'Anos': filtros.get('anos', [])
+        }
+
+    context_filtro = filtrar_e_paginar_questoes_com_prefixo(
+        request, 
+        questoes_disponiveis.select_related('disciplina', 'banca'), 
+        items_per_page=10, 
+        prefix='q_'
+    )
+    
+    context_filtro.update({
+        'disciplinas': Disciplina.objects.all().order_by('nome'),
+        'bancas': Banca.objects.all().order_by('nome'),
+        'instituicoes': Instituicao.objects.all().order_by('nome'),
+        'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
+        'form_action_url': request.path,
+        'assuntos_url': reverse('questoes:get_assuntos_por_disciplina'),
+        'selected_assuntos_json': json.dumps(context_filtro.get('selected_assuntos', []))
+    })
+
+    context = {
+        'form': form,
+        'titulo': f'Editor de Simulado: {simulado.nome}',
+        'simulado': simulado,
+        'questoes_no_simulado_ids': list(simulado.questoes.values_list('id', flat=True)),
+        'questoes_no_simulado': simulado.questoes.all(),
+        'filtros_iniciais_info': filtros_iniciais_info
+    }
+    
+    context.update(context_filtro)
+    
+    return render(request, 'gestao/form_simulado_editor.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def deletar_simulado(request, simulado_id):
+    simulado = get_object_or_404(Simulado, id=simulado_id, criado_por__is_staff=True)
+    
+    nome_simulado = simulado.nome
+    
+    criar_log(
+        ator=request.user,
+        acao=LogAtividade.Acao.SIMULADO_DELETADO,
+        alvo=None, # O objeto será deletado
+        detalhes={'simulado_deletado': nome_simulado, 'simulado_id': simulado.id}
+    )
+    
+    simulado.delete()
+    messages.success(request, f'O simulado "{nome_simulado}" foi deletado com sucesso.')
+    return redirect('gestao:listar_simulados_gestao')
+
+
+
+# Nova API para adicionar/remover questões do simulado via AJAX
+@require_POST
+@user_passes_test(is_staff_member)
+@login_required
+def gerenciar_questoes_simulado_ajax(request, simulado_id):
+    simulado = get_object_or_404(Simulado, id=simulado_id)
+    try:
+        data = json.loads(request.body)
+        questao_id = data.get('questao_id')
+        action = data.get('action') # 'add' ou 'remove'
+
+        if not all([questao_id, action]):
+            return HttpResponseBadRequest("Parâmetros ausentes.")
+
+        if action == 'add':
+            simulado.questoes.add(questao_id)
+        elif action == 'remove':
+            simulado.questoes.remove(questao_id)
+        else:
+            return HttpResponseBadRequest("Ação inválida.")
+        
+        total_questoes = simulado.questoes.count()
+        return JsonResponse({'status': 'success', 'total_questoes': total_questoes})
+
+    except (json.JSONDecodeError, Questao.DoesNotExist):
+        return HttpResponseBadRequest("Requisição inválida.")
+
+@user_passes_test(is_staff_member)
+@require_POST
+def api_contar_questoes_filtro(request):
+    """
+    API para contar quantas questões correspondem a um conjunto de filtros.
+    """
+    try:
+        data = json.loads(request.body)
+        qs = Questao.objects.all()
+
+        if data.get('disciplinas'):
+            qs = qs.filter(disciplina_id__in=data['disciplinas'])
+        # ✅ CORREÇÃO: Adiciona o filtro de assunto à contagem
+        if data.get('assuntos'):
+            qs = qs.filter(assunto_id__in=data['assuntos'])
+        if data.get('bancas'):
+            qs = qs.filter(banca_id__in=data['bancas'])
+        if data.get('instituicoes'):
+            qs = qs.filter(instituicao_id__in=data['instituicoes'])
+        
+        anos = data.get('anos', [])
+        if anos:
+            anos_int = [int(ano) for ano in anos if ano and ano.isdigit()]
+            if anos_int:
+                qs = qs.filter(ano__in=anos_int)
+        
+        return JsonResponse({'status': 'success', 'count': qs.count()})
+    except Exception as e:
+        # Para depuração, é útil logar o erro
+        print(f"Erro na API de contagem: {e}")
+        return JsonResponse({'status': 'error', 'message': 'Filtros inválidos.'}, status=400)
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_simulado_meta_ajax(request, simulado_id):
+    """
+    Gerencia a edição dos metadados de um simulado (nome e status) via AJAX.
+    - GET: Retorna o HTML do formulário para ser injetado no modal.
+    - POST: Valida e salva os dados enviados pelo formulário.
+    """
+    simulado = get_object_or_404(Simulado, id=simulado_id, is_oficial=True)
+
+    if request.method == 'POST':
+        form = SimuladoMetaForm(request.POST, instance=simulado)
+        if form.is_valid():
+            form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_EDITADO, alvo=simulado, detalhes={'campos_alterados': list(form.changed_data)})
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Dados do simulado atualizados com sucesso!',
+                'simulado_data': {
+                    'nome': simulado.nome,
+                    'status_display': simulado.get_status_display(),
+                    'status_class': f'bg-status-{simulado.status.lower()}'
+                }
+            })
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+    
+    # Se a requisição for GET
+    form = SimuladoMetaForm(instance=simulado)
+    # Renderiza apenas o formulário como uma string de HTML
+    form_html = render_to_string('gestao/includes/_form_simulado_meta.html', {'form': form}, request=request)
+    
+    return JsonResponse({'status': 'success', 'form_html': form_html})
