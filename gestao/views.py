@@ -25,6 +25,7 @@ from .forms import SimuladoWizardForm, SimuladoForm
 from .forms import SimuladoMetaForm # Adicionar importação
 
 from simulados.models import Simulado, StatusSimulado
+from django.views.decorators.http import require_POST # Adicione este import
 
 from django.template.loader import render_to_string # Adicionar importação
 
@@ -1590,10 +1591,28 @@ def listar_simulados_gestao(request):
             Q(nome__icontains=termo_busca) | Q(codigo__iexact=termo_busca)
         )
 
-    # --- Lógica de Filtragem ---
+    # --- Lógica de Filtragem Expandida ---
     filtro_status = request.GET.get('status')
+    filtro_disciplinas = request.GET.getlist('disciplina')
+    filtro_bancas = request.GET.getlist('banca')
+    filtro_assuntos = request.GET.getlist('assunto')
+    # ✅ ADIÇÃO: Captura dos novos filtros
+    filtro_instituicoes = request.GET.getlist('instituicao')
+    filtro_anos = request.GET.getlist('ano')
+
     if filtro_status:
         base_queryset = base_queryset.filter(status=filtro_status)
+    if filtro_disciplinas:
+        base_queryset = base_queryset.filter(questoes__disciplina__id__in=filtro_disciplinas).distinct()
+    if filtro_bancas:
+        base_queryset = base_queryset.filter(questoes__banca__id__in=filtro_bancas).distinct()
+    if filtro_assuntos:
+        base_queryset = base_queryset.filter(questoes__assunto__id__in=filtro_assuntos).distinct()
+    # ✅ ADIÇÃO: Aplicação dos novos filtros na queryset
+    if filtro_instituicoes:
+        base_queryset = base_queryset.filter(questoes__instituicao__id__in=filtro_instituicoes).distinct()
+    if filtro_anos:
+        base_queryset = base_queryset.filter(questoes__ano__in=filtro_anos).distinct()
 
     # --- Lógica de Ordenação ---
     sort_by = request.GET.get('sort_by', '-data_criacao')
@@ -1604,10 +1623,16 @@ def listar_simulados_gestao(request):
         '-num_questoes': 'Nº de Questões (Maior)',
     }
     
-    # Anota o número de questões para ordenação e exibição
+    # --- Otimização com Prefetch ---
+    prefetch_disciplinas = Prefetch(
+        'questoes',
+        queryset=Questao.objects.select_related('disciplina'),
+        to_attr='questoes_com_disciplinas'
+    )
+
     simulados_list = base_queryset.annotate(
         num_questoes=Count('questoes')
-    ).select_related('criado_por') # Otimiza a busca pelo criador
+    ).select_related('criado_por').prefetch_related(prefetch_disciplinas)
 
     if sort_by in sort_options:
         simulados_list = simulados_list.order_by(sort_by)
@@ -1615,6 +1640,7 @@ def listar_simulados_gestao(request):
     # --- Paginação ---
     page_obj, page_numbers, per_page = paginar_itens(request, simulados_list, items_per_page=9)
 
+    # --- Contexto para o Template ---
     context = {
         'simulados': page_obj,
         'paginated_object': page_obj,
@@ -1623,11 +1649,26 @@ def listar_simulados_gestao(request):
         'sort_options': sort_options,
         'sort_by': sort_by,
         'status_choices': StatusSimulado.choices,
-        'active_filters': request.GET, # Passa os filtros ativos para o template
+        'active_filters': request.GET,
+        
+        # Dados para popular os dropdowns de filtro
+        'disciplinas_filtro': Disciplina.objects.all().order_by('nome'),
+        'bancas_filtro': Banca.objects.all().order_by('nome'),
+        'assuntos_url': reverse('questoes:get_assuntos_por_disciplina'),
+        # ✅ ADIÇÃO: Novos dados para os filtros de Instituição e Ano
+        'instituicoes_filtro': Instituicao.objects.all().order_by('nome'),
+        'anos_filtro': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
+        
+        # IDs selecionados para manter o estado do filtro na interface
+        'selected_disciplinas': [int(i) for i in filtro_disciplinas if i.isdigit()],
+        'selected_bancas': [int(i) for i in filtro_bancas if i.isdigit()],
+        'selected_assuntos': [int(i) for i in filtro_assuntos if i.isdigit()],
+        'selected_assuntos_json': json.dumps([int(i) for i in filtro_assuntos if i.isdigit()]),
+        # ✅ ADIÇÃO: Passando os IDs selecionados dos novos filtros
+        'selected_instituicoes': [int(i) for i in filtro_instituicoes if i.isdigit()],
+        'selected_anos': filtro_anos, # Anos são strings, não precisam de conversão
     }
     return render(request, 'gestao/listar_simulados.html', context)
-
-
 
 @user_passes_test(is_staff_member)
 @login_required
@@ -1768,8 +1809,11 @@ def editar_simulado(request, simulado_id):
 
 @user_passes_test(is_staff_member)
 @login_required
+@require_POST  # ✅ ADIÇÃO: Garante que esta view só aceita requisições POST
 def deletar_simulado(request, simulado_id):
-    simulado = get_object_or_404(Simulado, id=simulado_id, criado_por__is_staff=True)
+    # A busca por is_oficial=True garante que apenas simulados da gestão
+    # podem ser deletados por esta view.
+    simulado = get_object_or_404(Simulado, id=simulado_id, is_oficial=True) 
     
     nome_simulado = simulado.nome
     

@@ -1,41 +1,36 @@
-<div class="dropdown">
-    <button class="btn btn-outline-secondary dropdown-toggle" type="button" 
+<!-- pratica/includes/_filtro_dropdown.html -->
+
+
+
+<div class="dropdown d-grid">
+    <!-- ✅ ADIÇÃO: Classe 'btn-filter' e 'd-flex' para controlar o alinhamento interno -->
+    <button class="btn btn-outline-secondary dropdown-toggle btn-filter d-flex justify-content-between align-items-center {% if selected_ids %}active{% endif %}" type="button" 
             id="dropdown{{ prefix|default:'' }}{{ name|capfirst }}" 
             data-bs-toggle="dropdown" 
             data-bs-auto-close="outside" 
             aria-expanded="false"
             {% if name == 'assunto' %}disabled{% endif %}>
         
-        {{ label }}
+        <!-- O texto do botão -->
+        <span>{{ label }}</span>
         
-        <!-- ======================================================================= -->
-        <!-- INÍCIO DA CORREÇÃO: Condição para exibir o contador                   -->
-        <!-- O span agora só é renderizado se houver itens selecionados.         -->
-        <!-- ======================================================================= -->
-        <span class="badge bg-primary rounded-pill ms-1" id="count-{{ prefix }}{{ name }}" style="{% if not selected_ids %}display: none;{% endif %}">
+        <!-- O contador (badge) -->
+        <span class="badge rounded-pill ms-1" id="count-{{ prefix }}{{ name }}" style="{% if not selected_ids %}display: none;{% endif %}">
               {{ selected_ids|length }}
         </span>
-        <!-- ======================================================================= -->
-        <!-- FIM DA CORREÇÃO                                                         -->
-        <!-- ======================================================================= -->
     </button>
     
-    <ul class="dropdown-menu p-0" aria-labelledby="dropdown{{ prefix|default:'' }}{{ name|capfirst }}" 
-        style="min-width: 280px;" 
-        id="options-{{ prefix }}{{ name }}">
-        
+    <ul class="dropdown-menu p-0" aria-labelledby="dropdown{{ prefix|default:'' }}{{ name|capfirst }}" id="options-{{ prefix }}{{ name }}">
         {% if name != 'assunto' %}
-            <li class="px-2 py-1 sticky-top bg-white">
+            <li class="search-input-container">
                 <input type="text" class="form-control form-control-sm" placeholder="Busca rápida..." onkeyup="filterDropdownOptions(this)">
             </li>
-            <li><hr class="dropdown-divider my-0"></li>
         {% endif %}
-
-        <div class="dropdown-options-container px-2" style="max-height: 250px; overflow-y: auto;">
+        <div class="dropdown-options-container">
             {% if name != 'assunto' %}
                 {% for item in items %}
                 <li>
-                    <div class="form-check dropdown-item-text">
+                    <div class="form-check">
                         {% if is_simple_list %}
                             <input class="form-check-input" type="checkbox" name="{{ prefix }}{{ name }}" value="{{ item }}" id="{{ prefix }}{{ name }}-{{ item }}" {% if item|stringformat:"s" in selected_ids|stringformat:"s" %}checked{% endif %}>
                             <label class="form-check-label" for="{{ prefix }}{{ name }}-{{ item }}">{{ item }}</label>
@@ -47,7 +42,7 @@
                 </li>
                 {% endfor %}
             {% else %}
-                <!-- Conteúdo dos assuntos será carregado aqui pelo JS -->
+                 <li class="p-3 text-center text-muted"><small>Selecione uma disciplina para carregar os assuntos.</small></li>
             {% endif %}
         </div>
     </ul>

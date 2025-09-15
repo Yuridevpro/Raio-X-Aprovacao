@@ -79,3 +79,45 @@ def get_status_badge_class(status_value):
     elif status_value == 'ARQUIVADO':
         return 'bg-status-arquivado'
     return 'bg-secondary'
+
+# =======================================================================
+# INÍCIO DAS ADIÇÕES
+# Filtros necessários para exibir os badges de disciplina nos cards de simulado.
+# =======================================================================
+
+@register.filter
+def map_attribute(queryset, attribute_name):
+    """
+    Mapeia um queryset ou lista de objetos para uma lista de um atributo específico.
+    Uso: {{ simulado.questoes.all|map_attribute:'disciplina' }}
+    """
+    # Garante que a função não falhe se o queryset for None
+    if not queryset:
+        return []
+    return [getattr(obj, attribute_name) for obj in queryset if hasattr(obj, attribute_name)]
+
+@register.filter
+def unique_by_attribute(objects, attribute_name):
+    """
+    Filtra uma lista de objetos, mantendo apenas aqueles com um valor de atributo único.
+    Essencial para obter uma lista de disciplinas sem repetição.
+    Uso: {{ lista_de_disciplinas|unique_by_attribute:'id' }}
+    """
+    seen = set()
+    result = []
+    # Garante que a função não falhe se a lista de objetos for None
+    if not objects:
+        return []
+    for obj in objects:
+        if obj is None: 
+            continue
+        key = getattr(obj, attribute_name, None)
+        # Adiciona à lista apenas se o objeto e sua chave não forem nulos e não tiverem sido vistos antes
+        if key is not None and key not in seen:
+            seen.add(key)
+            result.append(obj)
+    return result
+
+# =======================================================================
+# FIM DAS ADIÇÕES
+# =======================================================================

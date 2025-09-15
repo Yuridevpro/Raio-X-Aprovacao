@@ -1,62 +1,67 @@
 document.addEventListener('DOMContentLoaded', function () {
-    const formFiltros = document.getElementById('form-filtros');
-    if (!formFiltros) return; // Se o formulário de filtros não existe na página, interrompe o script.
-
-    // ===================================================================
-    // INICIALIZAÇÃO DE COMPORTAMENTOS DO FORMULÁRIO
-    // ===================================================================
+    /*
+    ✅ ADIÇÃO: FORÇAR DROPDOWNS A ABRIREM SEMPRE PARA BAIXO
     
-    // Permite que o usuário submeta o formulário pressionando "Enter" no campo de busca principal.
+    Este bloco de código desativa o comportamento "flip" do Bootstrap, que
+    faz com que os menus abram para cima. Ele faz isso configurando o Popper.js
+    para não ter "planos B" de posicionamento, garantindo que eles sempre
+    se expandam para baixo.
+    */
+    const dropdownToggles = document.querySelectorAll('.dropdown-toggle');
+    dropdownToggles.forEach(function (toggle) {
+        new bootstrap.Dropdown(toggle, {
+            popperConfig: {
+                modifiers: [
+                    {
+                        name: 'flip',
+                        options: {
+                            fallbackPlacements: [], // Array vazio desativa o "flip"
+                        },
+                    },
+                ],
+            },
+        });
+    });
+
+    // O restante do seu código permanece inalterado abaixo...
+    const formFiltros = document.getElementById('form-filtros');
+    if (!formFiltros) return;
+
     const palavraChaveInput = formFiltros.querySelector('input[name="palavra_chave"]');
     if (palavraChaveInput) {
         palavraChaveInput.addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
-                e.preventDefault(); // Previne o comportamento padrão do Enter em formulários.
-                formFiltros.submit(); // Submete o formulário.
+                e.preventDefault();
+                formFiltros.submit();
             }
         });
     }
 
-    // ===================================================================
-    // GERENCIAMENTO DINÂMICO DOS ASSUNTOS
-    // ===================================================================
     const assuntosUrl = formFiltros.dataset.assuntosUrl;
     const activeFiltersContainer = document.getElementById('active-filters-container');
     const disciplinaCheckboxes = formFiltros.querySelectorAll('input[name="disciplina"]');
     const assuntoOptionsContainer = document.getElementById('options-assunto');
     const assuntoDropdownButton = document.getElementById('dropdownAssunto');
 
-    /**
-     * Carrega os assuntos via AJAX com base nas disciplinas selecionadas.
-     */
     function loadAssuntos() {
-        // 1. DETERMINAR A FONTE DA VERDADE PARA OS ASSUNTOS SELECIONADOS.
         let assuntosSelecionados;
-        
-        // Verificamos se a lista de assuntos no DOM ainda não foi construída.
         const isInitialLoad = (assuntoOptionsContainer.innerHTML.trim() === '');
 
         if (isInitialLoad) {
-            // Se for a CARGA INICIAL da página, a fonte da verdade é o atributo data-*
-            // que o Django renderizou no HTML.
             const serverSelectedAssuntos = JSON.parse(formFiltros.dataset.selectedAssuntos || '[]');
-            // Convertemos os IDs para string para garantir a consistência na comparação dentro do Set.
             assuntosSelecionados = new Set(serverSelectedAssuntos.map(String));
         } else {
-            // Se a lista já existe, é uma INTERAÇÃO DO USUÁRIO. A fonte da verdade
-            // são os checkboxes que o usuário marcou na página.
             assuntosSelecionados = new Set(
                 Array.from(formFiltros.querySelectorAll('input[name="assunto"]:checked'))
                      .map(cb => cb.value)
             );
         }
 
-        // Pega os IDs de todas as disciplinas que estão marcadas.
         const selectedDisciplinaIds = Array.from(
             formFiltros.querySelectorAll('input[name="disciplina"]:checked')
         ).map(cb => cb.value);
 
-        assuntoOptionsContainer.innerHTML = ''; // Limpa a lista de assuntos atual.
+        assuntoOptionsContainer.innerHTML = '';
         assuntoDropdownButton.disabled = selectedDisciplinaIds.length === 0;
 
         if (selectedDisciplinaIds.length === 0) {
@@ -70,7 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(response => response.json())
             .then(data => {
                 const assuntosAgrupados = data.assuntos.reduce((acc, assunto) => {
-                    const disciplinaNome = assunto.disciplina__nome;
+                    const disciplinaNome = assunto.disciplina_nome;
                     if (!acc[disciplinaNome]) acc[disciplinaNome] = [];
                     acc[disciplinaNome].push(assunto);
                     return acc;
@@ -83,10 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     assuntoOptionsContainer.appendChild(grupoHeader);
 
                     assuntosAgrupados[disciplinaNome].forEach(assunto => {
-                        // 2. RESTAURAR ESTADO: Usamos nossa variável 'assuntosSelecionados' que agora
-                        // contém os dados corretos, seja da carga inicial ou da interação.
                         const isChecked = assuntosSelecionados.has(assunto.id.toString());
-
                         const li = document.createElement('li');
                         li.innerHTML = `
                             <div class="form-check">
@@ -96,13 +98,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         assuntoOptionsContainer.appendChild(li);
                     });
                 }
-                updateUIFiltros(); // Atualiza a UI após carregar os assuntos.
+                updateUIFiltros();
             });
     }
 
-    /**
-     * Atualiza a seção "Filtros Ativos" com tags para cada filtro selecionado.
-     */
     function updateUIFiltros() {
         activeFiltersContainer.innerHTML = '<strong class="me-2">Filtros Ativos:</strong>';
         let hasFilters = false;
@@ -131,9 +130,6 @@ document.addEventListener('DOMContentLoaded', function () {
         activeFiltersContainer.style.display = hasFilters ? 'block' : 'none';
     }
 
-    /**
-     * Helper para criar uma tag de filtro individual.
-     */
     function createFilterTag(label, name, value) {
         const tag = document.createElement('span');
         tag.className = 'badge bg-light text-dark me-2 mb-2 p-2 fw-normal';
@@ -144,11 +140,12 @@ document.addEventListener('DOMContentLoaded', function () {
         activeFiltersContainer.appendChild(tag);
     }
 
-    // ===================================================================
-    // LISTENERS DE EVENTOS
-    // ===================================================================
-
-    disciplinaCheckboxes.forEach(cb => cb.addEventListener('change', loadAssuntos));
+    disciplinaCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            updateUIFiltros();
+            loadAssuntos();
+        });
+    });
     
     activeFiltersContainer.addEventListener('click', function (e) {
         if (e.target.classList.contains('btn-close')) {
@@ -162,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (checkboxToUncheck) {
                     checkboxToUncheck.checked = false;
                     if (name === 'disciplina') {
+                        updateUIFiltros();
                         loadAssuntos();
                     }
                 }
@@ -176,13 +174,9 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
     
-    // Carga inicial dos assuntos e da UI de filtros.
     loadAssuntos();
 });
 
-/**
- * Filtra as opções de um dropdown com base no texto digitado no campo de busca.
- */
 function filterDropdownOptions(input) {
     const filter = input.value.toUpperCase();
     const container = input.nextElementSibling;
