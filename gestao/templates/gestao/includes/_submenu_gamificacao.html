@@ -1,0 +1,20 @@
+<!-- gestao/templates/gestao/includes/_submenu_gamificacao.html -->
+<div class="mb-4">
+    <ul class="nav nav-pills nav-fill">
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'conquistas' %}active{% endif %}" href="{% url 'gestao:listar_conquistas' %}">
+                <i class="fas fa-trophy me-1"></i> Conquistas
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'avatares' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='avatares' %}">
+                <i class="fas fa-user-circle me-1"></i> Avatares
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'bordas' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='bordas' %}">
+                <i class="fas fa-id-badge me-1"></i> Bordas
+            </a>
+        </li>
+    </ul>
+</div>

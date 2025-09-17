@@ -1,0 +1,21 @@
+<!-- simulados/templates/simulados/includes/_simulado_card_pessoal.html:
+ -->
+
+<div class="card h-100 shadow-sm simulado-card pessoal position-relative">
+    <button type="button" class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2 btn-delete-simulado" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-simulado-id="{{ simulado.id }}" data-simulado-nome="{{ simulado.nome }}" title="Excluir Simulado">
+        <i class="fas fa-trash-alt"></i>
+    </button>
+    <div class="card-body p-4">
+        <h5 class="card-title">{{ simulado.nome }}</h5>
+        <p class="card-text text-muted"><i class="fas fa-list-ol me-2"></i>{{ simulado.num_questoes }} questões</p>
+    </div>
+    <div class="card-footer bg-light p-3">
+         {% if simulado.sessao_ativa_id %}
+            <a href="{% url 'simulados:realizar_simulado' simulado.sessao_ativa_id %}" class="btn btn-warning w-100"><i class="fas fa-play-circle me-2"></i>Continuar</a>
+        {% elif simulado.sessao_concluida_id %}
+             <a href="{% url 'simulados:resultado_simulado' simulado.sessao_concluida_id %}" class="btn btn-success w-100"><i class="fas fa-poll me-2"></i>Ver Resultado</a>
+        {% else %}
+            <a href="{% url 'simulados:iniciar_ou_continuar_sessao' simulado.id %}" class="btn btn-primary w-100"><i class="fas fa-rocket me-2"></i>Iniciar</a>
+        {% endif %}
+    </div>
+</div>

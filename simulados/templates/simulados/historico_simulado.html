@@ -1,0 +1,150 @@
+<!-- simulados/templates/simulados/historico_simulado.html -->
+
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Histórico de: {{ simulado.nome }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<style>
+    .historico-item {
+        transition: background-color 0.2s ease-in-out;
+    }
+    .historico-item:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div>
+            <h1 class="h3 mb-1">Histórico de Tentativas</h1>
+            <h2 class="h5 text-muted fw-normal">{{ simulado.nome }}</h2>
+        </div>
+        <div>
+            <a href="{% url 'simulados:listar_simulados' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+            {% if sessoes %}
+            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmClearModal">
+                <i class="fas fa-trash-alt me-2"></i>Limpar Histórico
+            </button>
+            {% endif %}
+        </div>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="list-group list-group-flush">
+            {% for sessao in sessoes %}
+                <div class="list-group-item p-3 historico-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <a href="{% url 'simulados:resultado_simulado' sessao.id %}" class="text-decoration-none fw-bold">
+                            Tentativa de {{ sessao.data_fim|date:"d/m/Y \à\s H:i" }}
+                        </a>
+                        <p class="mb-0 text-muted small">
+                            Resultado: 
+                            <strong class="text-success">{{ sessao.num_acertos }} acertos</strong> de {{ sessao.num_questoes }} questões
+                        </p>
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" 
+                                data-sessao-id="{{ sessao.id }}" 
+                                data-sessao-data="{{ sessao.data_fim|date:'d/m/Y' }}">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="card-body text-center p-5">
+                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Você ainda não completou este simulado.</h5>
+                    <a href="{% url 'simulados:iniciar_ou_continuar_sessao' simulado.id %}" class="btn btn-primary mt-3">Iniciar Simulado Agora</a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=sessoes %}
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Excluir Item -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Exclusão</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Deseja excluir a tentativa de <strong id="sessaoDataParaExcluir"></strong> do seu histórico?</p>
+            </div>
+            <div class="modal-footer">
+                <form id="deleteForm" method="POST" action="">
+                    <!-- =========================================================== -->
+                    <!-- INÍCIO DA CORREÇÃO: Adicionando o token CSRF -->
+                    <!-- =========================================================== -->
+                    {% csrf_token %}
+                    <!-- =========================================================== -->
+                    <!-- FIM DA CORREÇÃO -->
+                    <!-- =========================================================== -->
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sim, excluir</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmação para Limpar Histórico -->
+<div class="modal fade" id="confirmClearModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Ação Irreversível</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Você tem certeza que deseja <strong>limpar todo o histórico</strong> para o simulado "{{ simulado.nome }}"? Todas as suas tentativas anteriores serão permanentemente removidas.</p>
+            </div>
+            <div class="modal-footer">
+                <form method="POST" action="{% url 'simulados:limpar_historico_simulado' simulado.id %}">
+                    <!-- =========================================================== -->
+                    <!-- INÍCIO DA CORREÇÃO: Adicionando o token CSRF -->
+                    <!-- =========================================================== -->
+                    {% csrf_token %}
+                    <!-- =========================================================== -->
+                    <!-- FIM DA CORREÇÃO -->
+                    <!-- =========================================================== -->
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sim, limpar todo o histórico</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const confirmDeleteModal = document.getElementById('confirmDeleteModal');
+    if (confirmDeleteModal) {
+        confirmDeleteModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const sessaoId = button.dataset.sessaoId;
+            const sessaoData = button.dataset.sessaoData;
+            
+            confirmDeleteModal.querySelector('#sessaoDataParaExcluir').textContent = sessaoData;
+            const deleteForm = confirmDeleteModal.querySelector('#deleteForm');
+            // A URL está correta, o problema era a falta do token no form
+            deleteForm.action = `/simulados/sessao/${sessaoId}/excluir/`;
+        });
+    }
+});
+</script>
+{% endblock %}

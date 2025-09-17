@@ -15,6 +15,8 @@ from django.contrib.contenttypes.models import ContentType
 # Modelos
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 from .models import RespostaUsuario, Comentario, FiltroSalvo
+from gamificacao.services import _verificar_e_registrar_conquistas # <-- 1. IMPORTAR O NOVO SERVIÇO
+from gamificacao.services import processar_resposta_gamificacao # <-- IMPORT MODIFICADO
 
 # =======================================================================
 # IMPORTAÇÃO DA NOSSA NOVA FUNÇÃO CENTRALIZADA
@@ -92,29 +94,50 @@ def listar_questoes(request):
 # A view 'get_assuntos_por_disciplina' foi removida, pois agora está em 'questoes/views.py'
 # =======================================================================
 
+from gamificacao.services import processar_resposta_gamificacao
+
 @login_required
 @require_POST
 def verificar_resposta(request):
     try:
+        # ... (lógica de salvar resposta - sem alterações)
         data = json.loads(request.body)
         questao_id = data.get('questao_id')
         alternativa_selecionada = data.get('alternativa')
         questao = get_object_or_404(Questao, id=questao_id)
+        
         correta = (alternativa_selecionada == questao.gabarito)
         RespostaUsuario.objects.update_or_create(
             usuario=request.user,
             questao=questao,
             defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
         )
+
+        # Chama o serviço centralizado de gamificação
+        gamificacao_eventos = processar_resposta_gamificacao(request.user.userprofile, correta)
+        
+        nova_conquista_data = None
+        if gamificacao_eventos['nova_conquista']:
+            conquista = gamificacao_eventos['nova_conquista']
+            nova_conquista_data = {'nome': conquista.nome, 'icone': conquista.icone, 'cor': conquista.cor}
+
         explicacao_html = markdown.markdown(questao.explicacao) if questao.explicacao else ""
+        
         return JsonResponse({
             'status': 'success',
             'correta': correta,
             'gabarito': questao.gabarito,
-            'explicacao': explicacao_html 
+            'explicacao': explicacao_html,
+            'nova_conquista': nova_conquista_data,
+            'level_up_info': gamificacao_eventos['level_up_info'],
+            # =======================================================================
+            # ADIÇÃO: Retorna os dados da meta diária para o front-end
+            # =======================================================================
+            'meta_completa_info': gamificacao_eventos['meta_completa_info'],
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
     
 @login_required
 @require_POST
@@ -136,35 +159,58 @@ def favoritar_questao(request):
 
 @login_required
 def carregar_comentarios(request, questao_id):
+    """
+    Carrega todos os comentários de uma questão, incluindo as respostas aninhadas,
+    e os retorna em formato JSON para serem renderizados dinamicamente no front-end.
+    """
     questao = get_object_or_404(Questao, id=questao_id)
     sort_by = request.GET.get('sort_by', 'recent')
 
+    # Filtra apenas os comentários principais (que não são respostas a outros)
     comentarios_principais = questao.comentarios.filter(parent__isnull=True)
 
+    # Aplica a ordenação solicitada
     if sort_by == 'likes':
         comentarios_qs = comentarios_principais.annotate(num_likes=Count('likes')).order_by('-num_likes', '-data_criacao')
-    else:
+    else: # 'recent' é o padrão
         comentarios_qs = comentarios_principais.order_by('-data_criacao')
 
     def formatar_arvore_comentarios(comentario):
+        """
+        Função recursiva que formata um comentário e todas as suas respostas
+        em uma estrutura de dicionário aninhada.
+        """
+        # Busca e formata as respostas deste comentário
         respostas = comentario.respostas.all().order_by('data_criacao')
         respostas_formatadas = [formatar_arvore_comentarios(r) for r in respostas]
 
-        # ===================================================================
-        # INÍCIO DA CORREÇÃO
-        # 1. Converte a data/hora do banco (UTC) para o fuso horário local.
-        # ===================================================================
+        # Converte a data/hora do banco (UTC) para o fuso horário local
         data_local = localtime(comentario.data_criacao)
+        
         # ===================================================================
-        # FIM DA CORREÇÃO
+        # LÓGICA PARA BUSCAR AVATAR E BORDA EQUIPADOS
+        # ===================================================================
+        avatar_url = None
+        borda_url = None
+        # Usamos hasattr como uma verificação de segurança
+        if hasattr(comentario.usuario, 'userprofile'):
+            profile = comentario.usuario.userprofile
+            if profile.avatar_equipado:
+                avatar_url = profile.avatar_equipado.imagem.url
+            if profile.borda_equipada:
+                borda_url = profile.borda_equipada.imagem.url
         # ===================================================================
 
         return {
             'id': comentario.id,
             'usuario': comentario.usuario.userprofile.nome,
+            # ===============================================================
+            # PASSANDO AS NOVAS URLS PARA O JSON
+            # ===============================================================
+            'usuario_avatar_url': avatar_url,
+            'usuario_borda_url': borda_url,
             'conteudo': markdown.markdown(comentario.conteudo),
             'conteudo_raw': comentario.conteudo,
-            # 2. Usa a data/hora já convertida para formatar o texto em português.
             'data_criacao': formats.date_format(data_local, "d \\d\\e F \\d\\e Y \\à\\s H:i"),
             'pode_editar': comentario.usuario == request.user,
             'likes_count': comentario.likes.count(),
@@ -174,15 +220,14 @@ def carregar_comentarios(request, questao_id):
             'parent_id': comentario.parent_id
         }
 
+    # Itera sobre os comentários principais para construir a árvore de dados
     comentarios_data = [formatar_arvore_comentarios(c) for c in comentarios_qs]
 
     return JsonResponse({'comentarios': comentarios_data})
 
 
 
-# pratica/views.py
 
-# ... (outros imports e views) ...
 
 @login_required
 @require_POST
@@ -384,8 +429,7 @@ def get_assuntos_por_disciplina(request):
 
 # pratica/views.py
 
-from django.db import IntegrityError # Adicione esta importação
-# ... (outras importações)
+
 
 @login_required
 @require_POST

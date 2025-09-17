@@ -1,20 +1,21 @@
-# gestao/forms.py (ARQUIVO CORRIGIDO)
-
 from django import forms
 from django.contrib.auth.models import User
 from .models import SolicitacaoExclusao
-
-# =======================================================================
-# INÍCIO DA CORREÇÃO: Imports agora apontam para os apps corretos
-# =======================================================================
 from gamificacao.models import Conquista
-from simulados.models import Simulado
-
-from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
-
+# =======================================================================
+# INÍCIO DA CORREÇÃO: Importando NivelDificuldade do app simulados
+# =======================================================================
+from simulados.models import Simulado, StatusSimulado, NivelDificuldade
 # =======================================================================
 # FIM DA CORREÇÃO
 # =======================================================================
+from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
+from gamificacao.models import Conquista
+from gamificacao.models import Conquista, Avatar, Borda
+
+
+
+
 
 class StaffUserForm(forms.ModelForm):
     class Meta:
@@ -58,6 +59,10 @@ class ExclusaoUsuarioForm(forms.Form):
         required=False
     )
 
+
+# =======================================================================
+# FORMULÁRIO DE CONQUISTA ATUALIZADO PARA O PAINEL DE GESTÃO
+# =======================================================================
 class ConquistaForm(forms.ModelForm):
     class Meta:
         model = Conquista
@@ -67,35 +72,25 @@ class ConquistaForm(forms.ModelForm):
             'chave': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: STREAK_7_DIAS'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'icone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: fas fa-fire'}),
-            'cor': forms.TextInput(attrs={'class': 'form-control', 'type': 'color'}),
+            'cor': forms.TextInput(attrs={'class': 'form-control', 'type': 'color', 'style': 'width: 100px;'}),
         }
         help_texts = {
-            'chave': 'Este é o identificador único usado pelo sistema. Não mude após criado.',
+            'chave': 'Este é o identificador único usado pelo sistema. NÃO MUDE após criado, pois pode quebrar a lógica de atribuição.',
             'icone': 'Use classes do Font Awesome (ex: "fas fa-trophy").',
         }
-
+        
+        
 class SimuladoForm(forms.ModelForm):
-    # =======================================================================
-    # INÍCIO DA ADIÇÃO: Classe Meta para resolver o erro
-    # =======================================================================
     class Meta:
         model = Simulado
-        # O ModelForm irá gerar automaticamente o campo 'nome'.
-        # O campo 'questoes' já está definido abaixo e será usado em vez do padrão.
         fields = ['nome', 'questoes']
-    # =======================================================================
-    # FIM DA ADIÇÃO
-    # =======================================================================
 
-    # Campos para a funcionalidade de EDIÇÃO (existente) - Lógica Mantida
     questoes = forms.ModelMultipleChoiceField(
         queryset=Questao.objects.all(),
         widget=forms.SelectMultiple(attrs={'class': 'form-control', 'id': 'tom-select-questoes'}),
         label="Questões do Simulado",
         required=False
     )
-
-    # Campos para a funcionalidade de CRIAÇÃO (nova) - Lógica Mantida
     banca = forms.ModelChoiceField(
         queryset=Banca.objects.all().order_by('nome'),
         label="Banca",
@@ -109,7 +104,7 @@ class SimuladoForm(forms.ModelForm):
         required=False
     )
     assunto = forms.ModelChoiceField(
-        queryset=Assunto.objects.none(),  # Inicia vazio, será populado por JS
+        queryset=Assunto.objects.none(),
         label="Assunto",
         widget=forms.Select(attrs={'class': 'form-select'}),
         required=True
@@ -121,12 +116,10 @@ class SimuladoForm(forms.ModelForm):
         required=False
     )
 
-    # Lógica de inicialização existente é totalmente preservada
     def __init__(self, *args, **kwargs):
         fields_to_show = kwargs.pop('fields_to_show', None)
         super().__init__(*args, **kwargs)
 
-        # Lógica para popular dinamicamente os assuntos
         if 'disciplina' in self.data:
             try:
                 disciplina_id = int(self.data.get('disciplina'))
@@ -134,7 +127,6 @@ class SimuladoForm(forms.ModelForm):
             except (ValueError, TypeError):
                 pass
         
-        # Lógica existente para mostrar/esconder campos
         if fields_to_show is not None:
             allowed = set(fields_to_show)
             existing = set(self.fields.keys())
@@ -147,12 +139,24 @@ class SimuladoMetaForm(forms.ModelForm):
     """
     class Meta:
         model = Simulado
-        fields = ['nome', 'status']
+        # =======================================================================
+        # INÍCIO DA CORREÇÃO: Adicionando o campo 'dificuldade'
+        # =======================================================================
+        fields = ['nome', 'status', 'dificuldade']
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-select'}),
+            # =======================================================================
+            # INÍCIO DA CORREÇÃO: Widget para o novo campo
+            # =======================================================================
+            'dificuldade': forms.Select(attrs={'class': 'form-select'}),
+            # =======================================================================
+            # FIM DA CORREÇÃO
+            # =======================================================================
         }
-        
         
 class SimuladoWizardForm(forms.Form):
     """ Formulário para a primeira etapa da criação de um simulado. """
@@ -161,35 +165,42 @@ class SimuladoWizardForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Simulado de Direito Constitucional - FGV'})
     )
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Adicionando o campo de dificuldade na criação
+    # =======================================================================
+    dificuldade = forms.ChoiceField(
+        choices=NivelDificuldade.choices,
+        label="Nível de Dificuldade",
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        initial=NivelDificuldade.MEDIO,
+        required=True
+    )
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
     disciplinas = forms.ModelMultipleChoiceField(
         queryset=Disciplina.objects.all().order_by('nome'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+        widget=forms.SelectMultiple(),
         required=False
     )
-    # =======================================================================
-    # INÍCIO DA ADIÇÃO: Campo de filtro para Assunto
-    # =======================================================================
     assuntos = forms.ModelMultipleChoiceField(
-        queryset=Assunto.objects.none(), # Inicia vazio, será populado por JS
-        widget=forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+        queryset=Assunto.objects.none(),
+        widget=forms.SelectMultiple(),
         required=False
     )
-    # =======================================================================
-    # FIM DA ADIÇÃO
-    # =======================================================================
     bancas = forms.ModelMultipleChoiceField(
         queryset=Banca.objects.all().order_by('nome'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+        widget=forms.SelectMultiple(),
         required=False
     )
     instituicoes = forms.ModelMultipleChoiceField(
         queryset=Instituicao.objects.all().order_by('nome'),
-        widget=forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+        widget=forms.SelectMultiple(),
         required=False
     )
     anos = forms.MultipleChoiceField(
         choices=[],
-        widget=forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+        widget=forms.SelectMultiple(),
         required=False
     )
 
@@ -198,10 +209,46 @@ class SimuladoWizardForm(forms.Form):
         anos_disponiveis = Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano')
         self.fields['anos'].choices = [(ano, ano) for ano in anos_disponiveis]
 
-        # Popula o queryset de assuntos se disciplinas foram enviadas (caso de erro no POST)
         if 'disciplinas' in self.data:
             try:
                 disciplina_ids = self.data.getlist('disciplinas')
                 self.fields['assuntos'].queryset = Assunto.objects.filter(disciplina_id__in=disciplina_ids).order_by('nome')
             except (ValueError, TypeError):
                 pass
+
+# =======================================================================
+# NOVOS FORMS PARA AVATARES E BORDAS
+# =======================================================================
+class RecompensaBaseForm(forms.ModelForm):
+    """Formulário base para compartilhar campos entre Avatar e Borda."""
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Popula o campo conquista_necessaria com as conquistas existentes
+        self.fields['conquista_necessaria'].queryset = Conquista.objects.all().order_by('nome')
+        self.fields['conquista_necessaria'].required = False
+
+class AvatarForm(RecompensaBaseForm):
+    class Meta:
+        model = Avatar
+        fields = ['nome', 'descricao', 'imagem', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Desbloqueado ao atingir o Nível 10'}),
+            'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
+            'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
+            'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+class BordaForm(RecompensaBaseForm):
+    class Meta:
+        model = Borda
+        fields = ['nome', 'descricao', 'imagem', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Desbloqueado pela conquista "Mão Calibrada"'}),
+            'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
+            'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
+            'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
+        }

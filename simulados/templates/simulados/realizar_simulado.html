@@ -1,5 +1,3 @@
-<!-- simulados/templates/simulados/realizar_simulado.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Realizando Simulado{% endblock %}
@@ -25,6 +23,40 @@
     .revisao-item:hover { background-color: #f1f3f5; }
     .revisao-item.respondida { background-color: #eef5ff; border-left: 3px solid var(--cor-primaria); }
     .revisao-item.marcada-revisao { border-right: 3px solid var(--cor-aviso); }
+
+    /* Estilos para responsividade */
+    @media (max-width: 767px) {
+        .simulado-header {
+            flex-direction: column;
+            gap: 0.75rem;
+            padding: 1rem;
+        }
+        .simulado-header > div:first-child {
+            text-align: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .questao-card .card-body {
+            padding: 1.5rem 1rem !important;
+        }
+        .card-questao-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .simulado-container > .d-flex.justify-content-between {
+            gap: 1rem;
+        }
+        .simulado-container > .d-flex.justify-content-between > .d-flex {
+            display: none !important;
+        }
+        .simulado-container > .d-flex.justify-content-between > .btn {
+            flex-grow: 1;
+            font-size: 1rem;
+            padding: 0.75rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -145,7 +177,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 questaoAtualNumero: 1,
                 irParaQuestaoInput: 1,
                 tempoRestante: Math.floor({{ tempo_restante_segundos }}),
-                timerInterval: null
+                timerInterval: null,
+                localStorageKey: `respostas_pendentes_{{ sessao.id }}`,
+                simuladoFinalizado: false
             }
         },
         delimiters: ['[[', ']]'],
@@ -170,6 +204,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (this.tempoRestante <= 0) {
                         clearInterval(this.timerInterval);
                         this.tempoRestante = 0;
+                        this.simuladoFinalizado = true;
                         this.showNotificationModal('Tempo Esgotado!', 'Seu tempo acabou. O simulado será finalizado agora.', () => {
                             document.getElementById('form-finalizar').submit();
                         });
@@ -185,9 +220,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     this.questaoAtualNumero = numero;
                     this.irParaQuestaoInput = numero;
                     const revisarModalEl = document.getElementById('revisarModal');
-                    const revisarModalInstance = bootstrap.Modal.getInstance(revisarModalEl);
-                    if (revisarModalInstance && revisarModalEl.classList.contains('show')) {
-                        revisarModalInstance.hide();
+                    if (revisarModalEl && revisarModalEl.classList.contains('show')) {
+                        const revisarModalInstance = bootstrap.Modal.getInstance(revisarModalEl);
+                        if (revisarModalInstance) {
+                            revisarModalInstance.hide();
+                        }
                     }
                 } else {
                     this.irParaQuestaoInput = this.questaoAtualNumero;
@@ -196,18 +233,32 @@ document.addEventListener('DOMContentLoaded', function() {
             irParaAnterior() { if (this.questaoAtualNumero > 1) this.irParaQuestao(this.questaoAtualNumero - 1); },
             irParaProxima() { if (!this.eAUltimaQuestao) this.irParaQuestao(this.questaoAtualNumero + 1); },
             proximaOuFinalizar() { if (this.eAUltimaQuestao) this.confirmarFinalizar(); else this.irParaProxima(); },
+
             async registrarResposta() {
                 const questao = this.questaoAtual;
+                const resposta = { questao_id: questao.id, alternativa: questao.resposta_usuario };
+                let respostasPendentes = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+                respostasPendentes[questao.id] = resposta;
+                localStorage.setItem(this.localStorageKey, JSON.stringify(respostasPendentes));
+
                 try {
-                    await fetch("{% url 'simulados:registrar_resposta_simulado' sessao.id %}", {
+                    const response = await fetch("{% url 'simulados:registrar_resposta_simulado' sessao.id %}", {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                        body: JSON.stringify({ questao_id: questao.id, alternativa: questao.resposta_usuario })
+                        body: JSON.stringify(resposta)
                     });
+                    if (response.ok) {
+                        let pendentes = JSON.parse(localStorage.getItem(this.localStorageKey) || '{}');
+                        delete pendentes[questao.id];
+                        localStorage.setItem(this.localStorageKey, JSON.stringify(pendentes));
+                    } else {
+                        console.warn('Resposta salva localmente, mas falhou ao enviar para o servidor.');
+                    }
                 } catch (error) {
-                    console.error("Erro ao registrar resposta:", error);
+                    console.error("Erro de rede ao registrar resposta. Salvo localmente.", error);
                 }
             },
+            
             confirmarFinalizar() {
                 const naoRespondidas = this.questoes.filter(q => !q.resposta_usuario).length;
                 const marcadasRevisao = this.questoes.filter(q => q.marcada_revisao).length;
@@ -219,13 +270,110 @@ document.addEventListener('DOMContentLoaded', function() {
                     message += '</ul>Deseja finalizar mesmo assim?';
                 }
                 this.showConfirmationModal('Finalizar Simulado', message, () => {
+                    this.simuladoFinalizado = true; 
                     document.getElementById('form-finalizar').submit();
                 });
             },
-            // Modal Genérico
+            
+            handleKeydown(event) {
+                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') return;
+                if ([' ', 'Enter', 'ArrowRight', 'ArrowLeft'].includes(event.key)) event.preventDefault();
+                
+                switch(event.key) {
+                    case 'ArrowRight': case 'Enter': case ' ':
+                        this.proximaOuFinalizar();
+                        break;
+                    case 'ArrowLeft':
+                        this.irParaAnterior();
+                        break;
+                    case 'a': case 'A': this.selecionarAlternativa('A'); break;
+                    case 'b': case 'B': this.selecionarAlternativa('B'); break;
+                    case 'c': case 'C': this.selecionarAlternativa('C'); break;
+                    case 'd': case 'D': this.selecionarAlternativa('D'); break;
+                    case 'e': case 'E': this.selecionarAlternativa('E'); break;
+                }
+            },
+            selecionarAlternativa(letra) {
+                if (this.questaoAtual && this.questaoAtual.alternativas[letra.toLowerCase()]) {
+                    this.questaoAtual.resposta_usuario = letra;
+                    this.registrarResposta();
+                }
+            },
+            handleBeforeUnload(event) {
+                if (!this.simuladoFinalizado) {
+                    event.preventDefault();
+                    event.returnValue = '';
+                }
+            },
+            handleVisibilityChange() {
+                 if (document.hidden) {
+                    this.pausarTimer();
+                } else {
+                    this.showResumeNotification();
+                }
+            },
+
+            // =======================================================================
+            // ADIÇÃO E MODIFICAÇÕES AQUI
+            // =======================================================================
+            reiniciarSimulado() {
+                this.pausarTimer();
+                this.questoes.forEach(q => {
+                    q.resposta_usuario = null;
+                    q.marcada_revisao = false;
+                });
+                localStorage.removeItem(this.localStorageKey);
+
+                const duracaoTotalSegundos = this.totalQuestoes * 2 * 60;
+                this.tempoRestante = duracaoTotalSegundos;
+
+                this.irParaQuestao(1);
+                this.iniciarTimer();
+            },
+
+            showResumeNotification() {
+                const genericModalEl = document.getElementById('genericModal');
+                const genericModal = bootstrap.Modal.getOrCreateInstance(genericModalEl);
+                
+                const modalTitle = document.getElementById('genericModalTitle');
+                const modalBody = document.getElementById('genericModalBody');
+                const confirmBtn = document.getElementById('genericModalConfirmBtn');
+                const cancelBtn = document.getElementById('genericModalCancelBtn');
+
+                modalTitle.textContent = 'Retomando Simulado';
+                modalBody.innerHTML = '<p>Você tem um simulado em andamento. O que deseja fazer?</p>';
+                
+                confirmBtn.textContent = 'Continuar de onde parei';
+                confirmBtn.className = 'btn btn-primary';
+                
+                cancelBtn.style.display = 'inline-block';
+                cancelBtn.textContent = 'Reiniciar Simulado';
+                cancelBtn.className = 'btn btn-outline-danger';
+
+                const continueHandler = () => {
+                    genericModal.hide();
+                    this.iniciarTimer();
+                };
+
+                const restartHandler = () => {
+                    genericModal.hide();
+                    this.reiniciarSimulado();
+                };
+                
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.addEventListener('click', continueHandler, { once: true });
+
+                const newCancelBtn = cancelBtn.cloneNode(true);
+                cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                newCancelBtn.addEventListener('click', restartHandler, { once: true });
+                
+                genericModal.show();
+            },
+
             showNotificationModal(title, message, onConfirm) {
                 const genericModalEl = document.getElementById('genericModal');
-                const genericModal = new bootstrap.Modal(genericModalEl);
+                const genericModal = bootstrap.Modal.getOrCreateInstance(genericModalEl);
                 const modalTitle = document.getElementById('genericModalTitle');
                 const modalBody = document.getElementById('genericModalBody');
                 const confirmBtn = document.getElementById('genericModalConfirmBtn');
@@ -240,14 +388,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const confirmHandler = () => {
                     genericModal.hide();
                     if (onConfirm) onConfirm();
-                    confirmBtn.removeEventListener('click', confirmHandler);
                 };
-                confirmBtn.addEventListener('click', confirmHandler);
+                
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+                
                 genericModal.show();
             },
             showConfirmationModal(title, message, onConfirm) {
                 const genericModalEl = document.getElementById('genericModal');
-                const genericModal = new bootstrap.Modal(genericModalEl);
+                const genericModal = bootstrap.Modal.getOrCreateInstance(genericModalEl);
                 const modalTitle = document.getElementById('genericModalTitle');
                 const modalBody = document.getElementById('genericModalBody');
                 const confirmBtn = document.getElementById('genericModalConfirmBtn');
@@ -262,18 +413,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 const confirmHandler = () => {
                     genericModal.hide();
                     if (onConfirm) onConfirm();
-                    confirmBtn.removeEventListener('click', confirmHandler);
                 };
-                confirmBtn.addEventListener('click', confirmHandler);
+                
+                const newConfirmBtn = confirmBtn.cloneNode(true);
+                confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                newConfirmBtn.addEventListener('click', confirmHandler, { once: true });
+
                 genericModal.show();
             }
         },
         mounted() {
-            this.iniciarTimer();
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden) this.pausarTimer();
-                else this.iniciarTimer();
-            });
+            const resumeFlagKey = `simulado_resumed_{{ sessao.id }}`;
+
+            if (sessionStorage.getItem(resumeFlagKey)) {
+                this.showResumeNotification();
+            } else {
+                this.iniciarTimer();
+                sessionStorage.setItem(resumeFlagKey, 'true');
+            }
+
+            document.addEventListener('visibilitychange', this.handleVisibilityChange);
+            window.addEventListener('keydown', this.handleKeydown);
+            window.addEventListener('beforeunload', this.handleBeforeUnload);
+        },
+        beforeUnmount() {
+            this.pausarTimer();
+            document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+            window.removeEventListener('keydown', this.handleKeydown);
+            window.removeEventListener('beforeunload', this.handleBeforeUnload);
         }
     }).mount('#app-simulado');
 });

@@ -1,3 +1,5 @@
+<!-- gestao/templates/gestao/form_criar_simulado_etapa1.html -->
+
 {% extends 'base.html' %}
 {% load static %}
 {% load pratica_extras %}
@@ -5,8 +7,10 @@
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block head %}
-{# Removido o TomSelect, pois agora usamos os dropdowns padrão #}
 <style>
+
+
+
     .form-wizard-container { max-width: 800px; margin: auto; }
     .filtro-feedback {
         background-color: #eef5ff;
@@ -18,21 +22,29 @@
         align-items: center;
         transition: all 0.3s ease;
     }
-    /* Estilos necessários para o componente de filtro incluído */
     .filter-card, .filter-card .collapse { overflow: visible; }
     .dropdown { position: relative; }
     .dropdown-menu { width: 100%; max-height: 300px; overflow-y: auto; }
     .dropdown-menu .form-check-label { white-space: normal; word-wrap: break-word; }
-
-    /* Esconde definitivamente o input de palavra-chave quando o form tiver essa classe */
-        form.hide-palavra .input-group input[name$="palavra_chave"] {
-            display: none !important;
-        }
-        /* Esconde o input e também o span da lupa */
-        form.hide-palavra .input-group {
-            display: none !important;
-        }
-
+    form.hide-palavra .input-group input[name$="palavra_chave"] { display: none !important; }
+    form.hide-palavra .input-group { display: none !important; }
+    .search-input-container { padding: 0.5rem 0.75rem; position: sticky; top: 0; background-color: white; z-index: 10; border-bottom: 1px solid #dee2e6; }
+    .dropdown-options-container { max-height: 250px; overflow-y: auto; }
+    .dropdown-options-container li { padding: 0; margin: 0; list-style: none; }
+    [id^="options-"][id$="assunto"] .form-check { padding-left: 2.2rem !important; display: block !important; padding-top: 0.5rem; padding-bottom: 0.5rem; margin: 0 !important; }
+    [id^="options-"][id$="assunto"] .form-check .form-check-input { margin-left: -1.9rem !important; margin-top: 0.4em !important; float: left !important; }
+    [id^="options-"][id$="assunto"] .dropdown-header { padding: 0.8rem 1.2rem 0.4rem 1.2rem; text-align: left; font-size: 0.9rem; font-weight: 700; color: #0d6efd; background-color: #f8f9fa; white-space: normal !important; overflow-wrap: break-word; }
+    [id^="options-"][id$="assunto"] .dropdown-header:not(:first-of-type) { border-top: 1px solid #e0e0e0; margin-top: 0.5rem; padding-top: 1rem; }
+    .dropdown-options-container .form-check { padding: 0.4rem 1.8rem; white-space: normal; word-wrap: break-word; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+    .dropdown-options-container .form-check:hover { background-color: #f8f9fa; }
+    .dropdown-options-container .form-check .form-check-input { margin-top: 0.3em; }
+    .filter-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; font-size: 0.8em; font-weight: 500; border-radius: 1rem; background-color: #e9ecef; border: 1px solid #dee2e6; color: #495057; }
+    .remove-filter-btn { margin-left: 0.5rem; padding: 0; background: none; border: none; font-size: 1.4em; line-height: 1; cursor: pointer; color: #6c757d; opacity: 0.7; }
+    .remove-filter-btn:hover { opacity: 1; }
+    .btn-filter { text-align: left; }
+    .btn-filter span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-filter .badge { flex-shrink: 0; }
+    .btn-filter.active { background-color: #6c757d; color: white; border-color: #6c757d; }
 </style>
 {% endblock %}
 
@@ -49,30 +61,38 @@
         <div class="card-body p-4 p-md-5">
             <h5 class="card-title">Definir Universo de Questões</h5>
             <p class="card-text text-muted mb-4">
-                Comece nomeando seu simulado. Em seguida, selecione os filtros para pré-selecionar as questões que estarão disponíveis na próxima etapa.
+                Comece nomeando seu simulado e definindo seu nível. Em seguida, selecione os filtros para pré-selecionar as questões que estarão disponíveis na próxima etapa.
             </p>
             
-            <!-- ✅ CORREÇÃO: O formulário agora tem a estrutura correta para o include -->
             <form method="POST" action="{{ form_action_url }}" id="form-filtros" 
-            class="{{ form_classes }}"
-            data-assuntos-url="{{ assuntos_url }}" 
-            data-selected-assuntos="{{ selected_assuntos_json|safe }}"
-            data-prefix="{{ prefix }}">
-      
+                  class="{{ form_classes }}"
+                  data-assuntos-url="{{ assuntos_url }}" 
+                  data-selected-assuntos="{{ selected_assuntos_json|safe }}"
+                  data-prefix="{{ prefix }}">
                 {% csrf_token %}
-
                 
-                
-                <div class="mb-4">
-                    <label for="id_nome" class="form-label fw-bold">Nome do Simulado</label>
-                    <input type="text" name="nome" class="form-control" placeholder="Ex: Simulado de Direito Constitucional - FGV" required id="id_nome">
+                <!-- ======================================================================= -->
+                <!-- INÍCIO DA CORREÇÃO: Estrutura para Nome e Dificuldade -->
+                <!-- ======================================================================= -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-8">
+                        <label for="{{ form.nome.id_for_label }}" class="form-label fw-bold">{{ form.nome.label }}</label>
+                        {{ form.nome }}
+                        {{ form.nome.errors }}
+                    </div>
+                    <div class="col-md-4">
+                        <label for="{{ form.dificuldade.id_for_label }}" class="form-label fw-bold">{{ form.dificuldade.label }}</label>
+                        {{ form.dificuldade }}
+                        {{ form.dificuldade.errors }}
+                    </div>
                 </div>
+                <!-- ======================================================================= -->
+                <!-- FIM DA CORREÇÃO -->
+                <!-- ======================================================================= -->
 
                 <label class="form-label fw-bold">Filtros Iniciais (Opcional)</label>
                 
-                <!-- ✅ CORREÇÃO: Incluindo o sistema de filtros que já funciona -->
                 {% include 'gestao/includes/_filtros_questoes_avancado.html' %}
-
             </form>
         </div>
     </div>
@@ -80,11 +100,9 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- ✅ CORREÇÃO: Carregando o MESMO arquivo JS do editor, que já tem a lógica correta -->
 <script src="{% static 'js/filtros-questoes-avancado.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // A lógica de feedback de contagem permanece.
     const form = document.getElementById('form-filtros');
     const feedbackContainer = document.getElementById('filtro-feedback-container');
     let debounceTimer;
@@ -114,13 +132,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // O listener agora é aplicado ao formulário que foi incluído
     form.addEventListener('change', () => {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(updateQuestionCount, 500);
     });
 
-    // Dispara a contagem inicial caso a página recarregue com erros de formulário
     updateQuestionCount();
 });
 </script>

@@ -23,9 +23,11 @@ from django.urls import reverse
 from collections import defaultdict
 from .forms import SimuladoWizardForm, SimuladoForm
 from .forms import SimuladoMetaForm # Adicionar importação
+from gamificacao.models import Conquista, Avatar, Borda
 
 from simulados.models import Simulado, StatusSimulado
 from django.views.decorators.http import require_POST # Adicione este import
+from .forms import ConquistaForm, AvatarForm, BordaForm
 
 from django.template.loader import render_to_string # Adicionar importação
 
@@ -52,6 +54,9 @@ from .forms import StaffUserForm, ExclusaoUsuarioForm, ConquistaForm, SimuladoFo
 from django.contrib.contenttypes.models import ContentType
 
 from .forms import SimuladoForm # A view agora usa o SimuladoForm
+
+from gamificacao.models import Conquista
+from .forms import ConquistaForm
 
 
 # =======================================================================
@@ -80,15 +85,13 @@ def dashboard_gestao(request):
     total_questoes = Questao.objects.count()
     notificacoes_pendentes = Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count()
     solicitacoes_pendentes_count = SolicitacaoExclusao.objects.filter(status=SolicitacaoExclusao.Status.PENDENTE).count()
-    
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Contando apenas os simulados oficiais
-    # =======================================================================
     total_simulados = Simulado.objects.filter(is_oficial=True).count()
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
     
+    # =======================================================================
+    # ADIÇÃO: Contagem total de conquistas cadastradas
+    # =======================================================================
+    total_conquistas = Conquista.objects.count()
+
     promocoes_pendentes_count = 0
     despromocoes_pendentes_count = 0
     exclusoes_superuser_pendentes_count = 0
@@ -102,7 +105,11 @@ def dashboard_gestao(request):
         'total_questoes': total_questoes,
         'notificacoes_pendentes': notificacoes_pendentes,
         'solicitacoes_pendentes_count': solicitacoes_pendentes_count,
-        'total_simulados': total_simulados, # Passa a contagem correta para o template
+        'total_simulados': total_simulados,
+        # =======================================================================
+        # ADIÇÃO: Passando a nova contagem para o template
+        # =======================================================================
+        'total_conquistas': total_conquistas,
         'promocoes_pendentes_count': promocoes_pendentes_count,
         'despromocoes_pendentes_count': despromocoes_pendentes_count,
         'exclusoes_superuser_pendentes_count': exclusoes_superuser_pendentes_count,
@@ -288,14 +295,23 @@ def listar_questoes_deletadas(request):
     # Gera opções de filtro baseadas apenas nas questões que estão na lixeira
     deleted_questoes_ids = base_queryset.values_list('id', flat=True)
     
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO
+    # As chaves do dicionário foram renomeadas para corresponderem
+    # exatamente ao que o template _filtros_questoes.html espera.
+    # Ex: 'disciplinas_para_filtro' virou 'disciplinas'.
+    # =======================================================================
     context.update({
         'sort_by': sort_by,
         'sort_options': sort_options,
-        'disciplinas_para_filtro': Disciplina.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
-        'bancas_para_filtro': Banca.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
-        'instituicoes_para_filtro': Instituicao.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
-        'anos_para_filtro': Questao.all_objects.filter(id__in=deleted_questoes_ids).exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
+        'disciplinas': Disciplina.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
+        'bancas': Banca.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
+        'instituicoes': Instituicao.objects.filter(questao__id__in=deleted_questoes_ids).distinct().order_by('nome'),
+        'anos': Questao.all_objects.filter(id__in=deleted_questoes_ids).exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
     })
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
     
     return render(request, 'gestao/listar_questoes_deletadas.html', context)
 
@@ -1674,18 +1690,23 @@ def listar_simulados_gestao(request):
 @login_required
 def criar_simulado(request):
     """
-    ETAPA 1 DO ASSISTENTE: Define o nome e os filtros iniciais do simulado.
-    Agora usa o mesmo sistema de filtros da página de edição para consistência.
+    ETAPA 1 DO ASSISTENTE: Define o nome, dificuldade e filtros iniciais do simulado.
     """
     if request.method == 'POST':
-        # A lógica de POST já está correta e não precisa de alterações.
         form = SimuladoWizardForm(request.POST)
         if form.is_valid():
+            # =======================================================================
+            # INÍCIO DA CORREÇÃO: Adicionar 'dificuldade' ao criar o objeto
+            # =======================================================================
             simulado = Simulado.objects.create(
                 nome=form.cleaned_data['nome'],
+                dificuldade=form.cleaned_data['dificuldade'],
                 criado_por=request.user,
                 is_oficial=True
             )
+            # =======================================================================
+            # FIM DA CORREÇÃO
+            # =======================================================================
             
             filtros = {
                 'disciplinas': [int(d) for d in request.POST.getlist('disciplina')],
@@ -1704,12 +1725,9 @@ def criar_simulado(request):
     else:
         form = SimuladoWizardForm()
 
-    # ✅ CORREÇÃO: Monta um contexto completo para alimentar o template do filtro.
     context = {
-        'form': form, # Usado apenas para o campo 'nome'
+        'form': form, 
         'titulo': 'Criar Novo Simulado (Etapa 1 de 2)',
-        
-        # Variáveis EXATAMENTE como as da página de edição, para o componente de filtro funcionar.
         'form_action_url': reverse('gestao:criar_simulado'),
         'prefix': '',
         'disciplinas': Disciplina.objects.all().order_by('nome'),
@@ -1717,8 +1735,6 @@ def criar_simulado(request):
         'instituicoes': Instituicao.objects.all().order_by('nome'),
         'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
         'assuntos_url': reverse('questoes:get_assuntos_por_disciplina'),
-        
-        # Mesmo que vazias na criação, estas variáveis precisam existir.
         'selected_disciplinas': [],
         'selected_assuntos': [],
         'selected_bancas': [],
@@ -1747,12 +1763,25 @@ def editar_simulado(request, simulado_id):
         form = SimuladoForm(request.POST, instance=simulado, fields_to_show=['nome'])
         if form.is_valid():
             simulado_salvo = form.save()
-            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_EDITADO, alvo=simulado_salvo, detalhes={'campo_alterado': 'nome', 'novo_nome': simulado_salvo.nome})
+            # =======================================================================
+            # INÍCIO DA CORREÇÃO: A chave 'novo_nome' foi trocada para 'nome_simulado'
+            # para padronizar com as outras ações.
+            # =======================================================================
+            criar_log(
+                ator=request.user, 
+                acao=LogAtividade.Acao.SIMULADO_EDITADO, 
+                alvo=simulado_salvo, 
+                detalhes={'campo_alterado': 'nome', 'nome_simulado': simulado_salvo.nome}
+            )
+            # =======================================================================
+            # FIM DA CORREÇÃO
+            # =======================================================================
             messages.success(request, 'O nome do simulado foi atualizado com sucesso!')
             return redirect(f"{request.path}?{request.GET.urlencode()}")
     else:
         form = SimuladoForm(instance=simulado, fields_to_show=['nome'])
 
+    # O restante desta view permanece inalterado...
     questoes_disponiveis = Questao.objects.all()
     filtros_iniciais_info = {}
     if simulado.filtros_iniciais:
@@ -1806,28 +1835,68 @@ def editar_simulado(request, simulado_id):
     
     return render(request, 'gestao/form_simulado_editor.html', context)
 
-
 @user_passes_test(is_staff_member)
 @login_required
-@require_POST  # ✅ ADIÇÃO: Garante que esta view só aceita requisições POST
+@require_POST
 def deletar_simulado(request, simulado_id):
-    # A busca por is_oficial=True garante que apenas simulados da gestão
-    # podem ser deletados por esta view.
     simulado = get_object_or_404(Simulado, id=simulado_id, is_oficial=True) 
     
     nome_simulado = simulado.nome
     
+    # =======================================================================
+    # CORREÇÃO: Padronizando a chave para 'nome_simulado'.
+    # =======================================================================
     criar_log(
         ator=request.user,
         acao=LogAtividade.Acao.SIMULADO_DELETADO,
-        alvo=None, # O objeto será deletado
-        detalhes={'simulado_deletado': nome_simulado, 'simulado_id': simulado.id}
+        alvo=None,
+        detalhes={'nome_simulado': nome_simulado, 'simulado_id': simulado.id}
     )
     
     simulado.delete()
     messages.success(request, f'O simulado "{nome_simulado}" foi deletado com sucesso.')
     return redirect('gestao:listar_simulados_gestao')
 
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_simulado_meta_ajax(request, simulado_id):
+    """
+    Gerencia a edição dos metadados de um simulado (nome, status, dificuldade) via AJAX.
+    """
+    simulado = get_object_or_404(Simulado, id=simulado_id, is_oficial=True)
+
+    if request.method == 'POST':
+        form = SimuladoMetaForm(request.POST, instance=simulado)
+        if form.is_valid():
+            form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_EDITADO, alvo=simulado, detalhes={'nome_simulado': simulado.nome, 'campos_alterados': list(form.changed_data)})
+            
+            # =======================================================================
+            # INÍCIO DA CORREÇÃO: Adicionar os dados de dificuldade na resposta AJAX
+            # =======================================================================
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Dados do simulado atualizados com sucesso!',
+                'simulado_data': {
+                    'nome': simulado.nome,
+                    'status_display': simulado.get_status_display(),
+                    'status_class': f'bg-status-{simulado.status.lower()}',
+                    'dificuldade_display': simulado.get_dificuldade_display(),
+                    'dificuldade_class': f'bg-{simulado.dificuldade.lower()}-soft text-{simulado.dificuldade.lower()}'
+                }
+            })
+            # =======================================================================
+            # FIM DA CORREÇÃO
+            # =======================================================================
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+    
+    # Se a requisição for GET
+    form = SimuladoMetaForm(instance=simulado)
+    form_html = render_to_string('gestao/includes/_form_simulado_meta.html', {'form': form}, request=request)
+    
+    return JsonResponse({'status': 'success', 'form_html': form_html})
 
 
 # Nova API para adicionar/remover questões do simulado via AJAX
@@ -1856,6 +1925,7 @@ def gerenciar_questoes_simulado_ajax(request, simulado_id):
 
     except (json.JSONDecodeError, Questao.DoesNotExist):
         return HttpResponseBadRequest("Requisição inválida.")
+
 
 @user_passes_test(is_staff_member)
 @require_POST
@@ -1888,37 +1958,178 @@ def api_contar_questoes_filtro(request):
         # Para depuração, é útil logar o erro
         print(f"Erro na API de contagem: {e}")
         return JsonResponse({'status': 'error', 'message': 'Filtros inválidos.'}, status=400)
+    
+    
+@user_passes_test(is_staff_member)
+@login_required
+def listar_conquistas(request):
+    """Lista todas as conquistas cadastradas no sistema."""
+    conquistas_list = Conquista.objects.all().order_by('nome')
+    paginated_object, page_numbers, per_page = paginar_itens(request, conquistas_list, 15)
+    
+    context = {
+        'conquistas': paginated_object,
+        'paginated_object': paginated_object,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+    }
+    return render(request, 'gestao/listar_conquistas.html', context)
 
 @user_passes_test(is_staff_member)
 @login_required
-def editar_simulado_meta_ajax(request, simulado_id):
-    """
-    Gerencia a edição dos metadados de um simulado (nome e status) via AJAX.
-    - GET: Retorna o HTML do formulário para ser injetado no modal.
-    - POST: Valida e salva os dados enviados pelo formulário.
-    """
-    simulado = get_object_or_404(Simulado, id=simulado_id, is_oficial=True)
-
+def criar_conquista(request):
+    """Cria uma nova conquista."""
     if request.method == 'POST':
-        form = SimuladoMetaForm(request.POST, instance=simulado)
+        form = ConquistaForm(request.POST)
+        if form.is_valid():
+            conquista = form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_CRIADA, alvo=conquista)
+            messages.success(request, f'A conquista "{conquista.nome}" foi criada com sucesso.')
+            return redirect('gestao:listar_conquistas')
+    else:
+        form = ConquistaForm()
+        
+    context = {'form': form, 'titulo': 'Criar Nova Conquista'}
+    return render(request, 'gestao/form_conquista.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_conquista(request, conquista_id):
+    """Edita uma conquista existente."""
+    conquista = get_object_or_404(Conquista, id=conquista_id)
+    if request.method == 'POST':
+        form = ConquistaForm(request.POST, instance=conquista)
         if form.is_valid():
             form.save()
-            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_EDITADO, alvo=simulado, detalhes={'campos_alterados': list(form.changed_data)})
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Dados do simulado atualizados com sucesso!',
-                'simulado_data': {
-                    'nome': simulado.nome,
-                    'status_display': simulado.get_status_display(),
-                    'status_class': f'bg-status-{simulado.status.lower()}'
-                }
-            })
-        else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_EDITADA, alvo=conquista)
+            messages.success(request, f'A conquista "{conquista.nome}" foi atualizada com sucesso.')
+            return redirect('gestao:listar_conquistas')
+    else:
+        form = ConquistaForm(instance=conquista)
+
+    context = {'form': form, 'titulo': f'Editando: {conquista.nome}', 'conquista': conquista}
+    return render(request, 'gestao/form_conquista.html', context)
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_conquista(request, conquista_id):
+    """Deleta uma conquista."""
+    conquista = get_object_or_404(Conquista, id=conquista_id)
+    nome_conquista = conquista.nome
     
-    # Se a requisição for GET
-    form = SimuladoMetaForm(instance=simulado)
-    # Renderiza apenas o formulário como uma string de HTML
-    form_html = render_to_string('gestao/includes/_form_simulado_meta.html', {'form': form}, request=request)
+    criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_DELETADA, alvo=None, detalhes={'nome_conquista': nome_conquista})
+    conquista.delete()
     
-    return JsonResponse({'status': 'success', 'form_html': form_html})
+    messages.success(request, f'A conquista "{nome_conquista}" foi deletada com sucesso.')
+    return redirect('gestao:listar_conquistas')
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_recompensas(request, tipo):
+    """Lista Avatares ou Bordas com base no tipo fornecido."""
+    if tipo == 'avatares':
+        Model = Avatar
+        titulo = 'Gerenciar Avatares'
+    elif tipo == 'bordas':
+        Model = Borda
+        titulo = 'Gerenciar Bordas de Perfil'
+    else:
+        return redirect('gestao:listar_conquistas')
+
+    recompensas_list = Model.objects.all().select_related('conquista_necessaria').order_by('nome')
+    paginated_object, page_numbers, per_page = paginar_itens(request, recompensas_list, 12)
+    
+    context = {
+        'recompensas': paginated_object,
+        'paginated_object': paginated_object,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'tipo': tipo,
+        'titulo': titulo,
+    }
+    return render(request, 'gestao/listar_recompensas.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def criar_recompensa(request, tipo):
+    """Cria um novo Avatar ou Borda."""
+    if tipo == 'avatares':
+        FormClass = AvatarForm
+        titulo = 'Adicionar Novo Avatar'
+        log_acao = LogAtividade.Acao.AVATAR_CRIADO
+    elif tipo == 'bordas':
+        FormClass = BordaForm
+        titulo = 'Adicionar Nova Borda'
+        log_acao = LogAtividade.Acao.BORDA_CRIADA
+    else:
+        return redirect('gestao:listar_conquistas')
+
+    if request.method == 'POST':
+        form = FormClass(request.POST, request.FILES)
+        if form.is_valid():
+            recompensa = form.save()
+            criar_log(ator=request.user, acao=log_acao, alvo=recompensa)
+            messages.success(request, f'Item "{recompensa.nome}" foi criado com sucesso.')
+            return redirect('gestao:listar_recompensas', tipo=tipo)
+    else:
+        form = FormClass()
+        
+    context = {'form': form, 'titulo': titulo, 'tipo': tipo}
+    return render(request, 'gestao/form_recompensa.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_recompensa(request, tipo, recompensa_id):
+    """Edita um Avatar ou Borda existente."""
+    if tipo == 'avatares':
+        Model = Avatar
+        FormClass = AvatarForm
+        log_acao = LogAtividade.Acao.AVATAR_EDITADO
+    elif tipo == 'bordas':
+        Model = Borda
+        FormClass = BordaForm
+        log_acao = LogAtividade.Acao.BORDA_EDITADA
+    else:
+        return redirect('gestao:listar_conquistas')
+
+    recompensa = get_object_or_404(Model, id=recompensa_id)
+    if request.method == 'POST':
+        form = FormClass(request.POST, request.FILES, instance=recompensa)
+        if form.is_valid():
+            form.save()
+            criar_log(ator=request.user, acao=log_acao, alvo=recompensa)
+            messages.success(request, f'Item "{recompensa.nome}" foi atualizado com sucesso.')
+            return redirect('gestao:listar_recompensas', tipo=tipo)
+    else:
+        form = FormClass(instance=recompensa)
+
+    context = {'form': form, 'titulo': f'Editando: {recompensa.nome}', 'tipo': tipo}
+    return render(request, 'gestao/form_recompensa.html', context)
+
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_recompensa(request, tipo, recompensa_id):
+    """Deleta um Avatar ou Borda."""
+    if tipo == 'avatares':
+        Model = Avatar
+        log_acao = LogAtividade.Acao.AVATAR_DELETADO
+    elif tipo == 'bordas':
+        Model = Borda
+        log_acao = LogAtividade.Acao.BORDA_DELETADA
+    else:
+        return redirect('gestao:listar_conquistas')
+        
+    recompensa = get_object_or_404(Model, id=recompensa_id)
+    nome_recompensa = recompensa.nome
+    
+    criar_log(ator=request.user, acao=log_acao, alvo=None, detalhes={'nome_recompensa': nome_recompensa})
+    recompensa.delete()
+    
+    messages.success(request, f'O item "{nome_recompensa}" foi deletado com sucesso.')
+    return redirect('gestao:listar_recompensas', tipo=tipo)

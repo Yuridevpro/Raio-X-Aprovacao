@@ -1,4 +1,4 @@
-<!-- templates/base.html (ARQUIVO CORRIGIDO E COMPLETO) -->
+
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
@@ -13,7 +13,7 @@
     <!-- Nosso CSS base -->
     <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
     
-    <!-- Outros CSS (Select2, EasyMDE, etc.) -->
+    <!-- Outros CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
@@ -21,6 +21,52 @@
     <style>
         .footer-custom .text-muted {
             color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+         /* ======================================================================= */
+        /* NOVOS ESTILOS PARA O AVATAR E BORDA NA NAVBAR */
+        /* ======================================================================= */
+        .navbar-avatar-container {
+            position: relative;
+            width: 28px;
+            height: 28px;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        .navbar-avatar-image {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .navbar-border-image {
+            position: absolute;
+            top: -4px;
+            left: -4px;
+            width: 36px; /* Um pouco maior que o avatar */
+            height: 36px;
+            pointer-events: none;
+            z-index: 2;
+        }
+        .navbar-avatar-container.with-frame {
+            width: 32px;
+            height: 32px;
+        }
+        .navbar-avatar-container.with-frame .navbar-avatar-image {
+            width: 75%;
+            height: 75%;
+            border-radius: 4px;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        .navbar-avatar-container.with-frame .navbar-border-image {
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
         }
     </style>
 
@@ -51,15 +97,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'pratica:listar_questoes' %}">Praticar</a>
                     </li>
-                    <!-- =========================================================== -->
-                    <!-- INÍCIO DA ADIÇÃO: Link para a página de Simulados         -->
-                    <!-- =========================================================== -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a>
                     </li>
-                    <!-- =========================================================== -->
-                    <!-- FIM DA ADIÇÃO                                               -->
-                    <!-- =========================================================== -->
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'dashboard' %}">Meu Desempenho</a>
                     </li>
@@ -68,17 +108,20 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle me-2 fs-5"></i>Olá, {{ user.userprofile.nome }}
+                            {% if avatar_equipado_url %}
+                        <img src="{{ avatar_equipado_url }}" alt="Avatar" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;">
+                    {% else %}
+                        <i class="fas fa-user-circle me-2 fs-5"></i>
+                    {% endif %}
+        
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <!-- =========================================================== -->
-                            <!-- INÍCIO DA CORREÇÃO: Links de Perfil atualizados           -->
-                            <!-- =========================================================== -->
                             <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user me-2"></i>Meu Perfil</a></li>
+                            <!-- =========================================================== -->
+                            <!-- ADIÇÃO DO LINK PARA A PÁGINA DE COLEÇÃO -->
+                            <!-- =========================================================== -->
+                            <li><a class="dropdown-item" href="{% url 'colecao' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
                             <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog me-2"></i>Editar Conta</a></li>
-                            <!-- =========================================================== -->
-                            <!-- FIM DA CORREÇÃO                                               -->
-                            <!-- =========================================================== -->
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
                         </ul>
@@ -148,6 +191,19 @@
             </div>
         </div>
     </footer>
+
+    <!-- =========================================================== -->
+    <!-- CORREÇÃO: Removendo um dos containers duplicados de toast -->
+    <!-- =========================================================== -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+        <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto" id="gamificationToastTitle"></strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body d-flex align-items-center" id="gamificationToastBody"></div>
+        </div>
+    </div>
     
     {% if user.is_staff %}
         {% include 'gestao/includes/_modais_notificacoes.html' %}
@@ -158,6 +214,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="{% static 'js/notificacoes.js' %}"></script>
 
     <!-- SCRIPT PARA MENSAGENS AUTO-DISMISS -->
     <script>
@@ -171,9 +228,8 @@
                 }, 7000);
             });
         });
-        </script>
-    <script src="{% static 'js/notificacoes.js' %}"></script>
-
+    </script>
+    
     {% block scripts %}
     {% endblock %}
 

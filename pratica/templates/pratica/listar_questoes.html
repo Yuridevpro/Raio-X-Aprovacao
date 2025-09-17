@@ -276,6 +276,64 @@
         border-top: 1px solid var(--cor-borda);
     }
 
+    .comentarios-section { background-color: #f8f9fa; border-radius: 0 0 var(--raio-borda) var(--raio-borda); }
+    .comment-wrapper { position: relative; padding-left: 70px; /* Aumentado para dar mais espaço */ margin-bottom: 1.5rem; }
+    .comment-card { background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); padding: 1rem 1.5rem; position: relative; box-shadow: none; }
+    
+    .comment-avatar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 50px; /* AUMENTADO de 40px para 50px */
+        height: 50px; /* AUMENTADO de 40px para 50px */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .comment-avatar.with-frame {
+        width: 60px; /* AUMENTADO de 48px para 60px */
+        height: 60px; /* AUMENTADO de 48px para 60px */
+    }
+    .comment-avatar-image {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        position: relative;
+        z-index: 1;
+    }
+    .comment-avatar-image.with-default-border {
+        border: 2px solid #dee2e6;
+    }
+    .comment-border-image {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
+        z-index: 2;
+    }
+    .comment-default-avatar {
+        width: 50px; /* AUMENTADO de 40px para 50px */
+        height: 50px; /* AUMENTADO de 40px para 50px */
+        background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-weight: bold;
+        font-size: 1.4rem; /* Ajustado */
+    }
+    .comment-avatar.with-frame .comment-avatar-image {
+        width: 70%;
+        height: 70%;
+        border-radius: 8px; /* Ajustado */
+        border: none;
+    }
+    /* --- FIM DA CORREÇÃO --- */
+
     /* ========================================================================= */
     /* AJUSTES PARA MOBILE (ATÉ 768px)
     /* ========================================================================= */
@@ -462,6 +520,24 @@
 
 <!-- LÓGICA JS ESPECÍFICA DA PÁGINA -->
 <script>
+
+const conquistaToastEl = document.getElementById('conquistaToast');
+const conquistaToast = new bootstrap.Toast(conquistaToastEl);
+
+function showGamificationToast(title, bodyContent, icon, color) {
+        const toastEl = document.getElementById('gamificationToast'); // Usaremos este ID consistente
+        if (!toastEl) return;
+
+        const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
+        const toastTitle = document.getElementById('gamificationToastTitle');
+        const toastBody = document.getElementById('gamificationToastBody');
+        
+        toastTitle.innerHTML = `<i class="${icon} me-2" style="color: ${color};"></i> ${title}`;
+        toastBody.innerHTML = bodyContent;
+        
+        toast.show();
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         // =======================================================================
         // INICIALIZAÇÃO E VARIÁVEIS
@@ -540,6 +616,7 @@
             // Ações em botões (<button>)
             else if (button) {
                 if (button.id === 'btn-confirmar-salvar-filtro') { handleSalvarFiltro(); }
+                else if (button.classList.contains('btn-responder')) { handleResponder(button); }
                 else if (button.classList.contains('btn-deletar-filtro')) {
                     const filtroId = button.dataset.filtroId;
                     const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
@@ -618,14 +695,15 @@
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível deletar. Tente novamente.', 'error'));
         }
     
-        /** Lida com o envio de uma resposta de questão. (VERSÃO MODIFICADA PARA NOVO DESIGN) */
-        function handleResponder(button) {
+        /** Lida com o envio de uma resposta de questão. (VERSÃO ATUALIZADA) */
+/** Lida com o envio de uma resposta de questão. */
+function handleResponder(button) {
             const questaoId = button.dataset.questaoId;
             const questaoCard = document.getElementById(`questao-${questaoId}`);
             const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
             
             if (!alternativaSelecionada) { 
-                showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
+                window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
                 return; 
             }
             
@@ -636,39 +714,86 @@
             })
             .then(response => response.json())
             .then(result => {
-                const feedbackDiv = questaoCard.querySelector('.feedback');
-                const alertDiv = feedbackDiv.querySelector('.alert');
-                const alternativasDiv = questaoCard.querySelector('.alternativas');
-                
-                // Desabilitar interação futura
-                alternativasDiv.classList.add('respondido');
-                questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
-                button.style.display = 'none';
-    
-                // Configurar o alerta de feedback
-                alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
-                alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
-                
-                // Aplicar classes de feedback visual às alternativas
-                questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
-                    const input = item.querySelector('input');
-                    const label = item.querySelector('label');
+                if (result.status === 'success') {
+                    // --- Lógica de feedback da questão ---
+                    const feedbackDiv = questaoCard.querySelector('.feedback');
+                    const alertDiv = feedbackDiv.querySelector('.alert');
+                    const alternativasDiv = questaoCard.querySelector('.alternativas');
                     
-                    if (input.value === result.gabarito) {
-                        label.classList.add('label-correta');
-                    } else if (input.checked && !result.correta) {
-                        label.classList.add('label-errada');
+                    alternativasDiv.classList.add('respondido');
+                    questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+                    button.style.display = 'none';
+
+                    alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
+                    alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
+                    
+                    questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
+                        const input = item.querySelector('input');
+                        const label = item.querySelector('label');
+                        if (input.value === result.gabarito) label.classList.add('label-correta');
+                        else if (input.checked && !result.correta) label.classList.add('label-errada');
+                    });
+
+                    if (result.explicacao) {
+                        feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
+                        questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
                     }
-                });
-    
-                if (result.explicacao) {
-                    feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
-                    questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
+                    feedbackDiv.style.display = 'block';
+
+                    // --- Lógica de Gamificação ---
+                    let delay = 0;
+
+                    if (result.level_up_info) {
+                        const levelUpBody = `
+                            <div class="me-3 fs-2" style="color: #f7b733;">
+                                <i class="fas fa-star"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Você alcançou o Nível ${result.level_up_info.novo_level}!</h6>
+                            </div>`;
+                        showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
+                        delay += 1000;
+                    }
+
+                    if (result.meta_completa_info) {
+                        const meta = result.meta_completa_info;
+                        const metaBody = `
+                            <div class="me-3 fs-2" style="color: #28a745;">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">Você completou sua meta de ${meta.total_questoes} questões!</h6>
+                                <small>+${meta.xp_bonus} XP de bônus!</small>
+                            </div>`;
+                        setTimeout(() => {
+                            showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745');
+                        }, delay);
+                        delay += 1000;
+                    }
+                    
+                    if (result.nova_conquista) {
+                        const conquista = result.nova_conquista;
+                        const conquistaBody = `
+                            <div class="me-3 fs-2" style="color: ${conquista.cor};">
+                                <i class="${conquista.icone}"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0 fw-bold">${conquista.nome}</h6>
+                            </div>`;
+                        setTimeout(() => {
+                            showGamificationToast('Conquista Desbloqueada!', conquistaBody, 'fas fa-trophy', conquista.cor);
+                        }, delay);
+                    }
+                    
+                } else {
+                    window.showNotificationModal('Erro', result.message, 'error');
                 }
-                feedbackDiv.style.display = 'block';
-            }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta.', 'error'));
+            }).catch(err => {
+                console.error('Erro no fetch:', err); // Adicionado para depuração
+                window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta.', 'error')
+            });
         }
-    
+        
         function handleToggleExplicacao(button) {
             const questaoId = button.dataset.questaoId;
             const explicacaoDiv = document.getElementById(`questao-${questaoId}`).querySelector('.explicacao');
@@ -772,31 +897,58 @@
         }
     
         function handleToggleReplies(link) {
-            const comentarioId = link.dataset.comentarioId;
-            const questaoId = link.closest('.card-questao').id.replace('questao-', '');
-            const wrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
-            const repliesWrapper = wrapper.querySelector('.replies-wrapper');
-    
-            const isHidden = repliesWrapper.style.display === 'none' || !repliesWrapper.style.display;
-            repliesWrapper.style.display = isHidden ? 'block' : 'none';
-    
-            if (isHidden) {
-                const formContainer = repliesWrapper.querySelector('.reply-form-container');
-                if (!formContainer.querySelector('form')) {
-                    formContainer.innerHTML = `
-                        <div class="new-comment-form-container mt-3">
-                            <div class="comment-avatar"><div class="avatar-icon"><i class="fas fa-user"></i></div></div>
-                            <form class="form-comentario form-reply flex-grow-1" data-questao-id="${questaoId}" data-parent-id="${comentarioId}">
-                                <textarea name="conteudo" class="form-control form-control-sm" rows="3" placeholder="Escreva sua resposta..." required></textarea>
-                                <div class="d-flex justify-content-end mt-2">
-                                    <button type="button" class="btn btn-sm btn-secondary me-2" onclick="this.closest('.reply-form-container').innerHTML = ''">Cancelar</button>
-                                    <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
-                                </div>
-                            </form>
-                        </div>`;
+        const comentarioId = link.dataset.comentarioId;
+        const questaoId = link.closest('.card-questao').id.replace('questao-', '');
+        const wrapper = document.getElementById(`comment-wrapper-${comentarioId}`);
+        const repliesWrapper = wrapper.querySelector('.replies-wrapper');
+
+        const isHidden = repliesWrapper.style.display === 'none' || !repliesWrapper.style.display;
+        repliesWrapper.style.display = isHidden ? 'block' : 'none';
+
+        if (isHidden) {
+            const formContainer = repliesWrapper.querySelector('.reply-form-container');
+            if (!formContainer.querySelector('form')) {
+
+                // =======================================================================
+                // CORREÇÃO: Lógica para exibir o avatar do USUÁRIO LOGADO no form de resposta
+                // =======================================================================
+                let currentUserAvatarHtml = '';
+                const avatarUrl = "{{ avatar_equipado_url|default:'' }}";
+                const bordaUrl = "{{ borda_equipada_url|default:'' }}";
+                const hasBorda = !!bordaUrl;
+                const hasAvatar = !!avatarUrl;
+                
+                const containerClasses = `comment-avatar ${hasBorda ? 'with-frame' : ''}`;
+                let innerAvatarHtml = '';
+
+                if (hasBorda) {
+                    innerAvatarHtml += `<img src="${bordaUrl}" class="comment-border-image" alt="Borda">`;
                 }
+                if (hasAvatar) {
+                    const avatarClasses = `comment-avatar-image ${!hasBorda ? 'with-default-border' : ''}`;
+                    innerAvatarHtml += `<img src="${avatarUrl}" class="${avatarClasses}" alt="Avatar">`;
+                } else {
+                    const userInitial = "{{ request.user.userprofile.nome.0|upper }}";
+                    innerAvatarHtml += `<div class="comment-default-avatar">${userInitial}</div>`;
+                }
+
+                currentUserAvatarHtml = `<div class="${containerClasses}">${innerAvatarHtml}</div>`;
+                // =======================================================================
+
+                formContainer.innerHTML = `
+                    <div class="new-comment-form-container mt-3">
+                        ${currentUserAvatarHtml}
+                        <form class="form-comentario form-reply flex-grow-1" data-questao-id="${questaoId}" data-parent-id="${comentarioId}">
+                            <textarea name="conteudo" class="form-control form-control-sm" rows="3" placeholder="Escreva sua resposta..." required></textarea>
+                            <div class="d-flex justify-content-end mt-2">
+                                <button type="button" class="btn btn-sm btn-secondary me-2" onclick="this.closest('.reply-form-container').innerHTML = ''">Cancelar</button>
+                                <button type="submit" class="btn btn-sm btn-primary">Enviar</button>
+                            </div>
+                        </form>
+                    </div>`;
             }
         }
+    }
     
         function handleSortClick(link) {
             const questaoId = link.dataset.questaoId;
@@ -883,68 +1035,96 @@
         }
     
         function criarElementoComentario(c) {
-            const template = document.createElement('template');
-            
-            let podeEditarHtml = '';
-            if (c.pode_editar) {
-                podeEditarHtml = `
-                    <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-edit me-2"></i>Editar</button></li>
-                    <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-trash me-2"></i>Excluir</button></li>
-                    <li><hr class="dropdown-divider"></li>`;
-            }
-
-            template.innerHTML = `
-                <div class="comment-wrapper" id="comment-wrapper-${c.id}">
-                    <div class="comment-avatar"><div class="avatar-icon">${c.usuario.charAt(0).toUpperCase()}</div></div>
-                    <div class="comment-card" id="comentario-${c.id}">
-                        <div class="comment-header d-flex justify-content-between">
-                            <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
-                            <div class="comment-actions dropdown">
-                                <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    ${podeEditarHtml}
-                                    <li>
-                                        <button class="dropdown-item text-warning" type="button" 
-                                                data-bs-toggle="modal" data-bs-target="#modalNotificarErro" 
-                                                data-comentario-id="${c.id}">
-                                            <i class="fas fa-flag me-2"></i>Denunciar
-                                        </button>
-                                    </li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
-                            <div class="comment-body">${c.conteudo}</div>
-                        </div>
-                        <div class="comment-edit-form mt-2" style="display: none;"></div>
-                        ${!c.parent_id ? `
-                        <div class="comment-footer">
-                            <a href="#" class="btn btn-like ${c.user_liked ? 'liked' : ''}" data-comentario-id="${c.id}">
-                                <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${c.likes_count}</span>)
-                            </a>
-                            <a href="#" class="btn toggle-replies-btn" data-comentario-id="${c.id}">
-                                <i class="fas fa-reply"></i> Respostas (${c.respostas_count})
-                            </a>
-                        </div>` : ''}
-                    </div>
-                    ${!c.parent_id ? `
-                    <div class="replies-wrapper" style="display: none;">
-                        <div class="comment-replies"></div>
-                        <div class="reply-form-container"></div>
-                    </div>` : ''}
-                </div>`.trim();
+    const template = document.createElement('template');
     
-            const commentElement = template.content.firstChild;
-            
-            if (c.respostas && c.respostas.length > 0) {
-                const repliesContainer = commentElement.querySelector('.comment-replies');
-                c.respostas.forEach(resposta => {
-                    repliesContainer.appendChild(criarElementoComentario(resposta));
-                });
-            }
-            
-            return commentElement;
-        }
+    let podeEditarHtml = '';
+    if (c.pode_editar) {
+        podeEditarHtml = `
+            <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-edit me-2"></i>Editar</button></li>
+            <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-trash me-2"></i>Excluir</button></li>
+            <li><hr class="dropdown-divider"></li>`;
+    }
+
+    // =======================================================================
+    // LÓGICA ATUALIZADA PARA RENDERIZAR AVATAR E BORDA
+    // =======================================================================
+    const hasBorda = c.usuario_borda_url;
+    const hasAvatar = c.usuario_avatar_url;
+
+    // Define as classes do container principal do avatar
+    const containerClasses = `comment-avatar ${hasBorda ? 'with-frame' : ''}`;
+    
+    let innerAvatarHtml = '';
+
+    // 1. Adiciona a imagem da borda se ela existir
+    if (hasBorda) {
+        innerAvatarHtml += `<img src="${c.usuario_borda_url}" class="comment-border-image" alt="Borda">`;
+    }
+
+    // 2. Adiciona a imagem do avatar ou as iniciais
+    if (hasAvatar) {
+        // Se não tiver borda, adiciona a classe da borda branca padrão
+        const avatarClasses = `comment-avatar-image ${!hasBorda ? 'with-default-border' : ''}`;
+        innerAvatarHtml += `<img src="${c.usuario_avatar_url}" class="${avatarClasses}" alt="Avatar">`;
+    } else {
+        // Fallback para as iniciais
+        innerAvatarHtml += `<div class="comment-default-avatar">${c.usuario.charAt(0).toUpperCase()}</div>`;
+    }
+    // =======================================================================
+
+    // Agora, construímos o HTML final usando as variáveis
+    template.innerHTML = `
+        <div class="comment-wrapper" id="comment-wrapper-${c.id}">
+            <div class="${containerClasses}">${innerAvatarHtml}</div>
+            <div class="comment-card" id="comentario-${c.id}">
+                <div class="comment-header d-flex justify-content-between">
+                    <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
+                    <div class="comment-actions dropdown">
+                        <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            ${podeEditarHtml}
+                            <li>
+                                <button class="dropdown-item text-warning" type="button" 
+                                        data-bs-toggle="modal" data-bs-target="#modalNotificarErro" 
+                                        data-comentario-id="${c.id}">
+                                    <i class="fas fa-flag me-2"></i>Denunciar
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
+                    <div class="comment-body">${c.conteudo}</div>
+                </div>
+                <div class="comment-edit-form mt-2" style="display: none;"></div>
+                ${!c.parent_id ? `
+                <div class="comment-footer">
+                    <a href="#" class="btn btn-like ${c.user_liked ? 'liked' : ''}" data-comentario-id="${c.id}">
+                        <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${c.likes_count}</span>)
+                    </a>
+                    <a href="#" class="btn toggle-replies-btn" data-comentario-id="${c.id}">
+                        <i class="fas fa-reply"></i> Respostas (${c.respostas_count})
+                    </a>
+                </div>` : ''}
+            </div>
+            ${!c.parent_id ? `
+            <div class="replies-wrapper" style="display: none;">
+                <div class="comment-replies"></div>
+                <div class="reply-form-container"></div>
+            </div>` : ''}
+        </div>`.trim();
+
+    const commentElement = template.content.firstChild;
+    
+    if (c.respostas && c.respostas.length > 0) {
+        const repliesContainer = commentElement.querySelector('.comment-replies');
+        c.respostas.forEach(resposta => {
+            repliesContainer.appendChild(criarElementoComentario(resposta));
+        });
+    }
+    
+    return commentElement;
+}
         
         function handleNotificarErro(form) {
             const tipoErroSelecionado = form.querySelector('button[data-tipo].active')?.dataset.tipo;

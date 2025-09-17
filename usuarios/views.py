@@ -15,8 +15,15 @@ from gestao.views import criar_log
 from gestao.models import LogAtividade
 from .utils import enviar_email_com_template
 from django.db import transaction  # 1. IMPORTAR transaction
-from gamificacao.models import ProfileStreak, ConquistaUsuario
-
+from gamificacao.models import ProfileStreak, ConquistaUsuario, Conquista, ProfileGamificacao
+from gamificacao.services import calcular_xp_para_nivel # <-- NOVO IMPORT
+from django.shortcuts import get_object_or_404
+from gamificacao.models import ProfileStreak, ConquistaUsuario, Conquista, ProfileGamificacao, MetaDiariaUsuario
+from gamificacao.services import calcular_xp_para_nivel, META_DIARIA_QUESTOES
+from datetime import date
+from gamificacao.models import RankingSemanal, RankingMensal
+from gamificacao.models import Avatar, Borda
+from gamificacao.services import _verificar_desbloqueio_recompensas
 
 # =======================================================================
 # VIEWS DE AUTENTICAÇÃO ATUALIZADAS
@@ -214,32 +221,89 @@ def home(request):
 @login_required
 def meu_perfil(request):
     """
-    Exibe a página de perfil do usuário logado, com suas estatísticas
-    de gamificação (streaks e conquistas).
+    Exibe a página de perfil do USUÁRIO LOGADO.
+    Esta view agora simplesmente busca o perfil do usuário logado e chama
+    a função auxiliar _get_profile_context para obter todos os dados.
     """
-    user_profile = request.user.userprofile
+    user_profile = get_object_or_404(UserProfile, user=request.user)
     
-    # Busca os dados de streak do usuário. get_or_create garante que ele exista.
-    streak_data, _ = ProfileStreak.objects.get_or_create(user_profile=user_profile)
+    # Chama a função auxiliar para buscar todos os dados de gamificação
+    context = _get_profile_context(user_profile)
     
-    # Busca as conquistas desbloqueadas pelo usuário, otimizando com select_related
-    conquistas_usuario = ConquistaUsuario.objects.filter(
-        user_profile=user_profile
-    ).select_related('conquista').order_by('-data_conquista')
-
-    context = {
-        'user_profile': user_profile,
-        'streak_data': streak_data,
-        'conquistas_usuario': conquistas_usuario,
-    }
-    
-    return render(request, 'usuarios/meu_perfil.html', context)
-# =======================================================================
-# FIM DA ADIÇÃO
-# =======================================================================
+    return render(request, 'usuarios/perfil.html', context)
 
 
 @login_required
+def visualizar_perfil(request, username):
+    """
+    Busca os dados de um USUÁRIO ESPECÍFICO pelo username e renderiza 
+    o mesmo template de perfil.
+    """
+    user_alvo = get_object_or_404(User, username=username)
+    
+    # Redireciona para a URL de 'meu_perfil' se o usuário tentar ver o próprio perfil
+    if user_alvo == request.user:
+        return redirect('meu_perfil')
+    
+    user_profile = get_object_or_404(UserProfile, user=user_alvo)
+    
+    # Chama a mesma função auxiliar
+    context = _get_profile_context(user_profile)
+
+    return render(request, 'usuarios/perfil.html', context)
+
+
+def _get_profile_context(user_profile):
+    """
+    Função auxiliar central que busca TODOS os dados de gamificação para um 
+    determinado UserProfile e retorna um dicionário de contexto.
+    """
+    streak_data, _ = ProfileStreak.objects.get_or_create(user_profile=user_profile)
+    gamificacao_data, _ = ProfileGamificacao.objects.get_or_create(user_profile=user_profile)
+    
+    meta_hoje, _ = MetaDiariaUsuario.objects.get_or_create(
+        user_profile=user_profile,
+        data=date.today()
+    )
+    progresso_meta_diaria_percentual = min((meta_hoje.questoes_resolvidas / META_DIARIA_QUESTOES * 100), 100)
+    
+    xp_proximo_nivel = calcular_xp_para_nivel(gamificacao_data.level)
+    xp_nivel_anterior = calcular_xp_para_nivel(gamificacao_data.level - 1)
+    total_xp_do_nivel = xp_proximo_nivel - xp_nivel_anterior
+    xp_no_nivel_atual = gamificacao_data.xp - xp_nivel_anterior
+    progresso_percentual_xp = (xp_no_nivel_atual / total_xp_do_nivel * 100) if total_xp_do_nivel > 0 else 0
+
+    todas_as_conquistas = Conquista.objects.all().order_by('nome')
+    conquistas_desbloqueadas_ids = list(ConquistaUsuario.objects.filter(
+        user_profile=user_profile
+    ).values_list('conquista_id', flat=True))
+
+    # =======================================================================
+    # NOVA LÓGICA PARA O HALL DA FAMA
+    # =======================================================================
+    trofeus_semanais = RankingSemanal.objects.filter(user_profile=user_profile, posicao__lte=3).order_by('-ano', '-semana')
+    trofeus_mensais = RankingMensal.objects.filter(user_profile=user_profile, posicao__lte=3).order_by('-ano', '-mes')
+    # =======================================================================
+
+    return {
+        'perfil_visualizado': user_profile,
+        'streak_data': streak_data,
+        'gamificacao_data': gamificacao_data,
+        'xp_proximo_nivel': xp_proximo_nivel,
+        'progresso_percentual': progresso_percentual_xp,
+        'todas_as_conquistas': todas_as_conquistas,
+        'conquistas_desbloqueadas_ids': conquistas_desbloqueadas_ids,
+        'meta_hoje': meta_hoje,
+        'meta_diaria_total': META_DIARIA_QUESTOES,
+        'progresso_meta_diaria_percentual': progresso_meta_diaria_percentual,
+        # =======================================================================
+        # ENVIANDO OS DADOS DO HALL DA FAMA PARA O TEMPLATE
+        # =======================================================================
+        'trofeus_semanais': trofeus_semanais,
+        'trofeus_mensais': trofeus_mensais,
+    }
+    
+    
 def editar_perfil(request):
     """
     Página dedicada para o usuário editar suas informações pessoais.
@@ -357,3 +421,124 @@ def reenviar_ativacao(request):
 # =======================================================================
 # FIM DA ADIÇÃO
 # =======================================================================
+
+
+def _get_profile_context(user_profile):
+    streak_data, _ = ProfileStreak.objects.get_or_create(user_profile=user_profile)
+    gamificacao_data, _ = ProfileGamificacao.objects.get_or_create(user_profile=user_profile)
+    
+    # =======================================================================
+    # BUSCANDO DADOS DA META DIÁRIA ATUAL
+    # =======================================================================
+    meta_hoje, _ = MetaDiariaUsuario.objects.get_or_create(
+        user_profile=user_profile,
+        data=date.today()
+    )
+    progresso_meta_percentual = (meta_hoje.questoes_resolvidas / META_DIARIA_QUESTOES * 100)
+    # Garante que a barra não passe de 100%
+    progresso_meta_percentual = min(progresso_meta_percentual, 100)
+    # =======================================================================
+    
+    xp_proximo_nivel = calcular_xp_para_nivel(gamificacao_data.level)
+    xp_nivel_anterior = calcular_xp_para_nivel(gamificacao_data.level - 1)
+    
+    total_xp_do_nivel = xp_proximo_nivel - xp_nivel_anterior
+    xp_no_nivel_atual = gamificacao_data.xp - xp_nivel_anterior
+    progresso_percentual = (xp_no_nivel_atual / total_xp_do_nivel * 100) if total_xp_do_nivel > 0 else 0
+
+    todas_as_conquistas = Conquista.objects.all().order_by('nome')
+    conquistas_desbloqueadas_ids = ConquistaUsuario.objects.filter(
+        user_profile=user_profile
+    ).values_list('conquista_id', flat=True)
+
+    return {
+        'perfil_visualizado': user_profile,
+        'streak_data': streak_data,
+        'gamificacao_data': gamificacao_data,
+        'xp_proximo_nivel': xp_proximo_nivel,
+        'progresso_percentual': progresso_percentual,
+        'todas_as_conquistas': todas_as_conquistas,
+        'conquistas_desbloqueadas_ids': list(conquistas_desbloqueadas_ids),
+        # =======================================================================
+        # ENVIANDO NOVOS DADOS DA META PARA O TEMPLATE
+        # =======================================================================
+        'meta_hoje': meta_hoje,
+        'meta_diaria_total': META_DIARIA_QUESTOES,
+        'progresso_meta_percentual': progresso_meta_percentual,
+    }
+
+@login_required
+def colecao(request):
+    """Exibe a coleção de avatares e bordas do usuário."""
+    user_profile = request.user.userprofile
+    
+    # =======================================================================
+    # ADIÇÃO: VERIFICAÇÃO PROATIVA DE RECOMPENSAS
+    # Toda vez que o usuário visita a coleção, o sistema verifica se ele
+    # cumpre os requisitos para qualquer recompensa existente.
+    # =======================================================================
+    _verificar_desbloqueio_recompensas(user_profile)
+    
+    # O resto da view continua normalmente, buscando os dados atualizados.
+    todos_avatares = Avatar.objects.all()
+    todas_bordas = Borda.objects.all()
+    
+    avatares_desbloqueados_ids = list(user_profile.avatares_desbloqueados.values_list('avatar_id', flat=True))
+    bordas_desbloqueadas_ids = list(user_profile.bordas_desbloqueadas.values_list('borda_id', flat=True))
+    
+    context = {
+        'todos_avatares': todos_avatares,
+        'todas_bordas': todas_bordas,
+        'avatares_desbloqueados_ids': avatares_desbloqueados_ids,
+        'bordas_desbloqueadas_ids': bordas_desbloqueadas_ids,
+        'avatar_equipado_id': user_profile.avatar_equipado_id,
+        'borda_equipada_id': user_profile.borda_equipada_id,
+    }
+    return render(request, 'usuarios/colecao.html', context)
+
+
+@login_required
+def equipar_avatar(request, avatar_id):
+    """
+    Equipa ou desequipa um avatar.
+    Se o avatar clicado já estiver equipado, ele será desequipado.
+    Se for um avatar diferente, ele será equipado.
+    """
+    user_profile = request.user.userprofile
+    avatar_para_equipar = get_object_or_404(Avatar, id=avatar_id)
+    
+    # Verifica se o usuário realmente possui o avatar
+    if not user_profile.avatares_desbloqueados.filter(avatar=avatar_para_equipar).exists():
+        messages.error(request, 'Você ainda não desbloqueou este avatar.')
+        return redirect('colecao')
+
+    # Lógica de "Toggle": Se já está equipado, desequipa. Senão, equipa.
+    if user_profile.avatar_equipado == avatar_para_equipar:
+        user_profile.avatar_equipado = None
+        messages.success(request, f'Avatar "{avatar_para_equipar.nome}" desequipado.')
+    else:
+        user_profile.avatar_equipado = avatar_para_equipar
+        messages.success(request, f'Avatar "{avatar_para_equipar.nome}" equipado com sucesso!')
+        
+    user_profile.save()
+    return redirect('colecao')
+
+@login_required
+def equipar_borda(request, borda_id):
+    """ Equipa ou desequipa uma borda, com a mesma lógica de toggle. """
+    user_profile = request.user.userprofile
+    borda_para_equipar = get_object_or_404(Borda, id=borda_id)
+
+    if not user_profile.bordas_desbloqueadas.filter(borda=borda_para_equipar).exists():
+        messages.error(request, 'Você ainda não desbloqueou esta borda.')
+        return redirect('colecao')
+
+    if user_profile.borda_equipada == borda_para_equipar:
+        user_profile.borda_equipada = None
+        messages.success(request, f'Borda "{borda_para_equipar.nome}" desequipada.')
+    else:
+        user_profile.borda_equipada = borda_para_equipar
+        messages.success(request, f'Borda "{borda_para_equipar.nome}" equipada com sucesso!')
+    
+    user_profile.save()
+    return redirect('colecao')

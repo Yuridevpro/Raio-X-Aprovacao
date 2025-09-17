@@ -1,5 +1,3 @@
-<!-- simulados/templates/simulados/resultado_simulado.html (ARQUIVO MODIFICADO) -->
-
 {% extends 'base.html' %}
 {% load pratica_extras %}
 {% block title %}Resultado do Simulado{% endblock %}
@@ -9,17 +7,29 @@
     :root {
         --cor-sucesso: #198754;
         --cor-erro: #dc3545;
-        --cor-sucesso-leve: #e9f7ec;
-        --cor-erro-leve: #fbebed;
+        --cor-aviso: #ffc107;
+        --cor-sucesso-leve: #d1e7dd;
+        --cor-erro-leve: #f8d7da;
         --cor-branco-leve: #f8f9fa;
         --cor-borda: #dee2e6;
         --sombra-caixa: 0 4px 12px rgba(0,0,0,0.05);
         --raio-borda: 12px;
     }
     body { background-color: var(--cor-branco-leve); }
-    .stat-card { text-align: center; border-radius: var(--raio-borda); padding: 1.5rem; box-shadow: var(--sombra-caixa); }
+    .stat-card {
+        text-align: center;
+        border-radius: var(--raio-borda);
+        padding: 1.5rem;
+        box-shadow: var(--sombra-caixa);
+        background-color: #fff;
+        border-top: 4px solid;
+    }
     .stat-card .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
     .stat-card .stat-value { font-size: 2rem; font-weight: 700; }
+    .stat-card.border-success { border-color: var(--cor-sucesso); }
+    .stat-card.border-danger { border-color: var(--cor-erro); }
+    .stat-card.border-secondary { border-color: #6c757d; }
+    .stat-card.border-primary { border-color: var(--cor-primaria); }
 
     .resultado-header { background-color: #fff; border-radius: var(--raio-borda); box-shadow: var(--sombra-caixa); }
 
@@ -64,20 +74,17 @@
     }
     .enunciado-formatado img { max-width: 100%; height: auto; border-radius: 8px; }
     
-    /* =========================================================== */
-    /* INÍCIO DA ADIÇÃO: Estilos para a seção da Explicação        */
-    /* =========================================================== */
     .explicacao-container {
-        background-color: #f0f6ff; /* Um azul bem claro para diferenciar */
+        background-color: #f0f6ff;
         border-left: 4px solid var(--cor-primaria);
         border-radius: 8px;
     }
     .explicacao-container p:last-child {
         margin-bottom: 0;
     }
-    /* =========================================================== */
-    /* FIM DA ADIÇÃO                                               */
-    /* =========================================================== */
+    .progress-bar {
+        transition: width 0.6s ease;
+    }
 </style>
 {% endblock %}
 
@@ -90,10 +97,38 @@
         <p class="mb-0">Finalizado em: {{ sessao.data_fim|date:"d/m/Y \à\s H:i" }}</p>
     </div>
 
-    <!-- Estatísticas Gerais -->
+    <!-- DASHBOARD DE ESTATÍSTICAS -->
     <div class="row g-4 mb-5">
-        <!-- ... (código dos cards de estatísticas, sem alterações) ... -->
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-success"><div class="icon text-success"><i class="fas fa-check-circle"></i></div><div class="stat-value">{{ total_acertos }}</div><div class="stat-label text-muted">Acertos</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-danger"><div class="icon text-danger"><i class="fas fa-times-circle"></i></div><div class="stat-value">{{ total_erros }}</div><div class="stat-label text-muted">Erros</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-secondary"><div class="icon text-secondary"><i class="fas fa-minus-circle"></i></div><div class="stat-value">{{ total_em_branco }}</div><div class="stat-label text-muted">Em Branco</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-primary"><div class="icon text-primary"><i class="fas fa-percentage"></i></div><div class="stat-value">{{ percentual_acerto }}%</div><div class="stat-label text-muted">de Aproveitamento</div></div></div>
     </div>
+    
+    <div class="row g-4 mb-5">
+        <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-stopwatch"></i></div><div class="stat-value small">{{ tempo_gasto_formatado }}</div><div class="stat-label text-muted">Tempo Gasto</div></div></div>
+        <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-tachometer-alt"></i></div><div class="stat-value small">{{ acertos_por_minuto }}</div><div class="stat-label text-muted">Acertos por Minuto</div></div></div>
+    </div>
+
+    <!-- DESEMPENHO POR DISCIPLINA -->
+    {% if desempenho_disciplina %}
+    <div class="card shadow-sm mb-5">
+        <div class="card-header"><h4 class="h5 mb-0">Desempenho por Disciplina</h4></div>
+        <div class="card-body p-4">
+            {% for item in desempenho_disciplina %}
+            <div class="mb-3">
+                <div class="d-flex justify-content-between mb-1">
+                    <span>{{ item.disciplina }}</span>
+                    <span class="fw-bold">{{ item.acertos }}/{{ item.total }} ({{ item.percentual|floatformat:1 }}%)</span>
+                </div>
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar" role="progressbar" style="width: {{ item.percentual }}%;" aria-valuenow="{{ item.percentual }}" aria-valuemin="0" aria-valuemax="100">{{ item.percentual|floatformat:0 }}%</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Revisão Detalhada das Questões -->
     <h3 class="mb-4 text-center">Revisão Detalhada</h3>
@@ -137,9 +172,7 @@
                 </div>
                 {% endfor %}
             </div>
-            <!-- =========================================================== -->
-            <!-- INÍCIO DA ADIÇÃO: Seção da Explicação                     -->
-            <!-- =========================================================== -->
+
             {% if item.explicacao_html %}
             <div class="mt-4">
                 <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#explicacao-{{ item.questao.id }}" aria-expanded="false" aria-controls="explicacao-{{ item.questao.id }}">
@@ -152,9 +185,6 @@
                 </div>
             </div>
             {% endif %}
-            <!-- =========================================================== -->
-            <!-- FIM DA ADIÇÃO                                               -->
-            <!-- =========================================================== -->
         </div>
     </div>
     {% endfor %}
@@ -164,6 +194,5 @@
             <i class="fas fa-arrow-left me-2"></i>Voltar para a Lista de Simulados
         </a>
     </div>
-
 </div>
 {% endblock %}

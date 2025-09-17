@@ -83,8 +83,19 @@ urlpatterns = [
     path('simulados/api/gerenciar-questoes/<int:simulado_id>/', views.gerenciar_questoes_simulado_ajax, name='gerenciar_questoes_simulado_ajax'),
     path('simulados/api/contar-questoes/', views.api_contar_questoes_filtro, name='api_contar_questoes_filtro'),
     path('simulados/api/editar-meta/<int:simulado_id>/', views.editar_simulado_meta_ajax, name='editar_simulado_meta_ajax'),
-
     
+     # =======================================================================
+    # NOVAS URLS PARA GERENCIAMENTO DE CONQUISTAS
+    # =======================================================================
+    path('gamificacao/conquistas/', views.listar_conquistas, name='listar_conquistas'),
+    path('gamificacao/conquistas/nova/', views.criar_conquista, name='criar_conquista'),
+    path('gamificacao/conquistas/editar/<int:conquista_id>/', views.editar_conquista, name='editar_conquista'),
+    path('gamificacao/conquistas/deletar/<int:conquista_id>/', views.deletar_conquista, name='deletar_conquista'),
+
+    path('gamificacao/<str:tipo>/', views.listar_recompensas, name='listar_recompensas'),
+    path('gamificacao/<str:tipo>/nova/', views.criar_recompensa, name='criar_recompensa'),
+    path('gamificacao/<str:tipo>/editar/<int:recompensa_id>/', views.editar_recompensa, name='editar_recompensa'),
+    path('gamificacao/<str:tipo>/deletar/<int:recompensa_id>/', views.deletar_recompensa, name='deletar_recompensa'),
     # =======================================================================
     # FIM DA CORREÇÃO
     # =======================================================================

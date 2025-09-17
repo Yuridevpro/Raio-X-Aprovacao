@@ -1,5 +1,3 @@
-<!-- gamificacao/templates/gamificacao/ranking.html (NOVO ARQUIVO) -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% load gestao_extras %}
@@ -7,7 +5,6 @@
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
-
 <style>
     .ranking-header {
         background: linear-gradient(135deg, rgba(74, 144, 226, 0.9) 0%, rgba(44, 62, 80, 1) 100%);
@@ -25,8 +22,14 @@
         width: 60px;
         text-align: center;
     }
-    .ranking-table .user-name {
+    .ranking-table .user-name a {
         font-weight: 500;
+        color: var(--bs-body-color);
+        text-decoration: none;
+    }
+    .ranking-table .user-name a:hover {
+        color: var(--cor-primaria);
+        text-decoration: underline;
     }
     .ranking-table .streak-icon {
         color: #fc4a1a;
@@ -40,7 +43,7 @@
     }
     .user-position-card {
         position: sticky;
-        top: 80px; /* Abaixo da navbar */
+        top: 80px;
         z-index: 100;
     }
 </style>
@@ -49,11 +52,24 @@
 {% block content %}
 <div class="container my-5">
     <!-- Cabeçalho -->
-    <div class="ranking-header text-center p-5 mb-5 rounded shadow">
+    <div class="ranking-header text-center p-5 mb-4 rounded shadow">
         <i class="fas fa-trophy fa-3x mb-3" style="color: #f7b733;"></i>
-        <h1 class="display-5 fw-bold">Ranking Geral</h1>
+        <h1 class="display-5 fw-bold">{{ titulo_ranking }}</h1>
         <p class="lead">Veja sua posição e compare seu desempenho com outros estudantes.</p>
     </div>
+
+    <!-- Abas de Navegação -->
+    <ul class="nav nav-pills nav-fill mb-4">
+        <li class="nav-item">
+            <a class="nav-link {% if periodo_ativo == 'geral' %}active{% endif %}" href="?{% update_query_params periodo='geral' page=1 %}">Geral</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if periodo_ativo == 'semanal' %}active{% endif %}" href="?{% update_query_params periodo='semanal' page=1 %}">Semanal</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if periodo_ativo == 'mensal' %}active{% endif %}" href="?{% update_query_params periodo='mensal' page=1 %}">Mensal</a>
+        </li>
+    </ul>
 
     <!-- Posição do Usuário Logado -->
     {% if posicao_usuario_logado %}
@@ -72,33 +88,13 @@
                     <strong>{{ posicao_usuario_logado.total_acertos }}</strong> Acertos
                 </div>
                 <div class="col-md-3 text-center text-md-start mt-2 mt-md-0">
-                    <i class="fas fa-fire streak-icon me-2"></i>
-                    <strong>{{ posicao_usuario_logado.streak_data.current_streak }}</strong> Dias de Sequência
+                    <i class="fas fa-pencil-alt text-muted me-2"></i>
+                    <strong>{{ posicao_usuario_logado.total_respostas }}</strong> Respostas
                 </div>
             </div>
         </div>
     </div>
     {% endif %}
-
-    <!-- Controles de Ordenação -->
-    <div class="d-flex justify-content-end mb-3">
-        <div class="dropdown">
-            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                Ordenar por: 
-                <strong>
-                    {% if sort_by == 'acertos' %}Mais Acertos
-                    {% elif sort_by == 'streak' %}Maior Sequência
-                    {% elif sort_by == 'respostas' %}Mais Respostas
-                    {% endif %}
-                </strong>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item {% if sort_by == 'acertos' %}active{% endif %}" href="?{% update_query_params sort_by='acertos' page=1 %}">Mais Acertos</a></li>
-                <li><a class="dropdown-item {% if sort_by == 'streak' %}active{% endif %}" href="?{% update_query_params sort_by='streak' page=1 %}">Maior Sequência</a></li>
-                <li><a class="dropdown-item {% if sort_by == 'respostas' %}active{% endif %}" href="?{% update_query_params sort_by='respostas' page=1 %}">Mais Respostas</a></li>
-            </ul>
-        </div>
-    </div>
 
     <!-- Tabela do Ranking -->
     <div class="card shadow-sm">
@@ -110,9 +106,17 @@
                         <tr>
                             <th class="rank-position">Posição</th>
                             <th>Usuário</th>
-                            <th class="text-center">Total de Acertos</th>
-                            <th class="text-center">Total de Respostas</th>
-                            <th class="text-center">Sequência Atual</th>
+                            <!-- =============================================================== -->
+                            <!-- CABEÇALHO DA TABELA DINÂMICO -->
+                            <!-- =============================================================== -->
+                            {% if periodo_ativo == 'geral' %}
+                                <th class="text-center">Total de Acertos</th>
+                                <th class="text-center">Total de Respostas</th>
+                                <th class="text-center">Sequência Atual</th>
+                            {% else %}
+                                <th class="text-center">Acertos no Período</th>
+                                <th class="text-center">Respostas no Período</th>
+                            {% endif %}
                         </tr>
                     </thead>
                     <tbody>
@@ -120,13 +124,25 @@
                         <tr class="{% if item.user == request.user %}user-highlight{% endif %}">
                             <td class="rank-position">#{{ item.rank }}</td>
                             <td>
-                                <span class="user-name">{{ item.nome }} {{ item.sobrenome }}</span>
+                                <span class="user-name">
+                                    <a href="{% url 'visualizar_perfil' item.user.username %}">
+                                        {{ item.nome }} {{ item.sobrenome }}
+                                    </a>
+                                </span>
                             </td>
-                            <td class="text-center">{{ item.total_acertos }}</td>
-                            <td class="text-center">{{ item.total_respostas }}</td>
-                            <td class="text-center">
-                                <i class="fas fa-fire streak-icon me-1"></i>{{ item.streak_data.current_streak }}
-                            </td>
+                            <!-- =============================================================== -->
+                            <!-- CORPO DA TABELA DINÂMICO -->
+                            <!-- =============================================================== -->
+                            {% if periodo_ativo == 'geral' %}
+                                <td class="text-center">{{ item.total_acertos }}</td>
+                                <td class="text-center">{{ item.total_respostas }}</td>
+                                <td class="text-center">
+                                    <i class="fas fa-fire streak-icon me-1"></i>{{ item.streak_data.current_streak }}
+                                </td>
+                            {% else %}
+                                <td class="text-center">{{ item.total_acertos }}</td>
+                                <td class="text-center">{{ item.total_respostas }}</td>
+                            {% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -134,7 +150,7 @@
             </div>
             {% else %}
             <div class="text-center p-5">
-                <p class="text-muted">Nenhum usuário no ranking ainda. Seja o primeiro!</p>
+                <p class="text-muted">Nenhum usuário no ranking para este período. Seja o primeiro!</p>
             </div>
             {% endif %}
         </div>

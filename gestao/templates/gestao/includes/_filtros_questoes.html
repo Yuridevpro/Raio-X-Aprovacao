@@ -1,3 +1,6 @@
+<!--  gestao/includes/_filtros_questoes  -->
+
+
 {% comment %}
 Este formulário foi adaptado para funcionar com o JavaScript fornecido,
 usando dropdowns com checkboxes para seleção múltipla.
@@ -5,7 +8,7 @@ usando dropdowns com checkboxes para seleção múltipla.
 <form id="form-filtros" 
       method="GET" 
       action="{{ request.path }}"
-      data-assuntos-url="{% url 'questoes:api_get_assuntos_por_disciplina' %}"
+      data-assuntos-url="{% url 'questoes:get_assuntos_por_disciplina' %}"
       data-selected-assuntos="{{ selected_assuntos|safe|default:'[]' }}">
 
     <!-- Input oculto para manter o filtro de status ao submeter -->

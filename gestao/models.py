@@ -207,6 +207,17 @@ class LogAtividade(models.Model):
         SIMULADO_CRIADO = 'SIMULADO_CRIADO', 'Simulado Criado'
         SIMULADO_EDITADO = 'SIMULADO_EDITADO', 'Simulado Editado'
         SIMULADO_DELETADO = 'SIMULADO_DELETADO', 'Simulado Deletado'
+        
+        CONQUISTA_CRIADA = 'CONQUISTA_CRIADA', 'Conquista Criada'
+        CONQUISTA_EDITADA = 'CONQUISTA_EDITADA', 'Conquista Editada'
+        CONQUISTA_DELETADA = 'CONQUISTA_DELETADA', 'Conquista Deletada'
+        
+        AVATAR_CRIADO = 'AVATAR_CRIADO', 'Avatar Criado'
+        AVATAR_EDITADO = 'AVATAR_EDITADO', 'Avatar Editado'
+        AVATAR_DELETADO = 'AVATAR_DELETADO', 'Avatar Deletado'
+        BORDA_CRIADA = 'BORDA_CRIADA', 'Borda Criada'
+        BORDA_EDITADA = 'BORDA_EDITADA', 'Borda Editada'
+        BORDA_DELETADA = 'BORDA_DELETADA', 'Borda Deletada'
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)

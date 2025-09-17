@@ -1,3 +1,4 @@
+// js/filtro-questoes.js
 document.addEventListener('DOMContentLoaded', function () {
     /*
     ✅ ADIÇÃO: FORÇAR DROPDOWNS A ABRIREM SEMPRE PARA BAIXO

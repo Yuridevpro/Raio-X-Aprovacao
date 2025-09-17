@@ -1,0 +1,63 @@
+<!-- gestao/templates/gestao/form_conquista.html -->
+
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <h2 class="h3 mb-4">{{ titulo }}</h2>
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                            {{ form.nome }}
+                            {{ form.nome.errors }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.chave.id_for_label }}" class="form-label">{{ form.chave.label }}</label>
+                            {{ form.chave }}
+                            <div class="form-text">{{ form.chave.help_text }}</div>
+                            {{ form.chave.errors }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                            {{ form.descricao }}
+                            {{ form.descricao.errors }}
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-9">
+                                <div class="mb-3">
+                                    <label for="{{ form.icone.id_for_label }}" class="form-label">{{ form.icone.label }}</label>
+                                    {{ form.icone }}
+                                    <div class="form-text">{{ form.icone.help_text }}</div>
+                                    {{ form.icone.errors }}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                 <div class="mb-3">
+                                    <label for="{{ form.cor.id_for_label }}" class="form-label">{{ form.cor.label }}</label>
+                                    {{ form.cor }}
+                                    {{ form.cor.errors }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-center gap-2">
+                            <a href="{% url 'gestao:listar_conquistas' %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-5">Salvar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

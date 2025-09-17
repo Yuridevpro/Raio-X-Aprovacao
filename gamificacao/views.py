@@ -6,6 +6,11 @@ from usuarios.models import UserProfile
 from django.db.models import Count, Q, F, Window
 from django.db.models.functions import Rank
 from questoes.utils import paginar_itens # Reutilizando a função de paginação do app 'questoes'
+from .services import verificar_e_gerar_rankings # <-- NOVO IMPORT
+from .models import RankingSemanal, RankingMensal
+from django.utils import timezone
+from datetime import date, timedelta
+
 
 @login_required
 def ranking(request):
@@ -15,7 +20,17 @@ def ranking(request):
 
     Esta view é otimizada para performance, realizando todos os cálculos
     e a ordenação diretamente no banco de dados.
+    
     """
+    verificar_e_gerar_rankings()
+
+    periodo = request.GET.get('periodo', 'geral')
+    hoje = date.today()
+    
+    ranking_list = UserProfile.objects.none()
+    titulo_ranking = "Ranking Geral"
+    
+    
     # 1. Obter o parâmetro de ordenação da URL. O padrão é 'acertos'.
     sort_by = request.GET.get('sort_by', 'acertos')
 

@@ -53,6 +53,17 @@ def get_log_icon(log):
         # =======================================================================
         # FIM DA ADIÇÃO
         # =======================================================================
+        
+        'CONQUISTA_CRIADA': 'fas fa-trophy text-success',
+        'CONQUISTA_EDITADA': 'fas fa-award text-info',
+        'CONQUISTA_DELETADA': 'fas fa-times-circle text-danger',
+        
+        'AVATAR_CRIADO': 'fas fa-user-plus text-success',
+        'AVATAR_EDITADO': 'fas fa-user-edit text-info',
+        'AVATAR_DELETADO': 'fas fa-user-times text-danger',
+        'BORDA_CRIADA': 'fas fa-id-badge text-success',
+        'BORDA_EDITADA': 'fas fa-paint-brush text-info',
+        'BORDA_DELETADA': 'fas fa-eraser text-danger',
 
         # Ações de Notificação de Erro
         'NOTIFICACOES_RESOLVIDAS': 'fas fa-check-double text-success',
@@ -62,6 +73,8 @@ def get_log_icon(log):
         # Ações de Auditoria e Segurança
         'LOG_DELETADO': 'fas fa-eraser text-danger',
         'TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA': 'fas fa-hand-paper text-danger',
+        
+        
     }
     return icon_map.get(log.acao, 'fas fa-info-circle text-muted')
 
@@ -76,11 +89,14 @@ def generate_log_message(log):
     # Esta abordagem garante que sempre teremos um nome para exibir.
     # =======================================================================
     alvo_str = detalhes.get('alvo_str') or \
+               detalhes.get('nome_simulado') or \
                detalhes.get('codigo_questao') or \
                detalhes.get('usuario_alvo') or \
                detalhes.get('usuario_deletado') or \
                detalhes.get('usuario_excluido') or \
                detalhes.get('simulado_deletado') or \
+               detalhes.get('nome_conquista') or \
+               detalhes.get('nome_recompensa') or \
                detalhes.get('nome') or \
                'N/A'
     alvo_html = f"<strong>{escape(alvo_str)}</strong>"
@@ -209,6 +225,32 @@ def generate_log_message(log):
     
     elif log.acao == 'LOG_DELETADO':
         message = f"{ator} moveu um registro para a lixeira."
+    
+    elif log.acao == 'CONQUISTA_CRIADA':
+        message = f"{ator} criou a conquista {alvo_html}."
+    
+    elif log.acao == 'CONQUISTA_EDITADA':
+        message = f"{ator} editou a conquista {alvo_html}."
+
+    elif log.acao == 'CONQUISTA_DELETADA':
+        message = f"{ator} deletou a conquista {alvo_html}."
+    elif log.acao == 'AVATAR_CRIADO':
+        message = f"{ator} criou o avatar {alvo_html}."
+        
+    elif log.acao == 'AVATAR_EDITADO':
+        message = f"{ator} editou o avatar {alvo_html}."
+        
+    elif log.acao == 'AVATAR_DELETADO':
+        message = f"{ator} deletou o avatar {alvo_html}."
+        
+    elif log.acao == 'BORDA_CRIADA':
+        message = f"{ator} criou a borda de perfil {alvo_html}."
+        
+    elif log.acao == 'BORDA_EDITADA':
+        message = f"{ator} editou a borda de perfil {alvo_html}."
+        
+    elif log.acao == 'BORDA_DELETADA':
+        message = f"{ator} deletou a borda de perfil {alvo_html}."
         
     # Fallback para qualquer ação não mapeada
     if not message:

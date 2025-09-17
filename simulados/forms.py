@@ -1,30 +1,19 @@
-# simulados/forms.py (NOVO ARQUIVO)
+# simulados/forms.py
 
 from django import forms
 from questoes.models import Disciplina
 
-class QuestaoFiltroForm(forms.Form):
+class SimuladoAvancadoForm(forms.Form):
     """
-    Formulário para o usuário selecionar filtros e gerar um simulado personalizado.
+    Formulário para a validação inicial da criação avançada de simulado.
+    Os campos dinâmicos de disciplina/quantidade são validados na view.
     """
-    disciplina = forms.ModelChoiceField(
-        queryset=Disciplina.objects.all().order_by('nome'),
-        label="Disciplina",
-        required=True,
-        empty_label="Selecione uma disciplina",
-        widget=forms.Select(attrs={'class': 'form-select'})
+    nome = forms.CharField(
+        label="Nome do Simulado", 
+        max_length=200,
+        widget=forms.TextInput(attrs={'class': 'form-control form-control-lg', 'placeholder': 'Ex: Revisão Semanal de Constitucional'})
     )
-    
-    NUM_QUESTOES_CHOICES = [
-        (10, '10 questões'),
-        (20, '20 questões'),
-        (30, '30 questões'),
-        (50, '50 questões'),
-    ]
-    num_questoes = forms.ChoiceField(
-        choices=NUM_QUESTOES_CHOICES,
-        label="Número de Questões",
-        required=True,
-        initial=20,
-        widget=forms.Select(attrs={'class': 'form-select'})
+    tempo_por_questao = forms.IntegerField(
+        label="Minutos por questão",
+        required=False, # 0 ou nulo será tratado como ilimitado
     )

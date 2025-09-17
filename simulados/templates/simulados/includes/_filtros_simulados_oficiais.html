@@ -1,0 +1,97 @@
+<!-- simulados/templates/simulados/includes/_filtros_simulados_oficiais.html -->
+{% load pratica_extras %}
+
+<style>
+    .form-wizard-container { max-width: 800px; margin: auto; }
+    .filtro-feedback {
+        background-color: #eef5ff;
+        border-left: 4px solid var(--cor-primaria);
+        padding: 0.75rem 1.25rem;
+        border-radius: 8px;
+        min-height: 50px;
+        display: flex;
+        align-items: center;
+        transition: all 0.3s ease;
+    }
+    .filter-card, .filter-card .collapse { overflow: visible; }
+    .dropdown { position: relative; }
+    .dropdown-menu { width: 100%; max-height: 300px; overflow-y: auto; }
+    .dropdown-menu .form-check-label { white-space: normal; word-wrap: break-word; }
+    form.hide-palavra .input-group input[name$="palavra_chave"] { display: none !important; }
+    form.hide-palavra .input-group { display: none !important; }
+    .search-input-container { padding: 0.5rem 0.75rem; position: sticky; top: 0; background-color: white; z-index: 10; border-bottom: 1px solid #dee2e6; }
+    .dropdown-options-container { max-height: 250px; overflow-y: auto; }
+    .dropdown-options-container li { padding: 0; margin: 0; list-style: none; }
+    [id^="options-"][id$="assunto"] .form-check { padding-left: 2.2rem !important; display: block !important; padding-top: 0.5rem; padding-bottom: 0.5rem; margin: 0 !important; }
+    [id^="options-"][id$="assunto"] .form-check .form-check-input { margin-left: -1.9rem !important; margin-top: 0.4em !important; float: left !important; }
+    [id^="options-"][id$="assunto"] .dropdown-header { padding: 0.8rem 1.2rem 0.4rem 1.2rem; text-align: left; font-size: 0.9rem; font-weight: 700; color: #0d6efd; background-color: #f8f9fa; white-space: normal !important; overflow-wrap: break-word; }
+    [id^="options-"][id$="assunto"] .dropdown-header:not(:first-of-type) { border-top: 1px solid #e0e0e0; margin-top: 0.5rem; padding-top: 1rem; }
+    .dropdown-options-container .form-check { padding: 0.4rem 1.8rem; white-space: normal; word-wrap: break-word; cursor: pointer; transition: background-color 0.2s ease-in-out; }
+    .dropdown-options-container .form-check:hover { background-color: #f8f9fa; }
+    .dropdown-options-container .form-check .form-check-input { margin-top: 0.3em; }
+    .filter-pill { display: inline-flex; align-items: center; padding: 0.25rem 0.6rem; font-size: 0.8em; font-weight: 500; border-radius: 1rem; background-color: #e9ecef; border: 1px solid #dee2e6; color: #495057; }
+    .remove-filter-btn { margin-left: 0.5rem; padding: 0; background: none; border: none; font-size: 1.4em; line-height: 1; cursor: pointer; color: #6c757d; opacity: 0.7; }
+    .remove-filter-btn:hover { opacity: 1; }
+    .btn-filter { text-align: left; }
+    .btn-filter span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-filter .badge { flex-shrink: 0; }
+    .btn-filter.active { background-color: #6c757d; color: white; border-color: #6c757d; }
+</style>
+<!-- simulados/templates/simulados/includes/_filtros_simulados_oficiais.html -->
+
+
+<div class="card card-body shadow-sm mb-4 filter-card">
+    <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Simulados</h5>
+            <span class="icon-toggle"></span>
+        </div>
+    </div>
+    <div class="collapse" id="collapseFilters">
+        <div class="card-body p-4">
+            <form method="GET" action="" id="form-filtros"
+                  data-assuntos-url="{{ assuntos_url }}"
+                  data-selected-assuntos="{{ selected_assuntos_json|safe }}">
+
+                <!-- ======================================================================= -->
+                <!-- INÍCIO DA CORREÇÃO: Nova grade de filtros -->
+                <!-- ======================================================================= -->
+                <div class="row g-3">
+                    <!-- Dropdown Disciplinas -->
+                    <div class="col-md-6 col-lg-3">
+                        {% include 'pratica/includes/_filtro_dropdown.html' with name="disciplina" label="Disciplina" items=disciplinas selected_ids=selected_disciplinas %}
+                    </div>
+                    <!-- Dropdown Bancas -->
+                    <div class="col-md-6 col-lg-3">
+                        {% include 'pratica/includes/_filtro_dropdown.html' with name="banca" label="Banca" items=bancas selected_ids=selected_bancas %}
+                    </div>
+                    <!-- Dropdown Instituições -->
+                    <div class="col-md-6 col-lg-3">
+                        {% include 'pratica/includes/_filtro_dropdown.html' with name="instituicao" label="Instituição" items=instituicoes selected_ids=selected_instituicoes %}
+                    </div>
+                     <!-- Filtro de Dificuldade (Botões de Rádio) -->
+                    <div class="col-md-6 col-lg-3">
+             
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="dificuldade" id="dificuldade-todas" value="" autocomplete="off" {% if not selected_dificuldade %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary" for="dificuldade-todas">Todas</label>
+
+                            {% for value, display in dificuldades %}
+                            <input type="radio" class="btn-check" name="dificuldade" id="dificuldade-{{ value }}" value="{{ value }}" autocomplete="off" {% if value == selected_dificuldade %}checked{% endif %}>
+                            <label class="btn btn-outline-secondary" for="dificuldade-{{ value }}">{{ display }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                <!-- ======================================================================= -->
+                <!-- FIM DA CORREÇÃO -->
+                <!-- ======================================================================= -->
+
+                <div class="text-center mt-4">
+                    <button type="submit" class="btn btn-primary px-5"><i class="fas fa-search me-2"></i>Buscar</button>
+                    <a href="{% url 'simulados:listar_simulados_oficiais' %}" class="btn btn-outline-secondary px-4 ms-2">Limpar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
