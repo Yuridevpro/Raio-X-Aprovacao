@@ -10,48 +10,143 @@
 
 {% block head %}
 <style>
+    /* ======================================================================= */
+    /* FONTES E ESTILOS GLOBAIS
+    /* ======================================================================= */
+    @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap');
 
-    
+    /* ======================================================================= */
+    /* HEADER DO PERFIL
+    /* ======================================================================= */
     .profile-header {
-        background: linear-gradient(135deg, rgba(44, 62, 80, 1) 0%, rgba(74, 144, 226, 0.8) 100%), url('https://www.transparenttextures.com/patterns/clean-gray-paper.png');
+        position: relative;
+        overflow: hidden;
         color: white;
         padding: 2.5rem 1.5rem;
-        border-radius: var(--raio-borda);
+        border-radius: 12px;
+        background-color: transparent;
+        clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.35);
+        perspective: 1200px;
+        z-index: 1;
+        min-height: 260px;
+        display: flex;
+        align-items: center;
+        font-family: 'Oxanium', sans-serif;
     }
-    
+
+    /* Camada de Sombra (Overlay) */
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(0, 0, 0, 0.299) 0%, rgba(0,0,0,0.35) 100%);
+        z-index: -1;
+    }
+
+    /* Camada da Imagem de Fundo (Parallax) */
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: var(--banner-url, linear-gradient(135deg, rgba(44, 62, 80, 1) 0%, rgba(74, 144, 226, 0.8) 100%));
+        background-size: cover;
+        /* ======================================================================= */
+        /* MUDANÇA 1: Usando uma variável CSS para a posição do banner.
+        /* O valor 'center 85%' agora é apenas um fallback.
+        /* ======================================================================= */
+   
+        background-attachment: fixed;
+        z-index: -2;
+    }
+
+    .profile-header .row {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+    }
+
+    /* ... (resto do CSS, sem alterações) ... */
+
+    .profile-header .col-md-3 {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .profile-header .col-md-9 {
+        text-align: left;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+    }
+
+    .profile-header h1 {
+        font-family: 'Oxanium', sans-serif;
+        font-weight: 700;
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem !important;
+    }
+
+    .profile-header p.text-white-50 {
+        font-size: 1.1rem;
+        margin-bottom: 1.25rem !important;
+        color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    .profile-header .btn-light {
+        font-size: 0.95rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        transition: all 0.3s ease;
+    }
+
+    .profile-header .btn-light:hover {
+        background-color: #e2e6ea;
+        transform: translateY(-px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+    }
+
+    @media (max-width: 767px) {
+        .profile-header .col-md-9 {
+            text-align: center;
+            align-items: center;
+        }
+    }
+
     .profile-avatar-container {
         position: relative;
         width: 120px;
         height: 120px;
-        overflow: hidden;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin: 0 auto;
+        transform: translateZ(30px);
     }
-
+    
     .avatar-image {
         width: 100%;
         height: 100%;
         object-fit: cover;
-        background-color: #e9ecef;
-        border-radius: 50%; /* padrão circular */
         position: relative;
-        z-index: 1; /* fica abaixo da borda */
+        z-index: 1;
         transition: all 0.3s ease;
-    }
-
-    .avatar-image.with-default-border {
-        border: 4px solid rgba(255, 255, 255, 0.8);
     }
 
     .border-image {
         position: absolute;
-        inset: 0; /* cobre toda a área do container */
+        inset: 0;
         width: 100%;
         height: 100%;
-        object-fit: contain; /* preserva proporções da borda */
+        object-fit: contain;
         pointer-events: none;
-        z-index: 2; /* borda acima da imagem */
+        z-index: 2;
     }
 
     .default-avatar {
@@ -69,68 +164,78 @@
         position: relative;
         z-index: 1;
     }
+    
+    .avatar-image.with-default-border {
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.8);
+    }
+
     .profile-avatar-container.with-frame {
-    position: relative;
-    width: 140px;
-    height: 140px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+        width: 140px;
+        height: 140px;
+    }
 
-/* Avatar */
-.profile-avatar-container.with-frame .avatar-image {
-    width: 65%;
-    height: 65%;
-    border-radius: 12px;
-    object-fit: cover;
-    margin: auto;
-    position: relative;
-    z-index: 1;
-}
+    .profile-avatar-container.with-frame .avatar-image {
+        width: 65%;
+        height: 65%;
+        border-radius: 12px;
+    }
 
-/* Glow atrás da moldura */
-.profile-avatar-container.with-frame::before {
-    content: "";
-    position: absolute;
-    inset: -8px; /* expande um pouco para além da moldura */
-    border-radius: 16px;
-    animation: border-soft-glow 6s infinite ease-in-out;
-    z-index: 1; /* atrás da moldura */
-}
+    .profile-avatar-container.with-frame::before {
+        content: "";
+        position: absolute;
+        inset: -8px;
+        border-radius: 16px;
+        z-index: 1;
+    }
 
-/* Moldura */
-.profile-avatar-container.with-frame .border-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    pointer-events: none;
-    z-index: 2; /* fica por cima */
-}
+    .level-badge {
+        background-color: var(--cor-primaria);
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 50px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        vertical-align: middle;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        margin-left: 0.75rem;
+    }
 
+    .xp-progress {
+        height: 10px;
+        background-color: #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+    }
 
-
-    /* ======================================================================= */
+    .xp-progress-bar {
+        background-color: var(--cor-sucesso);
+        height: 100%;
+        border-radius: 10px;
+        transition: width 0.5s ease-in-out;
+    }
 
     .streak-card {
         background: linear-gradient(135deg, #f7b733, #fc4a1a);
         color: white;
         border: none;
     }
+
     .conquista-card {
         transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         opacity: 1;
     }
+
     .conquista-card.locked {
         opacity: 0.5;
         background-color: #f8f9fa;
     }
+
     .conquista-card:hover:not(.locked) {
-        transform: translateY(-5px);
+        transform: translateY(-5px) scale(1.02);
         box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     }
+
     .conquista-icon {
         font-size: 2.5rem;
         width: 60px;
@@ -140,52 +245,30 @@
         border-radius: 50%;
         background-color: #e9ecef;
     }
+
     .conquista-card.locked .conquista-icon {
         color: #6c757d !important;
     }
-    .level-badge {
-        background-color: var(--cor-primaria);
-        color: white;
-        padding: 0.3rem 0.8rem;
-        border-radius: 50px;
-        font-size: 0.9rem;
-        font-weight: 600;
-        vertical-align: middle;
-    }
-    .xp-progress {
-        height: 10px;
-        background-color: #e9ecef;
-        border-radius: 10px;
-        overflow: hidden;
-    }
-    .xp-progress-bar {
-        background-color: var(--cor-sucesso);
-        height: 100%;
-        border-radius: 10px;
-        transition: width 0.5s ease-in-out;
-    }
 </style>
-
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    
-    {% include 'includes/_messages.html' %}
+    {% include 'usuarios/includes/_messages.html' %}
 
-    <!-- Cabeçalho do Perfil -->
-    <div class="profile-header text-center text-md-start p-4 mb-4 shadow-sm">
+    <!-- HEADER DO PERFIL EM FORMATO DE BANNER -->
+    <div class="profile-header p-4 mb-4 shadow-sm" 
+         {% if perfil_visualizado.banner_equipado %}
+         style="--banner-url: url('{{ perfil_visualizado.banner_equipado.imagem.url }}'); 
+                --banner-position: {{ perfil_visualizado.banner_equipado.background_position }};"
+         {% endif %}>
+        
         <div class="row align-items-center">
             <div class="col-md-3 text-center mb-3 mb-md-0">
-                <!-- ======================================================================= -->
-                <!-- CORREÇÃO: Adicionando a classe condicional ao container -->
-                <!-- ======================================================================= -->
                 <div class="profile-avatar-container mx-auto {% if perfil_visualizado.borda_equipada %}with-frame{% endif %}">
-                    
                     {% if perfil_visualizado.borda_equipada %}
                         <img src="{{ perfil_visualizado.borda_equipada.imagem.url }}" class="border-image" alt="Borda de Perfil">
                     {% endif %}
-                    
                     {% if perfil_visualizado.avatar_equipado %}
                         <img src="{{ perfil_visualizado.avatar_equipado.imagem.url }}" 
                              class="avatar-image {% if not perfil_visualizado.borda_equipada %}with-default-border{% endif %}" 
@@ -198,10 +281,11 @@
             <div class="col-md-9">
                 <div class="d-flex align-items-center justify-content-center justify-content-md-start gap-3 mb-2">
                     <h1 class="h2 mb-0">{{ perfil_visualizado.nome }} {{ perfil_visualizado.sobrenome }}</h1>
-                    <span class="level-badge" title="{{ gamificacao_data.xp|floatformat:0 }} XP"><i class="fas fa-star me-1"></i> Nível {{ gamificacao_data.level }}</span>
+                    <span class="level-badge" title="{{ gamificacao_data.xp|floatformat:0 }} XP">
+                        <i class="fas fa-star me-1"></i> Nível {{ gamificacao_data.level }}
+                    </span>
                 </div>
                 <p class="mb-2 text-white-50">{{ perfil_visualizado.user.email }}</p>
-                
                 {% if request.user == perfil_visualizado.user %}
                 <a href="{% url 'editar_perfil' %}" class="btn btn-sm btn-light">
                     <i class="fas fa-pencil-alt me-2"></i>Editar Perfil e Conta
@@ -210,7 +294,7 @@
             </div>
         </div>
     </div>
-
+    
     <!-- Seção de Gamificação Reorganizada -->
     <div class="row g-4 mb-4">
         <!-- Card de Progresso de XP -->

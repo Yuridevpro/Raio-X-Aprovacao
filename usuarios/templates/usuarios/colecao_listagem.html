@@ -1,0 +1,140 @@
+<!-- usuarios/templates/usuarios/colecao_listagem.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo_pagina }}{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+
+<style>
+    .collection-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: 1px solid var(--cor-borda);
+        border-left: 4px solid transparent;
+    }
+    .collection-card.unlocked:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .collection-card.locked {
+        background-color: #f8f9fa;
+    }
+    .collection-card.locked .card-img-top {
+        filter: grayscale(100%);
+        opacity: 0.6;
+    }
+    .collection-card .card-body {
+        padding: 1rem;
+    }
+    .collection-card .card-title {
+        font-size: 0.95rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    .collection-card .card-text {
+        font-size: 0.85rem;
+        color: var(--cor-secundaria);
+        min-height: 40px; /* Garante alinhamento dos botões */
+    }
+    .card-img-top {
+        aspect-ratio: 1 / 1;
+        object-fit: cover;
+    }
+    .unlock-condition {
+        font-size: 0.75rem;
+    }
+
+    /* Estilos para o badge de raridade */
+    .rarity-badge {
+        font-size: 0.7rem;
+        font-weight: 700;
+        padding: 0.2em 0.6em;
+        border-radius: 50px;
+        color: #fff;
+        text-transform: uppercase;
+    }
+    .rarity-comum { background-color: #6c757d; border: 1px solid #5c636a;}
+    .rarity-raro { background-color: #0d6efd; border: 1px solid #0a58ca;}
+    .rarity-epico { background-color: #6f42c1; border: 1px solid #5a349c;}
+    .rarity-lendario { background-color: #fd7e14; border: 1px solid #d16a11;}
+    .rarity-mitico {
+        background: linear-gradient(45deg, #f7b733, #fc4a1a, #f7b733);
+        border: 1px solid #fc4a1a;
+        animation: gradient-animation 3s ease infinite;
+        background-size: 200% 200%;
+    }
+
+    @keyframes gradient-animation {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h3 mb-0">Minha Coleção</h2>
+            <p class="text-muted">Personalize seu perfil com os itens que você desbloqueou.</p>
+        </div>
+        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil
+        </a>
+    </div>
+
+    <!-- Inclui o submenu de navegação -->
+    {% include 'usuarios/includes/_colecao_submenu.html' with active_tab=tipo_item %}
+
+    {% include 'usuarios/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center">
+            <h5 class="mb-0 me-3">{{ titulo_pagina }}</h5>
+            
+            <!-- Filtro por Raridade -->
+            <form method="GET" action="" class="d-flex align-items-center">
+                <select name="raridade" class="form-select form-select-sm me-2" onchange="this.form.submit()">
+                    <option value="">Todas as Raridades</option>
+                    {% for value, name in raridade_choices %}
+                        <option value="{{ value }}" {% if filtro_raridade_ativo == value %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+                {% if filtro_raridade_ativo %}
+                    <a href="?raridade=" class="btn btn-sm btn-outline-secondary">&times; Limpar</a>
+                {% endif %}
+            </form>
+        </div>
+        <div class="card-body">
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
+                {% for item in itens %}
+                    {% include 'usuarios/includes/_colecao_item_card.html' with item=item desbloqueados_ids=desbloqueados_ids equipado_id=equipado_id tipo_item=tipo_item %}
+                {% empty %}
+                    <div class="col-12">
+                        <p class="text-center text-muted py-5">Nenhum item encontrado com os filtros selecionados.</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Paginação -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Inicializa os tooltips do Bootstrap para os botões desabilitados
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

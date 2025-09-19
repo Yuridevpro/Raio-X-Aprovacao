@@ -28,6 +28,13 @@ class UserProfile(models.Model):
         null=True, blank=True, 
         related_name='usuarios_com_borda'
     )
+    
+    banner_equipado = models.ForeignKey(
+        'gamificacao.Banner',
+        on_delete=models.SET_NULL,
+        null=True, blank=True,
+        related_name='usuarios_com_banner'
+    )
 
     def __str__(self):
         return f"{self.nome} {self.sobrenome}"

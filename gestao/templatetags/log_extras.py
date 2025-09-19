@@ -74,7 +74,9 @@ def get_log_icon(log):
         'LOG_DELETADO': 'fas fa-eraser text-danger',
         'TENTATIVA_EXCLUSAO_MASSA_EXCEDIDA': 'fas fa-hand-paper text-danger',
         
-        
+        'BANNER_CRIADO': 'fas fa-image text-success',
+        'BANNER_EDITADO': 'fas fa-paint-roller text-info',
+        'BANNER_DELETADO': 'fas fa-image-slash text-danger',
     }
     return icon_map.get(log.acao, 'fas fa-info-circle text-muted')
 
@@ -251,6 +253,12 @@ def generate_log_message(log):
         
     elif log.acao == 'BORDA_DELETADA':
         message = f"{ator} deletou a borda de perfil {alvo_html}."
+    elif log.acao == 'BANNER_CRIADO':
+        message = f"{ator} criou o banner {alvo_html}."
+    elif log.acao == 'BANNER_EDITADO':
+        message = f"{ator} editou o banner {alvo_html}."
+    elif log.acao == 'BANNER_DELETADO':
+        message = f"{ator} deletou o banner {alvo_html}."
         
     # Fallback para qualquer ação não mapeada
     if not message:

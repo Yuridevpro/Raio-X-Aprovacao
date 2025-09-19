@@ -1,0 +1,12 @@
+<!-- usuarios/templates/usuarios/includes/_colecao_submenu.html -->
+<nav class="nav nav-pills nav-fill mb-4">
+    <a class="nav-link {% if active_tab == 'avatar' %}active{% endif %}" href="{% url 'colecao_avatares' %}">
+        <i class="fas fa-user-circle me-2"></i>Avatares
+    </a>
+    <a class="nav-link {% if active_tab == 'borda' %}active{% endif %}" href="{% url 'colecao_bordas' %}">
+        <i class="fas fa-id-badge me-2"></i>Bordas
+    </a>
+    <a class="nav-link {% if active_tab == 'banner' %}active{% endif %}" href="{% url 'colecao_banners' %}">
+        <i class="fas fa-image me-2"></i>Banners
+    </a>
+</nav>

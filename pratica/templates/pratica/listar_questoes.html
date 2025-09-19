@@ -14,10 +14,9 @@
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
     /* ========================================================================= */
-    /* ESTILOS GLOBAIS COM VARIÁVEIS ORIGINAIS
+    /* ESTILOS GLOBAIS
     /* ========================================================================= */
     body {
-        /* Nova cor de fundo da página para destacar os cards */
         background-color: #f4f7fa; 
         font-family: 'Inter', sans-serif;
     }
@@ -51,10 +50,12 @@
         color: var(--cor-secundaria);
         transition: var(--transicao-padrao);
     }
+
     .btn-status-filter:hover {
         background-color: #e9ecef;
         border-color: #ced4da;
     }
+
     .btn-status-filter.active {
         background-color: var(--cor-primaria);
         color: var(--cor-texto-claro);
@@ -63,75 +64,7 @@
     }
     
     /* ========================================================================= */
-    /* ESTILOS PARA O EDITOR DE TEXTO TIPTAP (Comentários)
-    /* ========================================================================= */
-    .tiptap-toolbar {
-        border: 1px solid var(--cor-borda);
-        border-bottom: none;
-        padding: .5rem;
-        border-top-left-radius: var(--raio-borda);
-        border-top-right-radius: var(--raio-borda);
-        background-color: #f8f9fa;
-    }
-    .tiptap-toolbar button {
-        border: none;
-        background-color: transparent;
-        border-radius: 4px;
-        transition: var(--transicao-padrao);
-    }
-    .tiptap-toolbar button:hover {
-        background-color: var(--cor-texto-escuro);
-        color: var(--cor-texto-claro);
-    }
-    .tiptap-toolbar button.active {
-        background-color: var(--cor-primaria);
-        color: var(--cor-texto-claro);
-    }
-    
-    .tiptap {
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--raio-borda);
-        padding: .75rem 1rem;
-        min-height: 150px;
-        background-color: var(--cor-fundo-claro);
-    }
-    .tiptap:focus-within { /* Aplica ao container quando o editor interno ganha foco */
-        border-color: var(--cor-primaria);
-        outline: 0;
-        box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
-    }
-    
-    .tiptap p.is-editor-empty:first-child::before {
-      content: attr(data-placeholder);
-      float: left;
-      color: #adb5bd;
-      pointer-events: none;
-      height: 0;
-    }
-    
-    .comment-edit-form .tiptap {
-        border-top-left-radius: 0;
-        border-top-right-radius: 0;
-    }
-
-    /* ========================================================================= */
-    /* ESTILOS PARA A SEÇÃO DE COMENTÁRIOS
-    /* ========================================================================= */
-    .comentarios-section { background-color: #f8f9fa; border-radius: 0 0 var(--raio-borda) var(--raio-borda); }
-    .comment-wrapper { position: relative; padding-left: 60px; margin-bottom: 1.5rem; }
-    .comment-card { background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); padding: 1rem 1.5rem; position: relative; box-shadow: none; }
-    .comment-avatar .avatar-icon { width: 40px; height: 40px; background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%); color: var(--cor-texto-claro); display: flex; align-items: center; justify-content: center; border-radius: 50%; font-weight: bold; font-size: 1.1rem; }
-    .comment-wrapper .comment-avatar { position: absolute; left: 0; top: 0; }
-    .comment-user { font-weight: 600; color: var(--cor-texto-escuro); }
-    .comment-date { font-size: 0.8rem; color: var(--cor-secundaria); }
-    .comment-footer { margin-top: 1rem; display: flex; gap: 1.5rem; align-items: center; flex-wrap: wrap; }
-    .comment-footer a { text-decoration: none; color: var(--cor-secundaria); font-weight: 500; font-size: 0.85rem; }
-    .comment-footer a:hover { color: var(--cor-primaria); }
-    .btn-like.liked { color: var(--cor-primaria); font-weight: bold; }
-    .comment-replies { margin-left: 4.5rem; padding-left: 1rem; border-left: 2px solid var(--cor-borda); margin-top: 1.5rem; }
-    
-    /* ========================================================================= */
-    /* ESTILOS DO CARD DA QUESTÃO (REDESENHADO)
+    /* CARD DA QUESTÃO
     /* ========================================================================= */
     .card-questao {
         background-color: var(--cor-fundo-claro);
@@ -141,6 +74,7 @@
         margin-bottom: 2.5rem;
         overflow: hidden;
     }
+
     .card-questao:hover {
         box-shadow: var(--sombra-caixa);
         transform: none;
@@ -153,9 +87,11 @@
         font-weight: 500;
         color: var(--cor-secundaria);
     }
+
     .card-questao .card-header strong {
         color: var(--cor-texto-escuro);
     }
+
     .card-questao .card-header .q-code {
         background-color: #e9ecef;
         color: var(--cor-secundaria);
@@ -166,8 +102,11 @@
     }
 
     .card-questao .fa-star {
-        font-size: 1.25rem; cursor: pointer; color: #ced4da;
+        font-size: 1.25rem; 
+        cursor: pointer; 
+        color: #ced4da;
     }
+
     .card-questao .fa-star.fas {
         color: var(--cor-aviso) !important;
     }
@@ -176,17 +115,23 @@
         padding: 2rem;
     }
 
-    .enunciado-formatado, .explicacao-conteudo, .comment-body {
+    .enunciado-formatado, .explicacao-conteudo {
         font-size: 1.1rem;
         line-height: 1.7;
         color: var(--cor-texto-escuro);
     }
+
     .enunciado-formatado p:last-child {
         margin-bottom: 0;
     }
 
+    .card-footer {
+        background-color: #f8f9fa;
+        border-top: 1px solid var(--cor-borda);
+    }
+
     /* ========================================================================= */
-    /* NOVO DESIGN DAS ALTERNATIVAS
+    /* ALTERNATIVAS DA QUESTÃO
     /* ========================================================================= */
     .alternativas {
         display: flex;
@@ -209,6 +154,7 @@
         transition: var(--transicao-padrao);
         width: 100%;
     }
+
     .alternativa-item .form-check-label:hover {
         border-color: var(--cor-primaria);
         background-color: #f8f9fa;
@@ -235,6 +181,7 @@
         border-color: var(--cor-primaria);
         background-color: #eef5ff;
     }
+
     .alternativa-item .form-check-input:checked + .form-check-label .alternativa-letra {
         background-color: var(--cor-primaria);
         border-color: var(--cor-primaria);
@@ -245,20 +192,25 @@
         cursor: default;
         background-color: transparent !important;
     }
+
      .alternativas.respondido .form-check-label:hover {
         border-color: var(--cor-borda);
      }
+
     .alternativas.respondido .label-correta {
         border-color: var(--cor-sucesso) !important;
     }
+
     .alternativas.respondido .label-correta .alternativa-letra {
         background-color: var(--cor-sucesso) !important;
         border-color: var(--cor-sucesso) !important;
         color: var(--cor-texto-claro) !important;
     }
+
     .alternativas.respondido .label-errada {
         border-color: var(--cor-erro) !important;
     }
+
      .alternativas.respondido .label-errada .alternativa-letra {
         background-color: var(--cor-erro) !important;
         border-color: var(--cor-erro) !important;
@@ -270,30 +222,42 @@
         border-radius: var(--raio-borda);
         border-left: 4px solid var(--cor-primaria);
     }
-    
-    .card-footer {
+
+    /* ========================================================================= */
+    /* SEÇÃO DE COMENTÁRIOS (Reorganizado e Otimizado)
+    /* ========================================================================= */
+
+    /* --- Estrutura Geral --- */
+    .comentarios-section {
         background-color: #f8f9fa;
-        border-top: 1px solid var(--cor-borda);
+        border-radius: 0 0 var(--raio-borda) var(--raio-borda);
     }
 
-    .comentarios-section { background-color: #f8f9fa; border-radius: 0 0 var(--raio-borda) var(--raio-borda); }
-    .comment-wrapper { position: relative; padding-left: 70px; /* Aumentado para dar mais espaço */ margin-bottom: 1.5rem; }
-    .comment-card { background-color: var(--cor-fundo-claro); border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); padding: 1rem 1.5rem; position: relative; box-shadow: none; }
-    
+    .comment-wrapper {
+        position: relative;
+        padding-left: 115px; /* Espaço para avatar grande (100px) + margem (15px) */
+        margin-bottom: 1.25rem; /* Espaço ENTRE os comentários */
+    }
+
+    /* --- Avatar do Comentário --- */
     .comment-avatar {
         position: absolute;
         left: 0;
         top: 0;
-        width: 50px; /* AUMENTADO de 40px para 50px */
-        height: 50px; /* AUMENTADO de 40px para 50px */
+        width: 100px; /* Tamanho do container com borda */
+        height: 100px;
         display: flex;
         align-items: center;
         justify-content: center;
     }
-    .comment-avatar.with-frame {
-        width: 60px; /* AUMENTADO de 48px para 60px */
-        height: 60px; /* AUMENTADO de 48px para 60px */
+    
+    .comment-avatar.with-frame .comment-avatar-image {
+        width: 65%; /* Avatar ocupa 65% do espaço da moldura */
+        height: 65%;
+        border-radius: 8px;
+        border: none;
     }
+
     .comment-avatar-image {
         width: 100%;
         height: 100%;
@@ -302,9 +266,11 @@
         position: relative;
         z-index: 1;
     }
+
     .comment-avatar-image.with-default-border {
         border: 2px solid #dee2e6;
     }
+
     .comment-border-image {
         position: absolute;
         inset: 0;
@@ -314,9 +280,10 @@
         pointer-events: none;
         z-index: 2;
     }
+    
     .comment-default-avatar {
-        width: 50px; /* AUMENTADO de 40px para 50px */
-        height: 50px; /* AUMENTADO de 40px para 50px */
+        width: 50px;
+        height: 50px;
         background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
         color: white;
         display: flex;
@@ -324,15 +291,123 @@
         justify-content: center;
         border-radius: 50%;
         font-weight: bold;
-        font-size: 1.4rem; /* Ajustado */
+        font-size: 1.4rem;
     }
-    .comment-avatar.with-frame .comment-avatar-image {
-        width: 70%;
-        height: 70%;
-        border-radius: 8px; /* Ajustado */
+
+    /* --- Card do Comentário --- */
+    .comment-card {
+        background-color: var(--cor-fundo-claro);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        position: relative;
+        box-shadow: none;
+        padding: 0.75rem 1.25rem; /* MODIFICADO: Padding interno reduzido */
+    }
+
+    .comment-user {
+        font-weight: 600;
+        color: var(--cor-texto-escuro);
+    }
+
+    .comment-date {
+        font-size: 0.8rem;
+        color: var(--cor-secundaria);
+    }
+
+    .comment-body {
+        font-size: 1.1rem;
+        line-height: 1.7;
+        color: var(--cor-texto-escuro);
+        margin-top: 0.5rem; /* MODIFICADO: Controla o espaço abaixo do nome */
+    }
+
+    .comment-footer {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+        margin-top: 0.75rem; /* MODIFICADO: Espaço acima dos botões reduzido */
+    }
+
+    .comment-footer a {
+        text-decoration: none;
+        color: var(--cor-secundaria);
+        font-weight: 500;
+        font-size: 0.85rem;
+    }
+
+    .comment-footer a:hover {
+        color: var(--cor-primaria);
+    }
+
+    .btn-like.liked {
+        color: var(--cor-primaria);
+        font-weight: bold;
+    }
+
+    /* --- Respostas --- */
+    .comment-replies {
+        border-left: 2px solid var(--cor-borda);
+        padding-left: 1.25rem;
+        margin-top: 1rem;
+        margin-left: 40px; 
+    }
+
+    /* ========================================================================= */
+    /* EDITOR DE TEXTO TIPTAP
+    /* ========================================================================= */
+    .tiptap-toolbar {
+        border: 1px solid var(--cor-borda);
+        border-bottom: none;
+        padding: .5rem;
+        border-top-left-radius: var(--raio-borda);
+        border-top-right-radius: var(--raio-borda);
+        background-color: #f8f9fa;
+    }
+
+    .tiptap-toolbar button {
         border: none;
+        background-color: transparent;
+        border-radius: 4px;
+        transition: var(--transicao-padrao);
     }
-    /* --- FIM DA CORREÇÃO --- */
+
+    .tiptap-toolbar button:hover {
+        background-color: var(--cor-texto-escuro);
+        color: var(--cor-texto-claro);
+    }
+
+    .tiptap-toolbar button.active {
+        background-color: var(--cor-primaria);
+        color: var(--cor-texto-claro);
+    }
+    
+    .tiptap {
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        padding: .75rem 1rem;
+        min-height: 150px;
+        background-color: var(--cor-fundo-claro);
+    }
+
+    .tiptap:focus-within {
+        border-color: var(--cor-primaria);
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
+    }
+    
+    .tiptap p.is-editor-empty:first-child::before {
+      content: attr(data-placeholder);
+      float: left;
+      color: #adb5bd;
+      pointer-events: none;
+      height: 0;
+    }
+    
+    .comment-edit-form .tiptap {
+        border-top-left-radius: 0;
+        border-top-right-radius: 0;
+    }
 
     /* ========================================================================= */
     /* AJUSTES PARA MOBILE (ATÉ 768px)
@@ -361,6 +436,22 @@
         .comment-wrapper {
             padding-left: 55px; 
         }
+        
+        /* Ajuste do tamanho do avatar para mobile */
+        .comment-avatar {
+            width: 40px;
+            height: 40px;
+        }
+        .comment-avatar.with-frame {
+            width: 48px;
+            height: 48px;
+        }
+        .comment-default-avatar {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+        }
+
 
         .comment-replies {
             margin-left: 1.25rem; 
@@ -500,6 +591,17 @@
 <!-- INCLUSÃO DOS MODAIS REUTILIZÁVEIS -->
 {% include 'pratica/includes/_modais_pratica.html' %}
 
+<!-- a. TOAST GENÉRICO PARA NOTIFICAÇÕES DE GAMIFICAÇÃO -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto" id="gamificationToastTitle"></strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="gamificationToastBody"></div>
+    </div>
+  </div>
+
 {% endblock %}
 
 {% block scripts %}
@@ -521,11 +623,15 @@
 <!-- LÓGICA JS ESPECÍFICA DA PÁGINA -->
 <script>
 
-const conquistaToastEl = document.getElementById('conquistaToast');
-const conquistaToast = new bootstrap.Toast(conquistaToastEl);
-
-function showGamificationToast(title, bodyContent, icon, color) {
-        const toastEl = document.getElementById('gamificationToast'); // Usaremos este ID consistente
+/**
+     * Função genérica para exibir toasts de gamificação.
+     * @param {string} title - O título do toast.
+     * @param {string} bodyContent - O conteúdo HTML do corpo do toast.
+     * @param {string} icon - Classes do ícone Font Awesome (ex: 'fas fa-star').
+     * @param {string} color - A cor do ícone.
+     */
+     function showGamificationToast(title, bodyContent, icon, color = '#0d6efd') {
+        const toastEl = document.getElementById('gamificationToast');
         if (!toastEl) return;
 
         const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
@@ -537,6 +643,7 @@ function showGamificationToast(title, bodyContent, icon, color) {
         
         toast.show();
     }
+
 
     document.addEventListener('DOMContentLoaded', function() {
         // =======================================================================
@@ -695,14 +802,13 @@ function showGamificationToast(title, bodyContent, icon, color) {
             }).catch(err => showNotificationModal('Erro de Rede', 'Não foi possível deletar. Tente novamente.', 'error'));
         }
     
-        /** Lida com o envio de uma resposta de questão. (VERSÃO ATUALIZADA) */
-/** Lida com o envio de uma resposta de questão. */
-function handleResponder(button) {
+        function handleResponder(button) {
             const questaoId = button.dataset.questaoId;
             const questaoCard = document.getElementById(`questao-${questaoId}`);
             const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
             
             if (!alternativaSelecionada) { 
+                // A função showNotificationModal (do seu _modais_pratica.html) deve ser global
                 window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
                 return; 
             }
@@ -712,10 +818,15 @@ function handleResponder(button) {
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                 body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(result => {
                 if (result.status === 'success') {
-                    // --- Lógica de feedback da questão ---
+                    // --- 1. Lógica de feedback visual da questão ---
                     const feedbackDiv = questaoCard.querySelector('.feedback');
                     const alertDiv = feedbackDiv.querySelector('.alert');
                     const alternativasDiv = questaoCard.querySelector('.alternativas');
@@ -730,8 +841,11 @@ function handleResponder(button) {
                     questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
                         const input = item.querySelector('input');
                         const label = item.querySelector('label');
-                        if (input.value === result.gabarito) label.classList.add('label-correta');
-                        else if (input.checked && !result.correta) label.classList.add('label-errada');
+                        if (input.value === result.gabarito) {
+                            label.classList.add('label-correta');
+                        } else if (input.checked && !result.correta) {
+                            label.classList.add('label-errada');
+                        }
                     });
 
                     if (result.explicacao) {
@@ -740,57 +854,55 @@ function handleResponder(button) {
                     }
                     feedbackDiv.style.display = 'block';
 
-                    // --- Lógica de Gamificação ---
-                    let delay = 0;
+                    // --- 2. Lógica de Notificações de Gamificação (Toasts) ---
+                    let delay = 0; // Delay inicial de 0ms
 
-                    if (result.level_up_info) {
-                        const levelUpBody = `
-                            <div class="me-3 fs-2" style="color: #f7b733;">
-                                <i class="fas fa-star"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold">Você alcançou o Nível ${result.level_up_info.novo_level}!</h6>
-                            </div>`;
-                        showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
-                        delay += 1000;
+                    // Notificação de ganho de XP (a mais importante)
+                    if (result.xp_ganho > 0) {
+                        let xpTitle = `+${result.xp_ganho} XP`;
+                        let xpBody = 'Sua resposta foi registrada com sucesso!';
+                        if (result.bonus_ativo) {
+                            xpTitle += ' (Bônus 2x)';
+                            xpBody = 'Você ativou o bônus por acertos consecutivos!';
+                        }
+                        showGamificationToast(xpTitle, xpBody, 'fas fa-brain', '#6f42c1');
+                        delay += 2500; // Define o tempo para a próxima notificação aparecer
                     }
 
+                    // Notificação de Level Up
+                    if (result.level_up_info) {
+                        const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>!`;
+                        setTimeout(() => {
+                            showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
+                        }, delay);
+                        delay += 2500;
+                    }
+
+                    // Notificação de Meta Diária
                     if (result.meta_completa_info) {
                         const meta = result.meta_completa_info;
-                        const metaBody = `
-                            <div class="me-3 fs-2" style="color: #28a745;">
-                                <i class="fas fa-calendar-check"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold">Você completou sua meta de ${meta.total_questoes} questões!</h6>
-                                <small>+${meta.xp_bonus} XP de bônus!</small>
-                            </div>`;
+                        const metaBody = `Você completou sua meta de ${meta.total_questoes} questões e ganhou <strong>+${meta.xp_bonus} XP</strong> de bônus!`;
                         setTimeout(() => {
                             showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745');
                         }, delay);
-                        delay += 1000;
+                        delay += 2500;
                     }
                     
+                    // Notificação de Nova Conquista
                     if (result.nova_conquista) {
                         const conquista = result.nova_conquista;
-                        const conquistaBody = `
-                            <div class="me-3 fs-2" style="color: ${conquista.cor};">
-                                <i class="${conquista.icone}"></i>
-                            </div>
-                            <div>
-                                <h6 class="mb-0 fw-bold">${conquista.nome}</h6>
-                            </div>`;
+                        const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
                         setTimeout(() => {
-                            showGamificationToast('Conquista Desbloqueada!', conquistaBody, 'fas fa-trophy', conquista.cor);
+                            showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor);
                         }, delay);
                     }
                     
                 } else {
-                    window.showNotificationModal('Erro', result.message, 'error');
+                    window.showNotificationModal('Erro ao Responder', result.message, 'error');
                 }
             }).catch(err => {
-                console.error('Erro no fetch:', err); // Adicionado para depuração
-                window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta.', 'error')
+                console.error('Erro no fetch da resposta:', err);
+                window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta. Verifique sua conexão e tente novamente.', 'error')
             });
         }
         

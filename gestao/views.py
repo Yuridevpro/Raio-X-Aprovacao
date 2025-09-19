@@ -27,8 +27,9 @@ from gamificacao.models import Conquista, Avatar, Borda
 
 from simulados.models import Simulado, StatusSimulado
 from django.views.decorators.http import require_POST # Adicione este import
-from .forms import ConquistaForm, AvatarForm, BordaForm
 
+from gamificacao.models import Conquista, Avatar, Borda, Banner
+from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm
 from django.template.loader import render_to_string # Adicionar importação
 
 # Importações de modelos de outros apps
@@ -57,6 +58,9 @@ from .forms import SimuladoForm # A view agora usa o SimuladoForm
 
 from gamificacao.models import Conquista
 from .forms import ConquistaForm
+
+from gamificacao.models import Conquista, Avatar, Borda, Banner, GamificationSettings
+from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm, GamificationSettingsForm
 
 
 # =======================================================================
@@ -2027,18 +2031,53 @@ def deletar_conquista(request, conquista_id):
 
 @user_passes_test(is_staff_member)
 @login_required
-def listar_recompensas(request, tipo):
-    """Lista Avatares ou Bordas com base no tipo fornecido."""
-    if tipo == 'avatares':
-        Model = Avatar
-        titulo = 'Gerenciar Avatares'
-    elif tipo == 'bordas':
-        Model = Borda
-        titulo = 'Gerenciar Bordas de Perfil'
+def gerenciar_gamificacao_settings(request):
+    """
+    Permite que a equipe de gestão edite as configurações
+    globais de gamificação, como o ganho de XP.
+    """
+    settings = GamificationSettings.load()
+    if request.method == 'POST':
+        form = GamificationSettingsForm(request.POST, instance=settings)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'As configurações de gamificação foram atualizadas com sucesso.')
+            return redirect('gestao:gerenciar_gamificacao_settings')
     else:
+        form = GamificationSettingsForm(instance=settings)
+
+    context = {
+        'form': form,
+        'titulo': 'Configurações de Gamificação'
+    }
+    return render(request, 'gestao/form_gamificacao_settings.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_recompensas(request, tipo):
+    """
+    Lista Avatares, Bordas ou Banners com base no tipo,
+    adicionando filtro por raridade.
+    """
+    ModelMap = {
+        'avatares': (Avatar, 'Gerenciar Avatares'),
+        'bordas': (Borda, 'Gerenciar Bordas de Perfil'),
+        'banners': (Banner, 'Gerenciar Banners de Perfil'),
+    }
+    if tipo not in ModelMap:
         return redirect('gestao:listar_conquistas')
 
-    recompensas_list = Model.objects.all().select_related('conquista_necessaria').order_by('nome')
+    Model, titulo = ModelMap[tipo]
+    
+    base_queryset = Model.objects.all().select_related('conquista_necessaria')
+
+    # Filtro por raridade
+    filtro_raridade = request.GET.get('raridade')
+    if filtro_raridade:
+        base_queryset = base_queryset.filter(raridade=filtro_raridade)
+
+    recompensas_list = base_queryset.order_by('nome')
     paginated_object, page_numbers, per_page = paginar_itens(request, recompensas_list, 12)
     
     context = {
@@ -2048,14 +2087,15 @@ def listar_recompensas(request, tipo):
         'per_page': per_page,
         'tipo': tipo,
         'titulo': titulo,
+        'raridade_choices': Model.Raridade.choices,
+        'filtro_raridade_ativo': filtro_raridade,
     }
     return render(request, 'gestao/listar_recompensas.html', context)
-
 
 @user_passes_test(is_staff_member)
 @login_required
 def criar_recompensa(request, tipo):
-    """Cria um novo Avatar ou Borda."""
+    """Cria um novo Avatar, Borda ou Banner."""
     if tipo == 'avatares':
         FormClass = AvatarForm
         titulo = 'Adicionar Novo Avatar'
@@ -2064,6 +2104,13 @@ def criar_recompensa(request, tipo):
         FormClass = BordaForm
         titulo = 'Adicionar Nova Borda'
         log_acao = LogAtividade.Acao.BORDA_CRIADA
+    # =======================================================================
+    # ADIÇÃO: Lógica para o tipo "banners"
+    # =======================================================================
+    elif tipo == 'banners':
+        FormClass = BannerForm
+        titulo = 'Adicionar Novo Banner'
+        log_acao = LogAtividade.Acao.BANNER_CRIADO
     else:
         return redirect('gestao:listar_conquistas')
 
@@ -2084,7 +2131,7 @@ def criar_recompensa(request, tipo):
 @user_passes_test(is_staff_member)
 @login_required
 def editar_recompensa(request, tipo, recompensa_id):
-    """Edita um Avatar ou Borda existente."""
+    """Edita um Avatar, Borda ou Banner existente."""
     if tipo == 'avatares':
         Model = Avatar
         FormClass = AvatarForm
@@ -2093,6 +2140,13 @@ def editar_recompensa(request, tipo, recompensa_id):
         Model = Borda
         FormClass = BordaForm
         log_acao = LogAtividade.Acao.BORDA_EDITADA
+    # =======================================================================
+    # ADIÇÃO: Lógica para o tipo "banners"
+    # =======================================================================
+    elif tipo == 'banners':
+        Model = Banner
+        FormClass = BannerForm
+        log_acao = LogAtividade.Acao.BANNER_EDITADO
     else:
         return redirect('gestao:listar_conquistas')
 
@@ -2115,13 +2169,19 @@ def editar_recompensa(request, tipo, recompensa_id):
 @require_POST
 @login_required
 def deletar_recompensa(request, tipo, recompensa_id):
-    """Deleta um Avatar ou Borda."""
+    """Deleta um Avatar, Borda ou Banner."""
     if tipo == 'avatares':
         Model = Avatar
         log_acao = LogAtividade.Acao.AVATAR_DELETADO
     elif tipo == 'bordas':
         Model = Borda
         log_acao = LogAtividade.Acao.BORDA_DELETADA
+    # =======================================================================
+    # ADIÇÃO: Lógica para o tipo "banners"
+    # =======================================================================
+    elif tipo == 'banners':
+        Model = Banner
+        log_acao = LogAtividade.Acao.BANNER_DELETADO
     else:
         return redirect('gestao:listar_conquistas')
         

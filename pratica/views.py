@@ -17,6 +17,7 @@ from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 from .models import RespostaUsuario, Comentario, FiltroSalvo
 from gamificacao.services import _verificar_e_registrar_conquistas # <-- 1. IMPORTAR O NOVO SERVIÇO
 from gamificacao.services import processar_resposta_gamificacao # <-- IMPORT MODIFICADO
+from gamificacao.services import processar_resposta_gamificacao
 
 # =======================================================================
 # IMPORTAÇÃO DA NOSSA NOVA FUNÇÃO CENTRALIZADA
@@ -100,7 +101,6 @@ from gamificacao.services import processar_resposta_gamificacao
 @require_POST
 def verificar_resposta(request):
     try:
-        # ... (lógica de salvar resposta - sem alterações)
         data = json.loads(request.body)
         questao_id = data.get('questao_id')
         alternativa_selecionada = data.get('alternativa')
@@ -113,8 +113,8 @@ def verificar_resposta(request):
             defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
         )
 
-        # Chama o serviço centralizado de gamificação
-        gamificacao_eventos = processar_resposta_gamificacao(request.user.userprofile, correta)
+        # Chama o serviço de gamificação, passando o objeto 'questao'
+        gamificacao_eventos = processar_resposta_gamificacao(request.user.userprofile, correta, questao)
         
         nova_conquista_data = None
         if gamificacao_eventos['nova_conquista']:
@@ -130,10 +130,10 @@ def verificar_resposta(request):
             'explicacao': explicacao_html,
             'nova_conquista': nova_conquista_data,
             'level_up_info': gamificacao_eventos['level_up_info'],
-            # =======================================================================
-            # ADIÇÃO: Retorna os dados da meta diária para o front-end
-            # =======================================================================
             'meta_completa_info': gamificacao_eventos['meta_completa_info'],
+            # a. NOVOS DADOS ENVIADOS PARA O FRONTEND
+            'xp_ganho': gamificacao_eventos.get('xp_ganho', 0),
+            'bonus_ativo': gamificacao_eventos.get('bonus_ativo', False),
         })
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

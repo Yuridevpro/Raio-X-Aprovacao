@@ -1,53 +1,61 @@
+<!-- form_recompensa.html -->
+
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+<style>
+    #id_imagem { display: none; } /* Oculta o input de arquivo padrão */
+
+    #banner-preview-header {
+        position: relative; overflow: hidden; color: white;
+        padding: 2.5rem 1.5rem; border-radius: 12px;
+        background-color: #343a40;
+        clip-path: polygon(0 0, 95% 0, 100% 50%, 95% 100%, 0 100%);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.35); min-height: 260px;
+        display: flex; align-items: center; justify-content: center;
+        margin-bottom: 2rem;
+
+        background-image: {% if form.instance.imagem %}url('{{ form.instance.imagem.url }}'){% endif %};
+        background-size: {{ form.instance.background_size|default:"cover" }};
+        background-position: {{ form.instance.background_position|default:"50% 50%" }};
+        background-repeat: no-repeat;
+    }
+
+    .preview-container { 
+        border: 2px dashed #e0e0e0; border-radius: 12px; 
+        padding: 1.5rem; background-color: #f8f9fa; min-height: 250px; 
+        display: flex; align-items: center; justify-content: center; 
+        position: relative; 
+    }
+
+    #avatar-preview-image { max-width: 150px; max-height: 150px; border-radius: 50%; object-fit: cover; }
+    #border-preview-wrapper { width: 180px; height: 180px; position: relative; }
+    .border-preview-placeholder { width: 65%; height: 65%; border-radius: 12px; background-color: #ced4da; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #fff; }
+    #border-preview-image { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2; object-fit: contain; }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+    </div>
+
+    {% if tipo == 'banners' %}
+        <h5 class="text-muted mb-3">Pré-visualização do Banner</h5>
+        <div id="banner-preview-header" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
+        <p id="preview-text" class="text-muted text-center my-4" style="{% if form.instance.imagem %}display:none;{% endif %}">A pré-visualização aparecerá aqui.</p>
+    {% endif %}
+
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <h2 class="h3 mb-4">{{ titulo }}</h2>
             <div class="card shadow-sm">
                 <div class="card-body p-4">
-                    <form method="POST" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        <!-- Campos do formulário -->
-                        <div class="mb-3">
-                            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
-                            {{ form.nome }}
-                            {{ form.nome.errors }}
-                        </div>
-                        <div class="mb-3">
-                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
-                            {{ form.descricao }}
-                            {{ form.descricao.errors }}
-                        </div>
-                        <div class="mb-3">
-                            <label for="{{ form.imagem.id_for_label }}" class="form-label">{{ form.imagem.label }}</label>
-                            {{ form.imagem }}
-                            {% if form.instance.imagem %}
-                                <small class="form-text text-muted">Imagem atual: <a href="{{ form.instance.imagem.url }}" target="_blank">{{ form.instance.imagem.name }}</a></small>
-                            {% endif %}
-                            {{ form.imagem.errors }}
-                        </div>
-                        <hr>
-                        <h5 class="h6 mb-3">Condição de Desbloqueio</h5>
-                        <div class="mb-3">
-                            <label for="{{ form.tipo_desbloqueio.id_for_label }}" class="form-label">{{ form.tipo_desbloqueio.label }}</label>
-                            {{ form.tipo_desbloqueio }}
-                        </div>
-                        <div id="requisito-nivel" class="mb-3" style="display: none;">
-                            <label for="{{ form.nivel_necessario.id_for_label }}" class="form-label">{{ form.nivel_necessario.label }}</label>
-                            {{ form.nivel_necessario }}
-                        </div>
-                        <div id="requisito-conquista" class="mb-3" style="display: none;">
-                            <label for="{{ form.conquista_necessaria.id_for_label }}" class="form-label">{{ form.conquista_necessaria.label }}</label>
-                            {{ form.conquista_necessaria }}
-                        </div>
-
-                        <div class="mt-4 d-flex justify-content-center gap-2">
-                            <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-5">Salvar</button>
-                        </div>
+                    <form method="POST" enctype="multipart/form-data" id="recompensa-form" data-tipo-item="{{ tipo }}">
+                        {% include "gestao/includes/_recompensa_form_fields.html" %}
                     </form>
                 </div>
             </div>
@@ -57,20 +65,5 @@
 {% endblock %}
 
 {% block scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tipoDesbloqueioSelect = document.getElementById('{{ form.tipo_desbloqueio.id_for_label }}');
-    const requisitoNivelDiv = document.getElementById('requisito-nivel');
-    const requisitoConquistaDiv = document.getElementById('requisito-conquista');
-
-    function toggleRequisitoFields() {
-        const selectedValue = tipoDesbloqueioSelect.value;
-        requisitoNivelDiv.style.display = selectedValue === 'NIVEL' ? 'block' : 'none';
-        requisitoConquistaDiv.style.display = selectedValue === 'CONQUISTA' ? 'block' : 'none';
-    }
-
-    tipoDesbloqueioSelect.addEventListener('change', toggleRequisitoFields);
-    toggleRequisitoFields(); // Executa na carga inicial da página
-});
-</script>
+<script src="{% static 'gestao/js/banner-editor.js' %}"></script>
 {% endblock %}

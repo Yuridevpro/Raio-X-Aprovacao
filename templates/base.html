@@ -1,4 +1,3 @@
-
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
@@ -13,6 +12,10 @@
     <!-- Nosso CSS base -->
     <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
     
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" defer></script>
+     -->
+
     <!-- Outros CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
@@ -23,14 +26,16 @@
             color: rgba(255, 255, 255, 0.7) !important;
         }
 
-         /* ======================================================================= */
-        /* NOVOS ESTILOS PARA O AVATAR E BORDA NA NAVBAR */
+        /* ======================================================================= */
+        /* ESTILOS PARA O AVATAR E BORDA NA NAVBAR */
         /* ======================================================================= */
         .navbar-avatar-container {
             position: relative;
             width: 28px;
             height: 28px;
-            display: inline-block;
+            display: inline-flex; /* Usamos flex para centralizar facilmente */
+            align-items: center;
+            justify-content: center;
             vertical-align: middle;
             margin-right: 8px;
         }
@@ -39,28 +44,29 @@
             height: 100%;
             border-radius: 50%;
             object-fit: cover;
+            position: relative;
+            z-index: 1; /* Fica abaixo da borda */
         }
         .navbar-border-image {
             position: absolute;
+            /* Ajustamos o tamanho para ser um pouco maior que o container */
             top: -4px;
             left: -4px;
-            width: 36px; /* Um pouco maior que o avatar */
+            width: 36px;
             height: 36px;
             pointer-events: none;
-            z-index: 2;
+            z-index: 2; /* Borda fica por cima */
         }
+        
+        /* Estilos para quando uma borda quadrada for equipada */
         .navbar-avatar-container.with-frame {
             width: 32px;
             height: 32px;
         }
         .navbar-avatar-container.with-frame .navbar-avatar-image {
-            width: 75%;
-            height: 75%;
-            border-radius: 4px;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            width: 65%;
+            height: 65%;
+            border-radius: 4px; /* Deixa o avatar interno quadrado */
         }
         .navbar-avatar-container.with-frame .navbar-border-image {
             top: 0;
@@ -68,6 +74,7 @@
             width: 100%;
             height: 100%;
         }
+
     </style>
 
     {% block head %}{% endblock %}
@@ -108,19 +115,25 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            {% if avatar_equipado_url %}
-                        <img src="{{ avatar_equipado_url }}" alt="Avatar" class="rounded-circle me-2" style="width: 28px; height: 28px; object-fit: cover;">
-                    {% else %}
-                        <i class="fas fa-user-circle me-2 fs-5"></i>
-                    {% endif %}
-        
+                            <!-- =========================================================== -->
+                            <!-- LÓGICA COMPLETA DO AVATAR/BORDA NA NAVBAR -->
+                            <!-- =========================================================== -->
+                            <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
+                                {% if borda_equipada_url %}
+                                    <img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">
+                                {% endif %}
+                                
+                                {% if avatar_equipado_url %}
+                                    <img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
+                                {% else %}
+                                    <i class="fas fa-user-circle fs-5" style="position: absolute; inset: 0; width: 100%; height: 100%;"></i>
+                                {% endif %}
+                            </div>
+                            Olá, {{ user.userprofile.nome }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user me-2"></i>Meu Perfil</a></li>
-                            <!-- =========================================================== -->
-                            <!-- ADIÇÃO DO LINK PARA A PÁGINA DE COLEÇÃO -->
-                            <!-- =========================================================== -->
-                            <li><a class="dropdown-item" href="{% url 'colecao' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
+                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
                             <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog me-2"></i>Editar Conta</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
@@ -159,13 +172,7 @@
                         <li class="mb-2"><a href="{% url 'home' %}" class="footer-link">Início</a></li>
                         <li class="mb-2"><a href="{% url 'pratica:listar_questoes' %}" class="footer-link">Praticar</a></li>
                         {% if user.is_authenticated %}
-                        <!-- =========================================================== -->
-                        <!-- INÍCIO DA ADIÇÃO: Link para Simulados no rodapé           -->
-                        <!-- =========================================================== -->
                         <li class="mb-2"><a href="{% url 'simulados:listar_simulados' %}" class="footer-link">Simulados</a></li>
-                        <!-- =========================================================== -->
-                        <!-- FIM DA ADIÇÃO                                               -->
-                        <!-- =========================================================== -->
                         <li class="mb-2"><a href="{% url 'dashboard' %}" class="footer-link">Desempenho</a></li>
                         {% endif %}
                     </ul>
@@ -192,9 +199,7 @@
         </div>
     </footer>
 
-    <!-- =========================================================== -->
-    <!-- CORREÇÃO: Removendo um dos containers duplicados de toast -->
-    <!-- =========================================================== -->
+    <!-- Container Único para Toasts e Modais Genéricos -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
@@ -231,6 +236,8 @@
     </script>
     
     {% block scripts %}
+
+    
     {% endblock %}
 
 </body>

@@ -8,6 +8,37 @@ from datetime import date
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
+# = a. NOVO MODELO PARA CONFIGURAÇÕES DE XP
+class GamificationSettings(models.Model):
+    """
+    Singleton model to store global gamification settings,
+    editable in the Django admin panel.
+    """
+    xp_por_acerto = models.PositiveIntegerField(default=10, help_text="XP ganho por cada questão respondida corretamente.")
+    xp_por_erro = models.PositiveIntegerField(default=1, help_text="XP ganho por cada questão respondida incorretamente.")
+    xp_bonus_meta_diaria = models.PositiveIntegerField(default=50, help_text="Bônus de XP por completar a meta diária.")
+    meta_diaria_questoes = models.PositiveIntegerField(default=15, help_text="Número de questões para atingir a meta diária.")
+    acertos_consecutivos_para_bonus = models.PositiveIntegerField(default=5, help_text="Número de acertos consecutivos para ativar o bônus de XP em dobro.")
+    
+    def __str__(self):
+        return "Configurações de Gamificação"
+
+    class Meta:
+        verbose_name = "Configurações de Gamificação"
+        verbose_name_plural = "Configurações de Gamificação"
+
+    def save(self, *args, **kwargs):
+        # Garante que haverá apenas uma instância deste modelo
+        self.pk = 1
+        super(GamificationSettings, self).save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        # Método para carregar a única instância de configurações
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
+
+
 class TarefaAgendadaLog(models.Model):
     TAREFA_CHOICES = [
         ('gerar_ranking_semanal', 'Gerar Ranking Semanal'),
@@ -63,6 +94,7 @@ class MetaDiariaUsuario(models.Model):
     data = models.DateField(default=date.today)
     questoes_resolvidas = models.PositiveIntegerField(default=0)
     meta_atingida = models.BooleanField(default=False)
+    xp_ganho_dia = models.PositiveIntegerField(default=0) # <-- NOVO CAMPO
 
     class Meta:
         # Garante que haverá apenas um registro por usuário por dia.
@@ -78,6 +110,8 @@ class ProfileGamificacao(models.Model):
     level = models.IntegerField(default=1, verbose_name="Nível")
     xp = models.IntegerField(default=0, verbose_name="Pontos de Experiência (XP)")
     acertos_consecutivos = models.IntegerField(default=0, verbose_name="Acertos Consecutivos")
+    # b. NOVO CAMPO PARA BÔNUS DE XP
+    bonus_xp_ativo = models.BooleanField(default=False, help_text="Indica se o bônus de XP em dobro está ativo.")
 
     def __str__(self):
         return f"Nível {self.level} de {self.user_profile.user.username}"
@@ -129,29 +163,36 @@ class ConquistaUsuario(models.Model):
     def __str__(self):
         return f"{self.user_profile.user.username} desbloqueou {self.conquista.nome}"
 
-# =======================================================================
-# NOVOS MODELOS PARA A "JORNADA DO HERÓI"
-# =======================================================================
 
 class Recompensa(models.Model):
     """Modelo abstrato para itens cosméticos."""
-    TIPO_DESBLOQUEIO_CHOICES = [
-        ('NIVEL', 'Por Nível'),
-        ('CONQUISTA', 'Por Conquista'),
-        ('EVENTO', 'Evento Especial'),
-    ]
+    class TipoDesbloqueio(models.TextChoices):
+        NIVEL = 'NIVEL', 'Por Nível'
+        CONQUISTA = 'CONQUISTA', 'Por Conquista'
+        EVENTO = 'EVENTO', 'Evento Especial'
+
+    # c. CAMPO DE RARIDADE ADICIONADO
+    class Raridade(models.TextChoices):
+        COMUM = 'COMUM', 'Comum'
+        RARO = 'RARO', 'Raro'
+        EPICO = 'EPICO', 'Épico'
+        LENDARIO = 'LENDARIO', 'Lendário'
+        MITICO = 'MITICO', 'Mítico'
     
     nome = models.CharField(max_length=100)
     descricao = models.CharField(max_length=255, help_text="Como desbloquear este item.")
     imagem = models.ImageField(upload_to='gamificacao_recompensas/', storage=S3Boto3Storage())
     
-    tipo_desbloqueio = models.CharField(max_length=20, choices=TIPO_DESBLOQUEIO_CHOICES)
+    tipo_desbloqueio = models.CharField(max_length=20, choices=TipoDesbloqueio.choices)
+    raridade = models.CharField(max_length=20, choices=Raridade.choices, default=Raridade.COMUM)
+
     # Requisitos para desbloqueio
     nivel_necessario = models.PositiveIntegerField(null=True, blank=True)
     conquista_necessaria = models.ForeignKey('Conquista', on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
         abstract = True
+        ordering = ['nome']
 
     def __str__(self):
         return self.nome
@@ -161,6 +202,30 @@ class Avatar(Recompensa):
 
 class Borda(Recompensa):
     pass
+
+# gamificacao/models.py
+
+class Banner(Recompensa):
+    background_position = models.CharField(
+        max_length=50, 
+        default='50% 50%', 
+        help_text="Define o ponto focal da imagem (ex: '50% 50%')."
+    )
+    # NOVO CAMPO PARA O ZOOM
+    background_size = models.CharField(
+        max_length=50,
+        default='cover',
+        help_text="Define o nível de zoom da imagem (ex: '120%')."
+    )
+
+class BannerUsuario(models.Model):
+    """ Tabela que liga os banners desbloqueados a cada usuário. """
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='banners_desbloqueados')
+    banner = models.ForeignKey(Banner, on_delete=models.CASCADE)
+    data_desbloqueio = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('user_profile', 'banner')
 
 class AvatarUsuario(models.Model):
     """ Tabela que liga os avatares desbloqueados a cada usuário. """

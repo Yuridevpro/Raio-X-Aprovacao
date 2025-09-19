@@ -1,0 +1,93 @@
+{% csrf_token %}
+
+{# Exibe erros que não são específicos de um campo (erros globais do form) #}
+{% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+            <p class="mb-0">{{ error }}</p>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<h5 class="h6 mb-3">Dados da Recompensa</h5>
+<div class="row">
+    <div class="col-md-8">
+        <div class="mb-3">
+            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+            {{ form.nome }}
+            {% if form.nome.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.nome.errors.as_text }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="mb-3">
+            <label for="{{ form.raridade.id_for_label }}" class="form-label">{{ form.raridade.label }}</label>
+            {{ form.raridade }}
+            {% if form.raridade.errors %}
+                <div class="invalid-feedback d-block">
+                    {{ form.raridade.errors.as_text }}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">Imagem</label>
+    {{ form.imagem }} <!-- Input de arquivo real, será oculto -->
+
+    {% if tipo == 'banners' %}
+        <button type="button" class="btn btn-secondary w-100" id="file-trigger-btn">
+            <i class="fas fa-upload me-2"></i> 
+            {% if form.instance.imagem %}Alterar Imagem{% else %}Escolher Imagem do Banner{% endif %}
+        </button>
+    {% endif %}
+
+    {% if form.imagem.errors %}
+        <div class="invalid-feedback d-block mt-2">
+            {{ form.imagem.errors.as_text }}
+        </div>
+    {% endif %}
+    
+    {% if form.instance.imagem and not form.imagem.errors %}
+        <small class="form-text text-muted d-block mt-1">Imagem atual: <a href="{{ form.instance.imagem.url }}" target="_blank">{{ form.instance.imagem.name|truncatechars:30 }}</a></small>
+    {% endif %}
+</div>
+
+<!-- Campos ocultos para background -->
+{{ form.background_position }}
+{{ form.background_size }}
+
+<hr>
+<!-- Repita o padrão de exibição de erros para os outros campos -->
+<h5 class="h6 mb-3">Condição de Desbloqueio</h5>
+<div class="mb-3">
+    <label for="{{ form.tipo_desbloqueio.id_for_label }}" class="form-label">{{ form.tipo_desbloqueio.label }}</label>
+    {{ form.tipo_desbloqueio }}
+    {% if form.tipo_desbloqueio.errors %}
+        <div class="invalid-feedback d-block">{{ form.tipo_desbloqueio.errors.as_text }}</div>
+    {% endif %}
+</div>
+<div id="requisito-nivel" class="mb-3">
+    <label for="{{ form.nivel_necessario.id_for_label }}" class="form-label">{{ form.nivel_necessario.label }}</label>
+    {{ form.nivel_necessario }}
+    {% if form.nivel_necessario.errors %}
+        <div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.as_text }}</div>
+    {% endif %}
+</div>
+<div id="requisito-conquista" class="mb-3">
+    <label for="{{ form.conquista_necessaria.id_for_label }}" class="form-label">{{ form.conquista_necessaria.label }}</label>
+    {{ form.conquista_necessaria }}
+     {% if form.conquista_necessaria.errors %}
+        <div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.as_text }}</div>
+    {% endif %}
+</div>
+
+
+<div class="mt-4 d-flex justify-content-center gap-2">
+    <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-secondary">Cancelar</a>
+    <button type="submit" class="btn btn-primary px-5">Salvar</button>
+</div>

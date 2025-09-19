@@ -218,6 +218,10 @@ class LogAtividade(models.Model):
         BORDA_CRIADA = 'BORDA_CRIADA', 'Borda Criada'
         BORDA_EDITADA = 'BORDA_EDITADA', 'Borda Editada'
         BORDA_DELETADA = 'BORDA_DELETADA', 'Borda Deletada'
+        
+        BANNER_CRIADO = 'BANNER_CRIADO', 'Banner Criado'
+        BANNER_EDITADO = 'BANNER_EDITADO', 'Banner Editado'
+        BANNER_DELETADO = 'BANNER_DELETADO', 'Banner Deletado'
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)
@@ -245,7 +249,7 @@ class LogAtividade(models.Model):
     def __str__(self):
         """
         Gera uma representação em string segura para o log.
-        Verifica se `self.ator` não é None antes de tentar acessar `self.ator.username`.
+        Verifica se self.ator não é None antes de tentar acessar self.ator.username.
         """
         ator_nome = self.ator.username if self.ator else "(Usuário Deletado)"
         return f'{self.get_acao_display()} por {ator_nome} em {self.data_criacao.strftime("%d/%m/%Y %H:%M")}'

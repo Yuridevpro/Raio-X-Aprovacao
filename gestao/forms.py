@@ -1,20 +1,27 @@
+# gestao/forms.py
+
 from django import forms
 from django.contrib.auth.models import User
 from .models import SolicitacaoExclusao
-from gamificacao.models import Conquista
-# =======================================================================
-# INÍCIO DA CORREÇÃO: Importando NivelDificuldade do app simulados
-# =======================================================================
+# a. IMPORTANDO O NOVO MODELO DE CONFIGURAÇÕES
+from gamificacao.models import Conquista, GamificationSettings
 from simulados.models import Simulado, StatusSimulado, NivelDificuldade
-# =======================================================================
-# FIM DA CORREÇÃO
-# =======================================================================
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
-from gamificacao.models import Conquista
-from gamificacao.models import Conquista, Avatar, Borda
+from gamificacao.models import Conquista, Avatar, Borda, Banner
 
 
-
+# b. NOVO FORMULÁRIO PARA AS CONFIGURAÇÕES DE XP
+class GamificationSettingsForm(forms.ModelForm):
+    class Meta:
+        model = GamificationSettings
+        fields = '__all__'
+        widgets = {
+            'xp_por_acerto': forms.NumberInput(attrs={'class': 'form-control'}),
+            'xp_por_erro': forms.NumberInput(attrs={'class': 'form-control'}),
+            'xp_bonus_meta_diaria': forms.NumberInput(attrs={'class': 'form-control'}),
+            'meta_diaria_questoes': forms.NumberInput(attrs={'class': 'form-control'}),
+            'acertos_consecutivos_para_bonus': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
 
 
 class StaffUserForm(forms.ModelForm):
@@ -216,25 +223,23 @@ class SimuladoWizardForm(forms.Form):
             except (ValueError, TypeError):
                 pass
 
-# =======================================================================
-# NOVOS FORMS PARA AVATARES E BORDAS
-# =======================================================================
+# c. FORMULÁRIOS DE RECOMPENSAS ATUALIZADOS
 class RecompensaBaseForm(forms.ModelForm):
-    """Formulário base para compartilhar campos entre Avatar e Borda."""
+    """Formulário base para compartilhar campos entre Avatar, Borda e Banner."""
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Popula o campo conquista_necessaria com as conquistas existentes
         self.fields['conquista_necessaria'].queryset = Conquista.objects.all().order_by('nome')
         self.fields['conquista_necessaria'].required = False
 
 class AvatarForm(RecompensaBaseForm):
     class Meta:
         model = Avatar
-        fields = ['nome', 'descricao', 'imagem', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
+        fields = ['nome', 'descricao', 'imagem', 'raridade', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Desbloqueado ao atingir o Nível 10'}),
             'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'raridade': forms.Select(attrs={'class': 'form-select'}),
             'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
             'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
             'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
@@ -243,12 +248,37 @@ class AvatarForm(RecompensaBaseForm):
 class BordaForm(RecompensaBaseForm):
     class Meta:
         model = Borda
-        fields = ['nome', 'descricao', 'imagem', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
+        fields = ['nome', 'descricao', 'imagem', 'raridade', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Desbloqueado pela conquista "Mão Calibrada"'}),
             'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'raridade': forms.Select(attrs={'class': 'form-select'}),
             'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
             'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
             'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
+        }
+
+# gestao/forms.py
+
+# gestao/forms.py
+
+class BannerForm(RecompensaBaseForm):
+    class Meta:
+        model = Banner
+        fields = [
+            'nome', 'descricao', 'imagem', 'raridade',
+            'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria',
+            'background_position', 'background_size'
+        ]
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Recompensa de Fim de Ano'}),
+            'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'raridade': forms.Select(attrs={'class': 'form-select'}),
+            'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
+            'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
+            'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
+            'background_position': forms.HiddenInput(),
+            'background_size': forms.HiddenInput(),
         }
