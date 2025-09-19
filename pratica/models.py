@@ -17,9 +17,20 @@ class RespostaUsuario(models.Model):
     questao = models.ForeignKey(Questao, on_delete=models.CASCADE)
     alternativa_selecionada = models.CharField(max_length=1)
     foi_correta = models.BooleanField()
-    data_resposta = models.DateTimeField(auto_now_add=True)
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO
+    # Alterado de auto_now_add=True para auto_now=True.
+    # Agora, o timestamp é atualizado a cada nova resposta para a mesma questão,
+    # o que é essencial para o funcionamento do cooldown de XP.
+    # =======================================================================
+    data_resposta = models.DateTimeField(auto_now=True)
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+
     class Meta:
         unique_together = ('usuario', 'questao')
+
     def __str__(self):
         status = "Correta" if self.foi_correta else "Incorreta"
         return f"{self.usuario.username} - Questão {self.questao.id} - {status}"

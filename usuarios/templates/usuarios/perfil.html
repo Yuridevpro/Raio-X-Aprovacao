@@ -53,11 +53,12 @@
         width: 100%;
         height: 100%;
         background-image: var(--banner-url, linear-gradient(135deg, rgba(44, 62, 80, 1) 0%, rgba(74, 144, 226, 0.8) 100%));
+        
+        /* ======================================================================= */
+        /* MUDANÇA 1: Posição do fundo voltou a ser fixa e otimizada.
+        /* ======================================================================= */
         background-size: cover;
-        /* ======================================================================= */
-        /* MUDANÇA 1: Usando uma variável CSS para a posição do banner.
-        /* O valor 'center 85%' agora é apenas um fallback.
-        /* ======================================================================= */
+        background-position: center 85%; /* Posição ideal para a maioria dos banners */
    
         background-attachment: fixed;
         z-index: -2;
@@ -257,10 +258,12 @@
     {% include 'usuarios/includes/_messages.html' %}
 
     <!-- HEADER DO PERFIL EM FORMATO DE BANNER -->
+    <!-- ======================================================================= -->
+    <!-- MUDANÇA 2: As variáveis --banner-size e --banner-position foram removidas. -->
+    <!-- ======================================================================= -->
     <div class="profile-header p-4 mb-4 shadow-sm" 
          {% if perfil_visualizado.banner_equipado %}
-         style="--banner-url: url('{{ perfil_visualizado.banner_equipado.imagem.url }}'); 
-                --banner-position: {{ perfil_visualizado.banner_equipado.background_position }};"
+         style="--banner-url: url('{{ perfil_visualizado.banner_equipado.imagem.url }}');"
          {% endif %}>
         
         <div class="row align-items-center">

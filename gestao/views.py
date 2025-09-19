@@ -25,6 +25,10 @@ from .forms import SimuladoWizardForm, SimuladoForm
 from .forms import SimuladoMetaForm # Adicionar importação
 from gamificacao.models import Conquista, Avatar, Borda
 
+from django.contrib.auth.models import User
+from .models import LogAtividade, ExclusaoLogPermanente
+from .utils import criar_log
+
 from simulados.models import Simulado, StatusSimulado
 from django.views.decorators.http import require_POST # Adicione este import
 
@@ -62,6 +66,9 @@ from .forms import ConquistaForm
 from gamificacao.models import Conquista, Avatar, Borda, Banner, GamificationSettings
 from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm, GamificationSettingsForm
 
+from django.utils import timezone
+from django.db.models import OuterRef, Subquery, Max
+
 
 # =======================================================================
 # FUNÇÕES AUXILIARES DE VERIFICAÇÃO DE PERMISSÃO
@@ -84,7 +91,6 @@ def is_staff_member(user):
 def dashboard_gestao(request):
     """
     Renderiza a página principal do painel de gestão com estatísticas gerais.
-    Acessível por todos os membros da equipe (staff e superusers).
     """
     total_questoes = Questao.objects.count()
     notificacoes_pendentes = Notificacao.objects.filter(status=Notificacao.Status.PENDENTE).count()
@@ -92,9 +98,14 @@ def dashboard_gestao(request):
     total_simulados = Simulado.objects.filter(is_oficial=True).count()
     
     # =======================================================================
-    # ADIÇÃO: Contagem total de conquistas cadastradas
+    # ADIÇÃO: Contagem de todos os itens de gamificação
     # =======================================================================
     total_conquistas = Conquista.objects.count()
+    total_avatares = Avatar.objects.count()
+    total_bordas = Borda.objects.count()
+    total_banners = Banner.objects.count()
+    total_gamificacao = total_conquistas + total_avatares + total_bordas + total_banners
+    # =======================================================================
 
     promocoes_pendentes_count = 0
     despromocoes_pendentes_count = 0
@@ -110,10 +121,12 @@ def dashboard_gestao(request):
         'notificacoes_pendentes': notificacoes_pendentes,
         'solicitacoes_pendentes_count': solicitacoes_pendentes_count,
         'total_simulados': total_simulados,
-        # =======================================================================
-        # ADIÇÃO: Passando a nova contagem para o template
-        # =======================================================================
+        # Passando as novas contagens para o template
         'total_conquistas': total_conquistas,
+        'total_avatares': total_avatares,
+        'total_bordas': total_bordas,
+        'total_banners': total_banners,
+        'total_gamificacao': total_gamificacao,
         'promocoes_pendentes_count': promocoes_pendentes_count,
         'despromocoes_pendentes_count': despromocoes_pendentes_count,
         'exclusoes_superuser_pendentes_count': exclusoes_superuser_pendentes_count,
@@ -761,14 +774,26 @@ def notificacoes_acoes_em_massa(request):
 @user_passes_test(is_staff_member)
 def listar_usuarios(request):
     """
-    Lista, filtra e ordena todos os usuários do sistema.
-    Superusuários podem ver todos; membros da equipe não podem ver outros superusuários.
+    Lista, filtra e ordena todos os usuários do sistema, agora incluindo
+    informações sobre o tempo de inatividade.
     """
     base_queryset = User.objects.all().select_related('userprofile').exclude(id=request.user.id)
     if not request.user.is_superuser:
         base_queryset = base_queryset.exclude(is_superuser=True)
 
-    # Anotação para identificar usuários com solicitações de exclusão pendentes
+    # =======================================================================
+    # ADIÇÃO: Subquery para buscar a data do último login
+    # Isso é muito mais performático do que um loop no template.
+    # =======================================================================
+    # O Django não armazena o último login de forma simples, então usamos uma
+    # anotação para buscar a data máxima de login do histórico de logs (se você tiver um)
+    # ou usamos o campo 'last_login' padrão do User.
+    # Vamos usar o 'last_login' que é mais direto.
+    base_queryset = base_queryset.annotate(
+        ultimo_login=Max('last_login')
+    )
+    # =======================================================================
+
     solicitacoes_pendentes = SolicitacaoExclusao.objects.filter(
         usuario_a_ser_excluido=OuterRef('pk'),
         status=SolicitacaoExclusao.Status.PENDENTE
@@ -789,38 +814,48 @@ def listar_usuarios(request):
         elif filtro_permissao == 'comum': base_queryset = base_queryset.filter(is_staff=False)
     if filtro_solicitacao == 'pendente':
         base_queryset = base_queryset.filter(tem_solicitacao_pendente=True)
+    
+    # Filtro de status melhorado
     if filtro_status == 'ativos':
         base_queryset = base_queryset.filter(is_active=True)
     elif filtro_status == 'inativos':
         base_queryset = base_queryset.filter(is_active=False)
+    # se for 'todos', não aplica filtro
 
     # Lógica de ordenação
     sort_by = request.GET.get('sort_by', 'nivel')
     sort_options = {
-        'nivel': 'Nível de Permissão', '-date_joined': 'Mais Recentes', 'date_joined': 'Mais Antigos',
-        'username': 'Nome (A-Z)', '-username': 'Nome (Z-A)',
+        'nivel': 'Nível de Permissão',
+        '-date_joined': 'Mais Recentes',
+        'date_joined': 'Mais Antigos',
+        'username': 'Nome (A-Z)',
+        'ultimo_login': 'Menos Tempo Inativo', # Nova opção
+        '-ultimo_login': 'Mais Tempo Inativo', # Nova opção
     }
     
-    order_fields = [
-        '-is_active',                # 1. Ativos primeiro
-        '-is_superuser',             # 2. Superusers no topo
-        '-is_staff',                 # 3. Staff logo abaixo
-        '-tem_solicitacao_pendente', # 4. Com solicitação pendente priorizados
-    ]
-
-    if sort_by != 'nivel' and sort_by in sort_options:
+    order_fields = []
+    if sort_by == 'nivel':
+         order_fields = ['-is_active', '-is_superuser', '-is_staff', '-tem_solicitacao_pendente', 'username']
+    elif sort_by in sort_options:
         order_fields.append(sort_by)
     else:
-        order_fields.append('username') # Ordenação padrão
+        order_fields.append('username')
     
     base_queryset = base_queryset.order_by(*order_fields)
 
     paginated_object, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=9)
 
     context = {
-        'paginated_object': paginated_object, 'page_numbers': page_numbers, 'per_page': per_page,
-        'sort_by': sort_by, 'sort_options': sort_options, 'filtro_q': filtro_q, 'filtro_permissao': filtro_permissao,
-        'filtro_solicitacao': filtro_solicitacao, 'filtro_status': filtro_status, 'total_usuarios': paginated_object.paginator.count,
+        'paginated_object': paginated_object,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
+        'filtro_q': filtro_q,
+        'filtro_permissao': filtro_permissao,
+        'filtro_solicitacao': filtro_solicitacao,
+        'filtro_status': filtro_status,
+        'total_usuarios': paginated_object.paginator.count,
     }
     return render(request, 'gestao/listar_usuarios.html', context)
 
@@ -1382,10 +1417,17 @@ def listar_logs_atividade(request):
 
     logs_paginados, page_numbers, per_page = paginar_itens(request, logs_list, 20)
     
+    # =======================================================================
+    # ADIÇÃO: Contagem de solicitações pendentes para o botão
+    # =======================================================================
+    solicitacoes_pendentes_count = ExclusaoLogPermanente.objects.filter(status=ExclusaoLogPermanente.Status.PENDENTE).count()
+    # =======================================================================
+    
     context = {
         'logs': logs_paginados, 'paginated_object': logs_paginados, 'page_numbers': page_numbers, 'per_page': per_page,
         'sort_by': sort_by, 'sort_options': sort_options, 'filtro_q': filtro_q, 'filtro_acao': filtro_acao,
         'filtro_data_inicio': filtro_data_inicio, 'filtro_data_fim': filtro_data_fim, 'acao_choices': LogAtividade.Acao.choices,
+        'solicitacoes_exclusao_logs_pendentes': solicitacoes_pendentes_count, # Passando para o template
     }
     return render(request, 'gestao/listar_logs_atividade.html', context)
 
@@ -1462,12 +1504,11 @@ def mover_logs_antigos_para_lixeira(request):
 @user_passes_test(lambda u: u.is_superuser)
 def listar_logs_deletados(request):
     """
-    Lista os logs de atividade que estão na lixeira (is_deleted=True).
-    Permite filtrar e ordenar.
+    Lista, filtra e ordena os logs de atividade que estão na lixeira.
     """
     logs_list = LogAtividade.all_logs.filter(is_deleted=True).select_related('ator', 'deleted_by')
 
-    # Lógica de filtragem (similar à listagem de logs ativos, mas pode usar `deleted_at`)
+    # Lógica de filtragem (similar à listagem de logs ativos)
     filtro_q = request.GET.get('q', '').strip()
     filtro_acao = request.GET.get('acao', '')
     filtro_data_inicio = request.GET.get('data_inicio', '')
@@ -1480,24 +1521,108 @@ def listar_logs_deletados(request):
     if filtro_data_inicio:
         logs_list = logs_list.filter(deleted_at__gte=filtro_data_inicio)
     if filtro_data_fim:
+        # Adiciona 1 dia para incluir o dia final completo na busca
         data_fim_obj = datetime.strptime(filtro_data_fim, '%Y-%m-%d') + timedelta(days=1)
         logs_list = logs_list.filter(deleted_at__lt=data_fim_obj)
         
-    # Lógica de ordenação focada na data de exclusão
+    # Lógica de Ordenação completa
     sort_by = request.GET.get('sort_by', '-deleted_at')
-    sort_options = {'-deleted_at': 'Exclusão Mais Recente', 'deleted_at': 'Exclusão Mais Antiga'}
+    sort_options = {
+        '-deleted_at': 'Exclusão Mais Recente',
+        'deleted_at': 'Exclusão Mais Antiga',
+        'acao': 'Tipo de Ação (A-Z)',
+        'deleted_by__username': 'Excluído Por (A-Z)',
+    }
     if sort_by in sort_options:
         logs_list = logs_list.order_by(sort_by)
 
     logs_paginados, page_numbers, per_page = paginar_itens(request, logs_list, 20)
     
+    # Contexto completo para o template
     context = {
-        'logs': logs_paginados, 'paginated_object': logs_paginados, 'page_numbers': page_numbers, 'per_page': per_page,
-        'sort_by': sort_by, 'sort_options': sort_options, 'filtro_q': filtro_q, 'filtro_acao': filtro_acao,
-        'filtro_data_inicio': filtro_data_inicio, 'filtro_data_fim': filtro_data_fim, 'acao_choices': LogAtividade.Acao.choices,
+        'logs': logs_paginados,
+        'paginated_object': logs_paginados,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'sort_by': sort_by,
+        'sort_options': sort_options,
+        'filtro_q': filtro_q,
+        'filtro_acao': filtro_acao,
+        'filtro_data_inicio': filtro_data_inicio,
+        'filtro_data_fim': filtro_data_fim,
+        'acao_choices': LogAtividade.Acao.choices,
+        # =======================================================================
+        # ADIÇÃO: Passando a lista de dias para o template
+        # =======================================================================
+        'dias_para_limpeza': [15, 30, 60, 90, 180],
     }
+    
     return render(request, 'gestao/listar_logs_deletados.html', context)
 
+
+@require_POST
+@user_passes_test(is_superuser)
+@login_required
+def limpar_lixeira_logs(request):
+    """
+    Cria uma solicitação de exclusão permanente para todos os logs na lixeira
+    que são mais antigos que um determinado número de dias.
+    """
+    try:
+        dias = int(request.POST.get('dias'))
+        justificativa = f"Limpeza automática de registros na lixeira com mais de {dias} dias."
+    except (ValueError, TypeError):
+        messages.error(request, "Período de tempo inválido selecionado.")
+        return redirect('gestao:listar_logs_deletados')
+
+    limite_data = timezone.now() - timedelta(days=dias)
+    
+    # Seleciona apenas os logs que já podem ser excluídos permanentemente
+    logs_para_excluir = LogAtividade.all_logs.filter(
+        is_deleted=True,
+        deleted_at__lt=limite_data
+    ).filter(id__in=[log.id for log in LogAtividade.all_logs.filter(is_deleted=True) if log.is_permanently_deletable])
+
+    if not logs_para_excluir.exists():
+        messages.info(request, f"Não há registros na lixeira com mais de {dias} dias que possam ser excluídos permanentemente.")
+        return redirect('gestao:listar_logs_deletados')
+
+    log_ids = list(logs_para_excluir.values_list('id', flat=True))
+    log_ids_str = ','.join(map(str, log_ids))
+    
+    # Reutiliza a lógica da view solicitar_exclusao_logs (adaptada)
+    total_superusers = User.objects.filter(is_superuser=True, is_active=True).count()
+
+    if total_superusers <= 1:
+        count = logs_para_excluir.count()
+        logs_para_excluir.delete()
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.LOG_DELETADO_PERMANENTEMENTE,
+            detalhes={
+                'quantidade': count, 
+                'motivo': f'Limpeza direta de logs com mais de {dias} dias (único superusuário).',
+                'justificativa_fornecida': justificativa
+            }
+        )
+        messages.success(request, f"{count} registro(s) antigos foram excluídos permanentemente.")
+        return redirect('gestao:listar_logs_deletados')
+
+    # Cria a solicitação para quórum
+    solicitacao = ExclusaoLogPermanente.objects.create(
+        solicitado_por=request.user,
+        justificativa=justificativa,
+        log_ids=log_ids_str
+    )
+    criar_log(
+        ator=request.user,
+        acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_LOG_CRIADA,
+        alvo=solicitacao,
+        detalhes={'quantidade': len(log_ids), 'motivo': 'Limpeza por período'}
+    )
+    
+    messages.success(request, f"Uma solicitação para excluir {len(log_ids)} registro(s) antigos foi enviada para aprovação.")
+    return redirect('gestao:listar_solicitacoes_exclusao_logs')
 
 @login_required
 def ranking(request):
@@ -1987,7 +2112,18 @@ def criar_conquista(request):
         form = ConquistaForm(request.POST)
         if form.is_valid():
             conquista = form.save()
-            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_CRIADA, alvo=conquista)
+            
+            # =======================================================================
+            # CORREÇÃO: Passando o nome do objeto nos detalhes do log.
+            # =======================================================================
+            criar_log(
+                ator=request.user, 
+                acao=LogAtividade.Acao.CONQUISTA_CRIADA, 
+                alvo=conquista,
+                detalhes={'nome': conquista.nome} # <-- LINHA CORRIGIDA/ADICIONADA
+            )
+            # =======================================================================
+
             messages.success(request, f'A conquista "{conquista.nome}" foi criada com sucesso.')
             return redirect('gestao:listar_conquistas')
     else:
@@ -2005,7 +2141,18 @@ def editar_conquista(request, conquista_id):
         form = ConquistaForm(request.POST, instance=conquista)
         if form.is_valid():
             form.save()
-            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_EDITADA, alvo=conquista)
+
+            # =======================================================================
+            # CORREÇÃO: Passando o nome do objeto nos detalhes do log.
+            # =======================================================================
+            criar_log(
+                ator=request.user, 
+                acao=LogAtividade.Acao.CONQUISTA_EDITADA, 
+                alvo=conquista,
+                detalhes={'nome': conquista.nome} # <-- LINHA CORRIGIDA/ADICIONADA
+            )
+            # =======================================================================
+
             messages.success(request, f'A conquista "{conquista.nome}" foi atualizada com sucesso.')
             return redirect('gestao:listar_conquistas')
     else:
@@ -2032,15 +2179,22 @@ def deletar_conquista(request, conquista_id):
 @user_passes_test(is_staff_member)
 @login_required
 def gerenciar_gamificacao_settings(request):
-    """
-    Permite que a equipe de gestão edite as configurações
-    globais de gamificação, como o ganho de XP.
-    """
     settings = GamificationSettings.load()
     if request.method == 'POST':
         form = GamificationSettingsForm(request.POST, instance=settings)
         if form.is_valid():
             form.save()
+            # =======================================================================
+            # ADIÇÃO: Criando o log para a edição das configurações
+            # =======================================================================
+            if form.changed_data: # Apenas cria o log se algo realmente mudou
+                criar_log(
+                    ator=request.user,
+                    acao=LogAtividade.Acao.CONFIG_XP_EDITADA,
+                    alvo=settings,
+                    detalhes={'campos_alterados': form.changed_data}
+                )
+            # =======================================================================
             messages.success(request, 'As configurações de gamificação foram atualizadas com sucesso.')
             return redirect('gestao:gerenciar_gamificacao_settings')
     else:
@@ -2048,7 +2202,8 @@ def gerenciar_gamificacao_settings(request):
 
     context = {
         'form': form,
-        'titulo': 'Configurações de Gamificação'
+        'titulo': 'Configurações de Gamificação',
+        'active_tab': 'configuracoes'
     }
     return render(request, 'gestao/form_gamificacao_settings.html', context)
 
@@ -2104,21 +2259,32 @@ def criar_recompensa(request, tipo):
         FormClass = BordaForm
         titulo = 'Adicionar Nova Borda'
         log_acao = LogAtividade.Acao.BORDA_CRIADA
-    # =======================================================================
-    # ADIÇÃO: Lógica para o tipo "banners"
-    # =======================================================================
     elif tipo == 'banners':
         FormClass = BannerForm
         titulo = 'Adicionar Novo Banner'
         log_acao = LogAtividade.Acao.BANNER_CRIADO
     else:
+        # Fallback seguro caso um tipo inválido seja passado na URL
+        messages.error(request, "Tipo de recompensa inválido.")
         return redirect('gestao:listar_conquistas')
 
     if request.method == 'POST':
         form = FormClass(request.POST, request.FILES)
         if form.is_valid():
             recompensa = form.save()
-            criar_log(ator=request.user, acao=log_acao, alvo=recompensa)
+            
+            # =======================================================================
+            # CORREÇÃO: Passando o nome do objeto nos detalhes do log
+            # Isso garante que a mensagem do log seja gerada corretamente.
+            # =======================================================================
+            criar_log(
+                ator=request.user, 
+                acao=log_acao, 
+                alvo=recompensa,
+                detalhes={'nome': recompensa.nome} # <-- LINHA CORRIGIDA/ADICIONADA
+            )
+            # =======================================================================
+            
             messages.success(request, f'Item "{recompensa.nome}" foi criado com sucesso.')
             return redirect('gestao:listar_recompensas', tipo=tipo)
     else:
@@ -2140,14 +2306,13 @@ def editar_recompensa(request, tipo, recompensa_id):
         Model = Borda
         FormClass = BordaForm
         log_acao = LogAtividade.Acao.BORDA_EDITADA
-    # =======================================================================
-    # ADIÇÃO: Lógica para o tipo "banners"
-    # =======================================================================
     elif tipo == 'banners':
         Model = Banner
         FormClass = BannerForm
         log_acao = LogAtividade.Acao.BANNER_EDITADO
     else:
+        # Fallback seguro caso um tipo inválido seja passado na URL
+        messages.error(request, "Tipo de recompensa inválido.")
         return redirect('gestao:listar_conquistas')
 
     recompensa = get_object_or_404(Model, id=recompensa_id)
@@ -2155,7 +2320,19 @@ def editar_recompensa(request, tipo, recompensa_id):
         form = FormClass(request.POST, request.FILES, instance=recompensa)
         if form.is_valid():
             form.save()
-            criar_log(ator=request.user, acao=log_acao, alvo=recompensa)
+            
+            # =======================================================================
+            # CORREÇÃO: Passando o nome do objeto nos detalhes do log
+            # Isso garante que a mensagem do log seja gerada corretamente.
+            # =======================================================================
+            criar_log(
+                ator=request.user, 
+                acao=log_acao, 
+                alvo=recompensa,
+                detalhes={'nome': recompensa.nome} # <-- LINHA CORRIGIDA/ADICIONADA
+            )
+            # =======================================================================
+            
             messages.success(request, f'Item "{recompensa.nome}" foi atualizado com sucesso.')
             return redirect('gestao:listar_recompensas', tipo=tipo)
     else:
@@ -2193,3 +2370,127 @@ def deletar_recompensa(request, tipo, recompensa_id):
     
     messages.success(request, f'O item "{nome_recompensa}" foi deletado com sucesso.')
     return redirect('gestao:listar_recompensas', tipo=tipo)
+
+@require_POST
+@user_passes_test(is_superuser)
+@login_required
+@transaction.atomic
+def solicitar_exclusao_logs(request):
+    """
+    Cria uma solicitação de exclusão permanente para logs da lixeira,
+    respeitando a regra de tempo mínimo.
+    """
+    log_ids_str = request.POST.get('log_ids')
+    justificativa = request.POST.get('justificativa')
+
+    if not log_ids_str or not justificativa:
+        messages.error(request, "É necessário selecionar pelo menos um log e fornecer uma justificativa.")
+        return redirect('gestao:listar_logs_deletados')
+
+    log_ids = [int(id_str) for id_str in log_ids_str.split(',') if id_str.isdigit()]
+    
+    # =======================================================================
+    # ADIÇÃO: Validação da regra de tempo mínimo na lixeira
+    # =======================================================================
+    logs_para_verificar = LogAtividade.all_logs.filter(id__in=log_ids)
+    for log in logs_para_verificar:
+        if not log.is_permanently_deletable:
+            messages.error(request, f"Ação negada: O registro de log #{log.id} ainda não completou 30 dias na lixeira para poder ser excluído permanentemente.")
+            return redirect('gestao:listar_logs_deletados')
+    # =======================================================================
+
+    total_superusers = User.objects.filter(is_superuser=True, is_active=True).count()
+    
+    # Cenário de único superusuário: exclusão direta
+    if total_superusers <= 1:
+        logs_para_deletar = LogAtividade.all_logs.filter(id__in=log_ids)
+        count = logs_para_deletar.count()
+        logs_para_deletar.delete()
+
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.LOG_DELETADO_PERMANENTEMENTE,
+            alvo=None,
+            detalhes={
+                'quantidade': count, 
+                'motivo': 'Exclusão direta (único superusuário no sistema)',
+                'justificativa_fornecida': justificativa
+            }
+        )
+        messages.success(request, f"{count} registro(s) de log foram excluídos permanentemente.")
+        return redirect('gestao:listar_logs_deletados')
+
+    # Cenário de múltiplos superusuários: sistema de quórum
+    pendentes = ExclusaoLogPermanente.objects.filter(status=ExclusaoLogPermanente.Status.PENDENTE)
+    for p in pendentes:
+        if any(log_id in p.get_log_ids_as_list() for log_id in log_ids):
+            messages.warning(request, "Um ou mais dos logs selecionados já fazem parte de uma solicitação de exclusão pendente.")
+            return redirect('gestao:listar_logs_deletados')
+
+    solicitacao = ExclusaoLogPermanente.objects.create(
+        solicitado_por=request.user,
+        justificativa=justificativa,
+        log_ids=log_ids_str
+    )
+    
+    criar_log(
+        ator=request.user,
+        acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_LOG_CRIADA,
+        alvo=solicitacao,
+        detalhes={'quantidade': len(log_ids)}
+    )
+    
+    messages.success(request, f"Sua solicitação para excluir {len(log_ids)} registro(s) foi enviada para aprovação.")
+    return redirect('gestao:listar_solicitacoes_exclusao_logs')
+
+@user_passes_test(is_superuser)
+@login_required
+def listar_solicitacoes_exclusao_logs(request):
+    """
+    Lista todas as solicitações de exclusão permanente de logs pendentes.
+    """
+    solicitacoes = ExclusaoLogPermanente.objects.filter(status=ExclusaoLogPermanente.Status.PENDENTE).order_by('-data_solicitacao')
+    context = {'solicitacoes': solicitacoes}
+    return render(request, 'gestao/listar_solicitacoes_exclusao_logs.html', context)
+
+
+@require_POST
+@user_passes_test(is_superuser)
+@login_required
+@transaction.atomic
+def aprovar_exclusao_logs(request, solicitacao_id):
+    """
+    Aprova uma solicitação de exclusão. Se o quórum for atingido,
+    os logs são deletados permanentemente.
+    """
+    solicitacao = get_object_or_404(ExclusaoLogPermanente, id=solicitacao_id, status=ExclusaoLogPermanente.Status.PENDENTE)
+    
+    # A lógica de aprovação e verificação de quórum está no método .aprovar() do modelo
+    status, message = solicitacao.aprovar(request.user)
+
+    if status == 'QUORUM_MET':
+        log_ids_para_deletar = solicitacao.get_log_ids_as_list()
+        
+        # Deleta os logs permanentemente do banco de dados
+        LogAtividade.all_logs.filter(id__in=log_ids_para_deletar).delete()
+        
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.LOG_DELETADO_PERMANENTEMENTE, # <-- ADICIONE ESTA AÇÃO AO MODELO
+            alvo=solicitacao,
+            detalhes={'quantidade': len(log_ids_para_deletar), 'aprovador_final': request.user.username}
+        )
+        messages.success(request, message)
+        
+    elif status == 'APPROVAL_REGISTERED':
+        criar_log(
+            ator=request.user,
+            acao=LogAtividade.Acao.SOLICITACAO_EXCLUSAO_LOG_APROVADA, # <-- ADICIONE ESTA AÇÃO AO MODELO
+            alvo=solicitacao,
+            detalhes={'aprovador': request.user.username}
+        )
+        messages.info(request, message)
+    else: # status == 'FAILED'
+        messages.error(request, message)
+    
+    return redirect('gestao:listar_solicitacoes_exclusao_logs')

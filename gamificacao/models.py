@@ -8,17 +8,71 @@ from datetime import date
 from storages.backends.s3boto3 import S3Boto3Storage
 
 
-# = a. NOVO MODELO PARA CONFIGURAÇÕES DE XP
 class GamificationSettings(models.Model):
     """
-    Singleton model to store global gamification settings,
-    editable in the Django admin panel.
+    Modelo Singleton para armazenar as configurações globais de gamificação,
+    editáveis através do painel de gestão.
     """
-    xp_por_acerto = models.PositiveIntegerField(default=10, help_text="XP ganho por cada questão respondida corretamente.")
-    xp_por_erro = models.PositiveIntegerField(default=1, help_text="XP ganho por cada questão respondida incorretamente.")
-    xp_bonus_meta_diaria = models.PositiveIntegerField(default=50, help_text="Bônus de XP por completar a meta diária.")
-    meta_diaria_questoes = models.PositiveIntegerField(default=15, help_text="Número de questões para atingir a meta diária.")
-    acertos_consecutivos_para_bonus = models.PositiveIntegerField(default=5, help_text="Número de acertos consecutivos para ativar o bônus de XP em dobro.")
+    # =======================================================================
+    # SEÇÃO 1: VALORES DE XP BASE
+    # =======================================================================
+    xp_por_acerto = models.PositiveIntegerField(
+        default=10, verbose_name="XP por Acerto Padrão",
+        help_text="XP ganho ao acertar uma questão que já foi respondida corretamente antes."
+    )
+    xp_por_erro = models.PositiveIntegerField(
+        default=2, verbose_name="XP por Erro",
+        help_text="XP ganho (ou 'de consolação') ao errar uma questão."
+    )
+    
+    # =======================================================================
+    # SEÇÃO 2: BÔNUS DE DESEMPENHO E APRENDIZADO
+    # =======================================================================
+    xp_acerto_primeira_vez = models.PositiveIntegerField(
+        default=15, verbose_name="Bônus de XP por Acerto na Primeira Vez",
+        help_text="XP total ganho ao acertar uma questão pela primeira vez. Deve ser maior que o acerto padrão."
+    )
+    xp_acerto_redencao = models.PositiveIntegerField(
+        default=20, verbose_name="Bônus de XP por Redenção (Corrigir um Erro)",
+        help_text="XP total ganho ao acertar uma questão que o usuário errou anteriormente. Recompensa o estudo e a correção."
+    )
+    acertos_consecutivos_para_bonus = models.PositiveIntegerField(
+        default=5, verbose_name="Nº de Acertos Consecutivos para Bônus",
+        help_text="Quantas questões o usuário precisa acertar em sequência para ativar o multiplicador de XP."
+    )
+    bonus_multiplicador_acertos_consecutivos = models.FloatField(
+        default=2.0, verbose_name="Multiplicador de XP do Bônus",
+        help_text="Por quanto o XP de acerto será multiplicado quando o bônus estiver ativo (Ex: 2.0 para XP em dobro)."
+    )
+    xp_bonus_meta_diaria = models.PositiveIntegerField(
+        default=50, verbose_name="Bônus de XP por Meta Diária",
+        help_text="Bônus de XP concedido uma vez por dia ao atingir a meta de questões resolvidas."
+    )
+    meta_diaria_questoes = models.PositiveIntegerField(
+        default=15, verbose_name="Questões para Atingir a Meta Diária",
+        help_text="Número de questões que o usuário precisa resolver no dia para ganhar o bônus."
+    )
+
+    # =======================================================================
+    # SEÇÃO 3: REGRAS DE SEGURANÇA E ANTI-FARMING
+    # =======================================================================
+    habilitar_teto_xp_diario = models.BooleanField(
+        default=False, # MUDANÇA: Padrão para desabilitado, como solicitado
+        verbose_name="Habilitar Teto de XP Diário?",
+        help_text="Se marcado, limita a quantidade de XP que um usuário pode ganhar por dia."
+    )
+    teto_xp_diario = models.PositiveIntegerField(
+        default=500, verbose_name="Teto de XP Diário",
+        help_text="Quantidade máxima de XP que pode ser ganha em 24 horas, se o teto estiver habilitado."
+    )
+    cooldown_mesma_questao_horas = models.PositiveIntegerField(
+        default=24, verbose_name="Cooldown para ganhar XP na mesma questão (em horas)",
+        help_text="Impede que o usuário ganhe XP respondendo à mesma questão várias vezes em um curto período."
+    )
+    tempo_minimo_entre_respostas_segundos = models.PositiveIntegerField(
+        default=5, verbose_name="Tempo mínimo entre respostas para ganhar XP (em segundos)",
+        help_text="Proteção anti-bot. Respostas mais rápidas que isso não geram XP."
+    )
     
     def __str__(self):
         return "Configurações de Gamificação"
@@ -28,13 +82,11 @@ class GamificationSettings(models.Model):
         verbose_name_plural = "Configurações de Gamificação"
 
     def save(self, *args, **kwargs):
-        # Garante que haverá apenas uma instância deste modelo
         self.pk = 1
         super(GamificationSettings, self).save(*args, **kwargs)
 
     @classmethod
     def load(cls):
-        # Método para carregar a única instância de configurações
         obj, created = cls.objects.get_or_create(pk=1)
         return obj
 
@@ -206,17 +258,8 @@ class Borda(Recompensa):
 # gamificacao/models.py
 
 class Banner(Recompensa):
-    background_position = models.CharField(
-        max_length=50, 
-        default='50% 50%', 
-        help_text="Define o ponto focal da imagem (ex: '50% 50%')."
-    )
-    # NOVO CAMPO PARA O ZOOM
-    background_size = models.CharField(
-        max_length=50,
-        default='cover',
-        help_text="Define o nível de zoom da imagem (ex: '120%')."
-    )
+    pass # Agora é um modelo simples como Avatar e Borda.
+
 
 class BannerUsuario(models.Model):
     """ Tabela que liga os banners desbloqueados a cada usuário. """

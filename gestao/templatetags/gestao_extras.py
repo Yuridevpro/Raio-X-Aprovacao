@@ -3,8 +3,33 @@
 from django import template
 from django.contrib.auth.models import User
 from ..forms import ExclusaoUsuarioForm
+from django.utils import timezone
+from django.utils.timesince import timesince
+
 
 register = template.Library()
+
+@register.filter(name='tempo_inativo')
+def tempo_inativo(last_login_date):
+    """
+    Calcula e formata o tempo desde o último login.
+    """
+    if not last_login_date:
+        return "Nunca acessou"
+    
+    # timesince já retorna uma string amigável como "3 weeks, 2 days"
+    return f"há {timesince(last_login_date)}"
+
+@register.simple_tag(takes_context=True)
+def url_replace(context, **kwargs):
+    """
+    Atualiza os parâmetros da query string da URL atual.
+    Útil para paginação, filtros e ordenação.
+    """
+    query = context['request'].GET.copy()
+    for key, value in kwargs.items():
+        query[key] = str(value)
+    return query.urlencode()
 
 @register.simple_tag
 def get_superuser_count():

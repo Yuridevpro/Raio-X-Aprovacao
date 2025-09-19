@@ -1,0 +1,113 @@
+<!-- gestao/templates/gestao/form_gamificacao_settings.html -->
+{% extends 'base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab=active_tab %}
+    <h2 class="h3 mb-4">{{ titulo }}</h2>
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <!-- Coluna da Esquerda: Regras de Pontuação -->
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><h5 class="mb-0">Regras de Pontuação</h5></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.xp_por_acerto.label }}</label>
+                                    {{ form.xp_por_acerto }}
+                                    <div class="form-text">{{ form.xp_por_acerto.help_text }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.xp_acerto_primeira_vez.label }}</label>
+                                    {{ form.xp_acerto_primeira_vez }}
+                                    <div class="form-text">{{ form.xp_acerto_primeira_vez.help_text }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.xp_acerto_redencao.label }}</label>
+                                    {{ form.xp_acerto_redencao }}
+                                    <div class="form-text">{{ form.xp_acerto_redencao.help_text }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.xp_por_erro.label }}</label>
+                                    {{ form.xp_por_erro }}
+                                    <div class="form-text">{{ form.xp_por_erro.help_text }}</div>
+                                </div>
+                                <hr>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.acertos_consecutivos_para_bonus.label }}</label>
+                                    {{ form.acertos_consecutivos_para_bonus }}
+                                    <div class="form-text">{{ form.acertos_consecutivos_para_bonus.help_text }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.bonus_multiplicador_acertos_consecutivos.label }}</label>
+                                    {{ form.bonus_multiplicador_acertos_consecutivos }}
+                                    <div class="form-text">{{ form.bonus_multiplicador_acertos_consecutivos.help_text }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coluna da Direita: Metas e Segurança -->
+                    <div class="col-lg-6 mt-4 mt-lg-0">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-header"><h5 class="mb-0">Metas e Regras de Segurança</h5></div>
+                            <div class="card-body">
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.meta_diaria_questoes.label }}</label>
+                                    {{ form.meta_diaria_questoes }}
+                                    <div class="form-text">{{ form.meta_diaria_questoes.help_text }}</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.xp_bonus_meta_diaria.label }}</label>
+                                    {{ form.xp_bonus_meta_diaria }}
+                                    <div class="form-text">{{ form.xp_bonus_meta_diaria.help_text }}</div>
+                                </div>
+                                <hr>
+                                <div class="form-check form-switch mb-3">
+                                    {{ form.habilitar_teto_xp_diario }}
+                                    <label class="form-check-label" for="{{ form.habilitar_teto_xp_diario.id_for_label }}">{{ form.habilitar_teto_xp_diario.label }}</label>
+                                </div>
+                                <div id="teto-xp-container" class="mb-3">
+                                    <label class="form-label">{{ form.teto_xp_diario.label }}</label>
+                                    {{ form.teto_xp_diario }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.cooldown_mesma_questao_horas.label }}</label>
+                                    {{ form.cooldown_mesma_questao_horas }}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">{{ form.tempo_minimo_entre_respostas_segundos.label }}</label>
+                                    {{ form.tempo_minimo_entre_respostas_segundos }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Configurações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tetoToggle = document.getElementById('id_habilitar_teto_xp_diario');
+    const tetoContainer = document.getElementById('teto-xp-container');
+    if (tetoToggle && tetoContainer) {
+        function toggleTetoInput() { tetoContainer.style.display = tetoToggle.checked ? 'block' : 'none'; }
+        tetoToggle.addEventListener('change', toggleTetoInput);
+        toggleTetoInput();
+    }
+});
+</script>
+{% endblock %}

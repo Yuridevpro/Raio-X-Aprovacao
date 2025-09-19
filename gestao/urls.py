@@ -65,7 +65,13 @@ urlpatterns = [
     path('logs/deletar/<int:log_id>/', views.deletar_log_atividade, name='deletar_log_atividade'),
     path('logs/acoes-em-massa/', views.logs_acoes_em_massa, name='logs_acoes_em_massa'),
     path('logs/mover-para-lixeira/', views.mover_logs_antigos_para_lixeira, name='mover_logs_antigos_para_lixeira'),
+    path('logs/lixeira/limpar/', views.limpar_lixeira_logs, name='limpar_lixeira_logs'), # <-- NOVA URL
+
     path('logs/lixeira/', views.listar_logs_deletados, name='listar_logs_deletados'),
+    # NOVAS URLS PARA EXCLUSÃO PERMANENTE DE LOGS
+    path('logs/lixeira/solicitar-exclusao/', views.solicitar_exclusao_logs, name='solicitar_exclusao_logs'),
+    path('logs/solicitacoes-exclusao/', views.listar_solicitacoes_exclusao_logs, name='listar_solicitacoes_exclusao_logs'),
+    path('logs/solicitacoes-exclusao/aprovar/<int:solicitacao_id>/', views.aprovar_exclusao_logs, name='aprovar_exclusao_logs'),
     
     # API ENDPOINTS (para chamadas via JavaScript)
     path('api/adicionar-entidade/', views.adicionar_entidade_simples, name='adicionar_entidade_simples'),
@@ -98,4 +104,6 @@ urlpatterns = [
     path('gamificacao/<str:tipo>/nova/', views.criar_recompensa, name='criar_recompensa'),
     path('gamificacao/<str:tipo>/editar/<int:recompensa_id>/', views.editar_recompensa, name='editar_recompensa'),
     path('gamificacao/<str:tipo>/deletar/<int:recompensa_id>/', views.deletar_recompensa, name='deletar_recompensa'),
+    
+    
 ]

@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
+from datetime import datetime, timedelta
 # ... (todos os outros modelos: SolicitacaoExclusao, PromocaoSuperuser, etc. permanecem aqui sem alterações) ...
 class SolicitacaoExclusao(models.Model):
     class Status(models.TextChoices):
@@ -82,6 +82,8 @@ class PromocaoSuperuser(models.Model):
         return False, f"Aprovação registrada. Ainda falta(m) {votos_restantes} {plural} para a promoção ser efetivada."
 
 
+# gestao/models.py
+
 class BaseSuperuserQuorumRequest(models.Model):
     class Status(models.TextChoices):
         PENDENTE = 'PENDENTE', 'Pendente'
@@ -97,13 +99,26 @@ class BaseSuperuserQuorumRequest(models.Model):
         abstract = True
 
     def get_quorum_necessario(self):
-        outros_superusers_count = User.objects.filter(
-            is_superuser=True, is_active=True
-        ).exclude(
-            pk=self.solicitado_por.pk
-        ).exclude(
-            pk=self.usuario_alvo.pk
-        ).count()
+        # =======================================================================
+        # INÍCIO DA CORREÇÃO DEFINITIVA
+        # =======================================================================
+        
+        # Começa a consulta base
+        queryset = User.objects.filter(is_superuser=True, is_active=True)
+
+        # 1. Sempre exclui o solicitante da contagem
+        if self.solicitado_por:
+            queryset = queryset.exclude(pk=self.solicitado_por.pk)
+
+        # 2. SÓ exclui o usuário alvo SE ele existir
+        if self.usuario_alvo:
+            queryset = queryset.exclude(pk=self.usuario_alvo.pk)
+            
+        outros_superusers_count = queryset.count()
+
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
 
         if outros_superusers_count == 0:
             return 1
@@ -114,10 +129,24 @@ class BaseSuperuserQuorumRequest(models.Model):
             return 'FAILED', "Esta solicitação não está mais pendente."
         if superuser_aprovador == self.solicitado_por:
             return 'FAILED', "O solicitante não pode aprovar a própria solicitação."
-        if superuser_aprovador != self.usuario_alvo:
+            
+        # A verificação do alvo só faz sentido se ele existir
+        if self.usuario_alvo and superuser_aprovador == self.usuario_alvo:
+            # Em alguns casos, como auto-exclusão, o voto do alvo conta.
+            # Aqui, apenas garantimos que ele não seja adicionado à lista de aprovadores M2M.
+            pass
+        else:
             self.aprovado_por.add(superuser_aprovador)
         
-        votos_atuais = self.aprovado_por.count() + 1
+        # A contagem de votos precisa ser inteligente
+        votos_atuais = self.aprovado_por.count()
+        # O voto do solicitante sempre conta
+        votos_atuais += 1
+        # Se o aprovador for o próprio alvo, o voto dele também conta,
+        # mesmo não estando na lista M2M.
+        if self.usuario_alvo and superuser_aprovador == self.usuario_alvo:
+            votos_atuais += 1
+
         quorum_necessario = self.get_quorum_necessario()
         
         if votos_atuais >= quorum_necessario:
@@ -222,6 +251,11 @@ class LogAtividade(models.Model):
         BANNER_CRIADO = 'BANNER_CRIADO', 'Banner Criado'
         BANNER_EDITADO = 'BANNER_EDITADO', 'Banner Editado'
         BANNER_DELETADO = 'BANNER_DELETADO', 'Banner Deletado'
+        CONFIG_XP_EDITADA = 'CONFIG_XP_EDITADA', 'Configurações de XP Editadas' # <-- NOVA AÇÃO
+        
+        SOLICITACAO_EXCLUSAO_LOG_CRIADA = 'SOLICITACAO_EXCLUSAO_LOG_CRIADA', 'Solicitação de Exclusão de Log Criada'
+        SOLICITACAO_EXCLUSAO_LOG_APROVADA = 'SOLICITACAO_EXCLUSAO_LOG_APROVADA', 'Aprovação de Exclusão de Log Registrada'
+        LOG_DELETADO_PERMANENTEMENTE = 'LOG_DELETADO_PERMANENTEMENTE', 'Log Deletado Permanentemente'
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)
@@ -237,6 +271,14 @@ class LogAtividade(models.Model):
 
     objects = LogAtividadeManager()
     all_logs = models.Manager()
+    
+    @property
+    def is_permanently_deletable(self):
+        """Verifica se o log está na lixeira há mais de 30 dias."""
+        if not self.is_deleted or not self.deleted_at:
+            return False
+        # A regra de 30 dias pode ser ajustada conforme necessário
+        return timezone.now() > self.deleted_at + timedelta(days=1)
 
     class Meta:
         ordering = ['-data_criacao']
@@ -275,3 +317,29 @@ def calcular_hash_log(sender, instance, created, **kwargs):
         )
         sha256 = hashlib.sha256(log_data_str.encode('utf-8')).hexdigest()
         LogAtividade.all_logs.filter(id=instance.id).update(hash_log=sha256)
+
+class ExclusaoLogPermanente(BaseSuperuserQuorumRequest):
+    # Herda de BaseSuperuserQuorumRequest para reutilizar a lógica de quórum
+    
+    # Armazena os IDs dos logs a serem deletados como texto
+    log_ids = models.TextField(help_text="Lista de IDs dos logs a serem excluídos, separados por vírgula.")
+    
+    # Relações de usuário (definidas aqui para ter related_names únicos)
+    usuario_alvo = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exclusoes_log_recebidas', null=True, blank=True)
+    solicitado_por = models.ForeignKey(User, on_delete=models.CASCADE, related_name='exclusoes_log_solicitadas')
+    aprovado_por = models.ManyToManyField(User, related_name='exclusoes_log_aprovadas', blank=True)
+
+    def aprovar(self, superuser_aprovador):
+        status, message = self._check_approval(superuser_aprovador)
+        if status == 'QUORUM_MET':
+            message = "Quorum atingido. Os registros de log selecionados foram excluídos permanentemente."
+        return status, message
+
+    def get_log_ids_as_list(self):
+        """Converte a string de IDs em uma lista de inteiros."""
+        return [int(id_str) for id_str in self.log_ids.split(',') if id_str.isdigit()]
+
+    def __str__(self):
+        count = len(self.get_log_ids_as_list())
+        plural = 'registro' if count == 1 else 'registros'
+        return f"Solicitação para excluir {count} {plural} de log por {self.solicitado_por.username}"

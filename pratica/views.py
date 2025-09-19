@@ -7,21 +7,18 @@ from django.views.decorators.http import require_POST
 import json
 import markdown
 from django.db.models import Count, Q
-from .models import Notificacao # Adicione a importação do novo modelo
-from django.utils import formats # <-- 1. ADICIONE ESTA IMPORTAÇÃO
-from django.utils.timezone import localtime # <-- 1. ADICIONE ESTA IMPORTAÇÃO
+from django.utils import formats
+from django.utils.timezone import localtime
 from django.db import IntegrityError
 from django.contrib.contenttypes.models import ContentType
+
 # Modelos
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
-from .models import RespostaUsuario, Comentario, FiltroSalvo
-from gamificacao.services import _verificar_e_registrar_conquistas # <-- 1. IMPORTAR O NOVO SERVIÇO
-from gamificacao.services import processar_resposta_gamificacao # <-- IMPORT MODIFICADO
-from gamificacao.services import processar_resposta_gamificacao
+from .models import RespostaUsuario, Comentario, FiltroSalvo, Notificacao
+from usuarios.models import UserProfile # Importação correta do UserProfile
 
-# =======================================================================
-# IMPORTAÇÃO DA NOSSA NOVA FUNÇÃO CENTRALIZADA
-# =======================================================================
+# Serviços e Funções
+from gamificacao.services import processar_resposta_gamificacao
 from questoes.utils import filtrar_e_paginar_questoes
 
 
@@ -104,20 +101,21 @@ def verificar_resposta(request):
         data = json.loads(request.body)
         questao_id = data.get('questao_id')
         alternativa_selecionada = data.get('alternativa')
+        
+        if not questao_id or not alternativa_selecionada:
+            return JsonResponse({'status': 'error', 'message': "Dados incompletos."}, status=400)
+            
         questao = get_object_or_404(Questao, id=questao_id)
         
-        correta = (alternativa_selecionada == questao.gabarito)
-        RespostaUsuario.objects.update_or_create(
-            usuario=request.user,
-            questao=questao,
-            defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
+        # A view agora apenas chama o serviço, que faz todo o trabalho.
+        gamificacao_eventos = processar_resposta_gamificacao(
+            user=request.user, 
+            questao=questao, 
+            alternativa_selecionada=alternativa_selecionada
         )
-
-        # Chama o serviço de gamificação, passando o objeto 'questao'
-        gamificacao_eventos = processar_resposta_gamificacao(request.user.userprofile, correta, questao)
         
         nova_conquista_data = None
-        if gamificacao_eventos['nova_conquista']:
+        if gamificacao_eventos.get('nova_conquista'):
             conquista = gamificacao_eventos['nova_conquista']
             nova_conquista_data = {'nome': conquista.nome, 'icone': conquista.icone, 'cor': conquista.cor}
 
@@ -125,18 +123,19 @@ def verificar_resposta(request):
         
         return JsonResponse({
             'status': 'success',
-            'correta': correta,
-            'gabarito': questao.gabarito,
+            'correta': gamificacao_eventos.get('correta'),
+            'gabarito': gamificacao_eventos.get('gabarito'),
             'explicacao': explicacao_html,
             'nova_conquista': nova_conquista_data,
-            'level_up_info': gamificacao_eventos['level_up_info'],
-            'meta_completa_info': gamificacao_eventos['meta_completa_info'],
-            # a. NOVOS DADOS ENVIADOS PARA O FRONTEND
+            'level_up_info': gamificacao_eventos.get('level_up_info'),
+            'meta_completa_info': gamificacao_eventos.get('meta_completa_info'),
             'xp_ganho': gamificacao_eventos.get('xp_ganho', 0),
             'bonus_ativo': gamificacao_eventos.get('bonus_ativo', False),
         })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        print(f"Erro inesperado em verificar_resposta: {e}")
+        return JsonResponse({'status': 'error', 'message': "Ocorreu um erro interno."}, status=500)
+
     
     
 @login_required

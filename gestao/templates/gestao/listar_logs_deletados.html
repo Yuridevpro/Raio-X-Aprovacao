@@ -2,106 +2,116 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load log_extras %}
+{% load gestao_extras %}
 
 {% block title %}Lixeira de Logs de Atividade{% endblock %}
 
 {% block head %}
-<link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
-    .table-responsive .table { min-width: 800px; }
+    .table-responsive .table { min-width: 900px; }
     .log-message-cell { max-width: 450px; white-space: normal; }
+    .table-light-muted {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    .table-light-muted .log-checkbox, .table-light-muted .form-check-input {
+        visibility: hidden; /* Oculta o checkbox mas mantém o espaço */
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <!-- Alerta informativo -->
-    <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
-        <i class="fas fa-info-circle fa-2x me-3"></i>
-        <div>
-            <h5 class="alert-heading">Você está na Lixeira</h5>
-            Esta página exibe registros de atividade que foram movidos para a lixeira. A restauração não é permitida através desta interface.
-        </div>
-    </div>
-
     <!-- Cabeçalho da Página -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0"><i class="fas fa-trash-restore me-2"></i>Lixeira de Logs</h2>
-        <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-outline-secondary">
-            <i class="fas fa-arrow-left me-2"></i>Voltar para Logs Ativos
-        </a>
-    </div>
-
-    <!-- CARD DE FILTROS RECOLHÍVEL -->
-    <div class="card mb-4 shadow-sm filter-card">
-        <div class="card-header p-3 collapsed" data-bs-toggle="collapse" data-bs-target="#collapseFilters" aria-expanded="false" aria-controls="collapseFilters">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filtrar Lixeira</h5>
-                <span class="icon-toggle"></span>
-            </div>
+        <div>
+            <h2 class="h3 mb-0"><i class="fas fa-trash-restore me-2"></i>Lixeira de Logs</h2>
+            <p class="text-muted">Registros movidos para a lixeira. Itens podem ser excluídos permanentemente após 15 dias.</p>
         </div>
-        <div class="collapse" id="collapseFilters">
-            <div class="card-body">
-                <form method="GET" action="{% url 'gestao:listar_logs_deletados' %}">
-                    <div class="row g-3 align-items-end">
-                        <div class="col-md-4">
-                            <label for="q" class="form-label">Ator (usuário)</label>
-                            <input type="text" name="q" id="q" class="form-control" value="{{ filtro_q|default:'' }}" placeholder="Nome de usuário ou e-mail...">
-                        </div>
-                        <div class="col-md-3">
-                            <label for="acao" class="form-label">Tipo de Ação</label>
-                            <select name="acao" id="acao" class="form-select" placeholder="Todas as ações...">
-                                {% include 'gestao/includes/_options_filtro_log_acoes.html' %}
-                            </select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label">Período de Criação</label>
-                            <div class="input-group">
-                                <input type="date" name="data_inicio" class="form-control" value="{{ filtro_data_inicio|default:'' }}" title="Data de Início">
-                                <input type="date" name="data_fim" class="form-control" value="{{ filtro_data_fim|default:'' }}" title="Data de Fim">
-                            </div>
-                        </div>
-                        <div class="col-md-2">
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-primary w-100">Filtrar</button>
-                                <a href="{% url 'gestao:listar_logs_deletados' %}" class="btn btn-secondary w-100">Limpar</a>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'gestao:listar_solicitacoes_exclusao_logs' %}" class="btn btn-warning btn-sm">
+                <i class="fas fa-shield-alt me-2"></i>Ver Solicitações
+            </a>
+            <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Voltar para Logs Ativos
+            </a>
         </div>
     </div>
 
-    <!-- CONTROLES DE ORDENAÇÃO E PAGINAÇÃO -->
-    {% include 'gestao/includes/_ordenacao_e_paginacao_controls.html' with paginated_object=paginated_object sort_options=sort_options sort_by=sort_by per_page=per_page %}
+    {% include 'gestao/includes/_messages.html' %}
 
-    <!-- TABELA DE LOGS DELETADOS -->
+    <!-- BARRA DE CONTROLES: Ordenação e Limpeza -->
+    <div class="d-flex flex-wrap gap-2 justify-content-end align-items-center mb-3">
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-sort-amount-down me-2"></i>Ordenar por: {{ sort_options|get_item:sort_by }}
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% for key, value in sort_options.items %}
+                <li><a class="dropdown-item {% if sort_by == key %}active{% endif %}" href="?{% url_replace sort_by=key %}">{{ value }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="fas fa-broom me-2"></i>Limpar Logs com mais de...
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <!-- CORREÇÃO: Iterando sobre a lista vinda da view -->
+                {% for dias in dias_para_limpeza %}
+                <li>
+                    <form action="{% url 'gestao:limpar_lixeira_logs' %}" method="POST" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="dias" value="{{ dias }}">
+                        <button type="submit" class="dropdown-item">{{ dias }} dias</button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- TABELA DE LOGS DELETADOS COM CONTROLES -->
     <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span>Registros na Lixeira ({{ logs.paginator.count }})</span>
+            <button type="button" class="btn btn-danger btn-sm" id="btn-excluir-permanente-massa" disabled>
+                <i class="fas fa-fire me-2"></i>Excluir Permanente
+            </button>
+        </div>
         <div class="card-body p-0">
             {% if logs %}
             <div class="table-responsive">
-                <table class="table table-striped table-hover mb-0 align-middle">
+                <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col">Log Original</th>
-                            <th scope="col">Deletado Por</th>
-                            <th scope="col">Data da Exclusão</th>
+                            <th style="width: 50px;" class="text-center"><input type="checkbox" class="form-check-input" id="check-all-logs"></th>
+                            <th>Log Original</th>
+                            <th>Deletado Por</th>
+                            <th class="text-center">Data da Exclusão</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for log in logs %}
-                        <tr>
+                        <tr class="{% if not log.is_permanently_deletable %}table-light-muted{% endif %}">
+                            <td class="text-center">
+                                {% if log.is_permanently_deletable %}
+                                    <input type="checkbox" class="form-check-input log-checkbox" name="log_ids" value="{{ log.id }}">
+                                {% else %}
+                                    <i class="fas fa-hourglass-half" data-bs-toggle="tooltip" title="Aguardando período de 15 dias para exclusão."></i>
+                                {% endif %}
+                            </td>
                             <td class="log-message-cell">
                                 {{ log|generate_log_message|safe }}
+                                {{ log.detalhes|format_log_reason|safe }}
                                 <div class="text-muted small">(Criado em: {{ log.data_criacao|date:"d/m/y H:i" }})</div>
                             </td>
                             <td>
                                 <i class="fas fa-user me-1 text-muted"></i>{{ log.deleted_by.username|default:"Não registrado" }}
                             </td>
-                            <td title="{{ log.deleted_at|date:'d/m/Y H:i:s' }}">
-                                {{ log.deleted_at|date:"d/m/Y H:i" }}
+                            <td class="text-center small" title="{{ log.deleted_at|date:'d/m/Y H:i:s' }}">
+                                {{ log.deleted_at|date:"d/m/Y" }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -111,7 +121,7 @@
             {% else %}
             <div class="text-center p-5">
                 <i class="fas fa-check-circle fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">A lixeira está vazia ou nenhum resultado foi encontrado.</h5>
+                <h5 class="text-muted">A lixeira está vazia.</h5>
             </div>
             {% endif %}
         </div>
@@ -122,18 +132,75 @@
         {% include 'includes/_paginacao.html' with paginated_object=logs %}
     </div>
 </div>
+
+<!-- MODAL DE CONFIRMAÇÃO PARA EXCLUSÃO PERMANENTE -->
+<div class="modal fade" id="confirmPermanentDeleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Confirmar Exclusão Permanente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'gestao:solicitar_exclusao_logs' %}" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <p class="fw-bold">Atenção: Esta é uma ação crítica e irreversível.</p>
+                    <p>Você está prestes a criar uma solicitação para excluir permanentemente <strong id="permanent-delete-count"></strong> registro(s) de auditoria. Uma vez aprovada pelo quórum, esta ação **não poderá ser desfeita**.</p>
+                    <hr>
+                    <p class="mb-2">Para continuar, forneça uma justificativa clara para esta ação:</p>
+                    <input type="hidden" name="log_ids" id="log-ids-to-delete">
+                    <textarea name="justificativa" class="form-control" rows="3" placeholder="Ex: Limpeza de logs antigos conforme política de retenção de dados." required></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Sim, Enviar Solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        new TomSelect('#acao',{ 
-            create: false,
-            render: {
-                optgroup_header: (data, escape) => `<div class="optgroup-header">${escape(data.label)}</div>`
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    const checkAll = document.getElementById('check-all-logs');
+    const checkboxes = document.querySelectorAll('.log-checkbox');
+    const deleteBtn = document.getElementById('btn-excluir-permanente-massa');
+    
+    function toggleDeleteButton() {
+        const checkedCount = document.querySelectorAll('.log-checkbox:checked').length;
+        deleteBtn.disabled = checkedCount === 0;
+    }
+
+    if (checkAll) {
+        checkAll.addEventListener('change', () => {
+            checkboxes.forEach(cb => {
+                if (!cb.disabled) {
+                    cb.checked = checkAll.checked;
+                }
+            });
+            toggleDeleteButton();
+        });
+    }
+
+    checkboxes.forEach(cb => cb.addEventListener('change', toggleDeleteButton));
+    
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', () => {
+            const checkedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.value);
+            if (checkedIds.length > 0) {
+                document.getElementById('log-ids-to-delete').value = checkedIds.join(',');
+                document.getElementById('permanent-delete-count').textContent = checkedIds.length;
+                new bootstrap.Modal(document.getElementById('confirmPermanentDeleteModal')).show();
             }
         });
-    });
+    }
+});
 </script>
 {% endblock %}

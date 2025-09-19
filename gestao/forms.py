@@ -10,7 +10,9 @@ from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 from gamificacao.models import Conquista, Avatar, Borda, Banner
 
 
-# b. NOVO FORMULÁRIO PARA AS CONFIGURAÇÕES DE XP
+from gamificacao.models import Conquista, GamificationSettings
+# ...
+
 class GamificationSettingsForm(forms.ModelForm):
     class Meta:
         model = GamificationSettings
@@ -18,9 +20,16 @@ class GamificationSettingsForm(forms.ModelForm):
         widgets = {
             'xp_por_acerto': forms.NumberInput(attrs={'class': 'form-control'}),
             'xp_por_erro': forms.NumberInput(attrs={'class': 'form-control'}),
+            'xp_acerto_primeira_vez': forms.NumberInput(attrs={'class': 'form-control'}),
+            'xp_acerto_redencao': forms.NumberInput(attrs={'class': 'form-control'}),
             'xp_bonus_meta_diaria': forms.NumberInput(attrs={'class': 'form-control'}),
             'meta_diaria_questoes': forms.NumberInput(attrs={'class': 'form-control'}),
             'acertos_consecutivos_para_bonus': forms.NumberInput(attrs={'class': 'form-control'}),
+            'bonus_multiplicador_acertos_consecutivos': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.1'}),
+            'habilitar_teto_xp_diario': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'teto_xp_diario': forms.NumberInput(attrs={'class': 'form-control'}),
+            'cooldown_mesma_questao_horas': forms.NumberInput(attrs={'class': 'form-control'}),
+            'tempo_minimo_entre_respostas_segundos': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
 
@@ -266,19 +275,14 @@ class BordaForm(RecompensaBaseForm):
 class BannerForm(RecompensaBaseForm):
     class Meta:
         model = Banner
-        fields = [
-            'nome', 'descricao', 'imagem', 'raridade',
-            'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria',
-            'background_position', 'background_size'
-        ]
+        # MUDANÇA: Removidos os campos 'background_position' e 'background_size'.
+        fields = ['nome', 'descricao', 'imagem', 'raridade', 'tipo_desbloqueio', 'nivel_necessario', 'conquista_necessaria']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: Recompensa de Fim de Ano'}),
-            'imagem': forms.FileInput(attrs={'class': 'form-control'}),
+            'imagem': forms.FileInput(attrs={'class': 'form-control'}), # O input de arquivo padrão
             'raridade': forms.Select(attrs={'class': 'form-select'}),
             'tipo_desbloqueio': forms.Select(attrs={'class': 'form-select'}),
             'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
             'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
-            'background_position': forms.HiddenInput(),
-            'background_size': forms.HiddenInput(),
         }

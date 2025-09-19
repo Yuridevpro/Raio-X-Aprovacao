@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load gestao_extras %}
+{% block title %}Solicitações de Exclusão de Logs{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0">Revisar Solicitações de Exclusão de Logs</h2>
+            <p class="text-muted">Aprovações de superusuários são necessárias para excluir permanentemente registros de auditoria.</p>
+        </div>
+        <a href="{% url 'gestao:listar_logs_deletados' %}" class="btn btn-outline-secondary"><i class="fas fa-trash me-2"></i>Ver Lixeira de Logs</a>
+    </div>
+    
+    {% include 'gestao/includes/_messages.html' %}
+
+    {% if solicitacoes %}
+        {% for solicitacao in solicitacoes %}
+        <div class="card shadow-sm mb-3">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                <span class="small text-muted">Solicitação #{{ solicitacao.id }}</span>
+                <span class="badge bg-warning text-dark">Pendente</span>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <p class="mb-1"><small class="text-muted">Solicitado por:</small> <strong>{{ solicitacao.solicitado_por.username }}</strong></p>
+                        <p><small class="text-muted">Data:</small> {{ solicitacao.data_solicitacao|date:"d/m/Y H:i" }}</p>
+                        <p class="mb-1"><strong>Justificativa Fornecida:</strong></p>
+                        <blockquote class="blockquote small bg-light p-2 rounded border-start border-4 border-secondary">
+                            <p class="mb-0"><em>{{ solicitacao.justificativa|linebreaksbr }}</em></p>
+                        </blockquote>
+                        <p class="mt-3"><strong>Registros a serem excluídos:</strong> {{ solicitacao.get_log_ids_as_list|length }}</p>
+                    </div>
+                    <div class="col-md-4 text-center border-start">
+                        <h6 class="mb-3">Aprovações</h6>
+                        <p class="h3">{{ solicitacao.aprovado_por.count|add:1 }} / {{ solicitacao.get_quorum_necessario }}</p>
+                        <div class="progress" style="height: 5px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio solicitacao.aprovado_por.count|add:1 solicitacao.get_quorum_necessario 100 %}%"></div>
+                        </div>
+                        <div class="mt-3">
+                            {% if request.user in solicitacao.aprovado_por.all %}
+                                <button class="btn btn-success" disabled><i class="fas fa-check me-2"></i>Aprovação Registrada</button>
+                            {% elif request.user == solicitacao.solicitado_por %}
+                                <button class="btn btn-secondary" disabled>Aguardando Votos</button>
+                            {% else %}
+                                <form action="{% url 'gestao:aprovar_exclusao_logs' solicitacao.id %}" method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-success"><i class="fas fa-thumbs-up me-2"></i>Aprovar Exclusão</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card card-body text-center p-5">
+            <p class="text-muted mb-0">Nenhuma solicitação de exclusão de logs pendente no momento.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

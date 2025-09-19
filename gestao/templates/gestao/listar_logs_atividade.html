@@ -76,9 +76,27 @@
 {% block content %}
 <div class="container py-4 py-lg-5">
     <!-- CABEÇALHO DA PÁGINA -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4 page-header">
         <h1 class="h3 mb-0">Registro de Atividades</h1>
-        <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+        <!-- ======================================================================= -->
+        <!-- INÍCIO DA ADIÇÃO: Link para as solicitações -->
+        <!-- ======================================================================= -->
+        <div class="d-flex align-items-center gap-2">
+            <a href="{% url 'gestao:listar_solicitacoes_exclusao_logs' %}" class="btn btn-warning btn-sm position-relative">
+                <i class="fas fa-shield-alt me-2"></i>
+                Revisar Solicitações de Exclusão
+                {% if solicitacoes_exclusao_logs_pendentes > 0 %}
+                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ solicitacoes_exclusao_logs_pendentes }}
+                    <span class="visually-hidden">solicitações pendentes</span>
+                </span>
+                {% endif %}
+            </a>
+            <a href="{% url 'gestao:dashboard' %}" class="btn btn-outline-secondary btn-sm"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+        </div>
+        <!-- ======================================================================= -->
+        <!-- FIM DA ADIÇÃO -->
+        <!-- ======================================================================= -->
     </div>
 
     <!-- CARD DE FILTROS RECOLHÍVEL -->
@@ -151,90 +169,84 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });
-    new TomSelect('#acao',{ create: false, sortField: { field: "text", direction: "asc" } });
+    document.addEventListener('DOMContentLoaded', function() {
+        new bootstrap.Tooltip(document.body, { selector: '[data-bs-toggle="tooltip"]' });
+        new TomSelect('#acao',{ create: false, sortField: { field: "text", direction: "asc" } });
 
-    const performLogAction = (action, ids, successCallback) => {
-        const url = action === 'delete_single' ? `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', ids[0]) : "{% url 'gestao:logs_acoes_em_massa' %}";
-        const body = action === 'delete_single' ? null : JSON.stringify({ ids: ids, action: 'delete' });
-        
-        fetch(url, {
-            method: 'POST',
-            body: body,
-            headers: body ? {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'} : {'X-CSRFToken': '{{ csrf_token }}'}
-        })
-        .then(response => response.json().then(data => ({ok: response.ok, data})))
-        .then(({ok, data}) => {
-            if (ok) {
-                showNotificationModal('Sucesso!', data.message, 'success');
-                if (successCallback) successCallback(data);
-            } else { throw new Error(data.message); }
-        })
-        .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível concluir a ação.', 'error'));
-    };
+        const performLogAction = (action, ids, successCallback) => {
+            const url = action === 'delete_single' ? `{% url 'gestao:deletar_log_atividade' 0 %}`.replace('0', ids[0]) : "{% url 'gestao:logs_acoes_em_massa' %}";
+            const body = action === 'delete_single' ? null : JSON.stringify({ ids: ids, action: 'delete' });
+            
+            fetch(url, {
+                method: 'POST',
+                body: body,
+                headers: body ? {'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}'} : {'X-CSRFToken': '{{ csrf_token }}'}
+            })
+            .then(response => response.json().then(data => ({ok: response.ok, data})))
+            .then(({ok, data}) => {
+                if (ok) {
+                    showNotificationModal('Sucesso!', data.message, 'success');
+                    if (successCallback) successCallback(data);
+                } else { throw new Error(data.message); }
+            })
+            .catch(error => showNotificationModal('Erro', error.message || 'Não foi possível concluir a ação.', 'error'));
+        };
 
-    document.body.addEventListener('click', function(e) {
-        const confirmBtn = e.target.closest('.btn-confirm-action');
-        const deleteBtn = e.target.closest('.btn-delete-log:not([disabled])');
-        const bulkActionBtn = e.target.closest('.bulk-action-btn');
+        document.body.addEventListener('click', function(e) {
+            const confirmBtn = e.target.closest('.btn-confirm-action');
+            const deleteBtn = e.target.closest('.btn-delete-log:not([disabled])');
+            const bulkActionBtn = e.target.closest('.bulk-action-btn');
 
-        if (confirmBtn) {
-            e.preventDefault();
-            const form = document.getElementById(confirmBtn.dataset.formId);
-            showConfirmationModal(confirmBtn.dataset.modalTitle, confirmBtn.dataset.modalBody, () => form.submit());
-        }
-        
-        // =======================================================
-        // INÍCIO DA ALTERAÇÃO: Recarregar página ao deletar
-        // =======================================================
-        if (deleteBtn) {
-            showConfirmationModal('Confirmar Exclusão', 'Deseja mover este registro para a lixeira?', () => {
-                performLogAction('delete_single', [deleteBtn.dataset.logId], () => {
-                    setTimeout(() => window.location.reload(), 1500); // Recarrega após 1.5s
-                });
-            });
-        }
-
-        if (bulkActionBtn) {
-            e.preventDefault();
-            const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
-            if (selectedIds.length === 0) {
-                showNotificationModal('Atenção', 'Nenhum registro selecionado.', 'info');
-                return;
+            if (confirmBtn) {
+                e.preventDefault();
+                const form = document.getElementById(confirmBtn.dataset.formId);
+                showConfirmationModal(confirmBtn.dataset.modalTitle, confirmBtn.dataset.modalBody, () => form.submit());
             }
-            showConfirmationModal('Confirmar Ação em Massa', `Mover ${selectedIds.length} registro(s) para a lixeira?`, () => {
-                performLogAction('delete_bulk', selectedIds, () => {
-                    setTimeout(() => window.location.reload(), 1500); // Recarrega após 1.5s
+            
+            if (deleteBtn) {
+                showConfirmationModal('Confirmar Exclusão', 'Deseja mover este registro para a lixeira?', () => {
+                    performLogAction('delete_single', [deleteBtn.dataset.logId], () => {
+                        setTimeout(() => window.location.reload(), 1500);
+                    });
                 });
-            });
+            }
+
+            if (bulkActionBtn) {
+                e.preventDefault();
+                const selectedIds = Array.from(document.querySelectorAll('.log-checkbox:checked')).map(cb => cb.dataset.id);
+                if (selectedIds.length === 0) {
+                    showNotificationModal('Atenção', 'Nenhum registro selecionado.', 'info');
+                    return;
+                }
+                showConfirmationModal('Confirmar Ação em Massa', `Mover ${selectedIds.length} registro(s) para a lixeira?`, () => {
+                    performLogAction('delete_bulk', selectedIds, () => {
+                        setTimeout(() => window.location.reload(), 1500);
+                    });
+                });
+            }
+        });
+
+        // Lógica da barra de seleção em massa
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const logCheckboxes = document.querySelectorAll('.log-checkbox');
+        const bulkActionsBar = document.getElementById('bulk-actions-bar');
+        const selectedCountSpan = document.getElementById('selected-count');
+
+        function updateBulkActionBar() {
+            if (!bulkActionsBar) return;
+            const count = document.querySelectorAll('.log-checkbox:checked').length;
+            selectedCountSpan.textContent = count;
+            bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
+            logCheckboxes.forEach(cb => cb.closest('.log-item').classList.toggle('selected', cb.checked));
+            if (selectAllCheckbox) selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
         }
-        // =======================================================
-        // FIM DA ALTERAÇÃO
-        // =======================================================
-    });
-
-    // Lógica da barra de seleção em massa
-    const selectAllCheckbox = document.getElementById('select-all-checkbox');
-    const logCheckboxes = document.querySelectorAll('.log-checkbox');
-    const bulkActionsBar = document.getElementById('bulk-actions-bar');
-    const selectedCountSpan = document.getElementById('selected-count');
-
-    function updateBulkActionBar() {
-        if (!bulkActionsBar) return;
-        const count = document.querySelectorAll('.log-checkbox:checked').length;
-        selectedCountSpan.textContent = count;
-        bulkActionsBar.style.display = count > 0 ? 'block' : 'none';
-        logCheckboxes.forEach(cb => cb.closest('.log-item').classList.toggle('selected', cb.checked));
-        if (selectAllCheckbox) selectAllCheckbox.checked = logCheckboxes.length > 0 && count === logCheckboxes.length;
-    }
-    
-    if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', () => {
-        logCheckboxes.forEach(checkbox => checkbox.checked = selectAllCheckbox.checked);
+        
+        if (selectAllCheckbox) selectAllCheckbox.addEventListener('change', () => {
+            logCheckboxes.forEach(checkbox => checkbox.checked = selectAllCheckbox.checked);
+            updateBulkActionBar();
+        });
+        logCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
         updateBulkActionBar();
     });
-    logCheckboxes.forEach(checkbox => checkbox.addEventListener('change', updateBulkActionBar));
-    updateBulkActionBar();
-});
 </script>
 {% endblock %}

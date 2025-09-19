@@ -49,3 +49,30 @@ class ConquistaUsuarioAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False
+
+# gamificacao/admin.py
+
+from django.contrib import admin
+from .models import GamificationSettings
+
+@admin.register(GamificationSettings)
+class GamificationSettingsAdmin(admin.ModelAdmin):
+    """
+    Admin interface for the singleton GamificationSettings model.
+    """
+    list_display = (
+        'xp_por_acerto', 
+        'xp_por_erro', 
+        'xp_bonus_meta_diaria', 
+        'meta_diaria_questoes',
+        'acertos_consecutivos_para_bonus'
+    )
+
+    # Impede que os administradores criem novas instâncias,
+    # já que este é um modelo singleton (só pode haver uma configuração).
+    def has_add_permission(self, request):
+        return False
+
+    # Impede que os administradores deletem a única instância.
+    def has_delete_permission(self, request, obj=None):
+        return False

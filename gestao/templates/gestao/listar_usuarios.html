@@ -1,4 +1,3 @@
-<!-- gestao/templates/gestao/listar_usuarios.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load gestao_extras %}
@@ -26,14 +25,7 @@
         </a>
     </div>
 
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        {% endfor %}
-    {% endif %}
+    {% include 'gestao/includes/_messages.html' %}
 
     <!-- CARD DE FILTROS RECOLHÍVEL -->
     <div class="card mb-4 shadow-sm filter-card">
@@ -60,9 +52,6 @@
                                 <option value="comum" {% if filtro_permissao == 'comum' %}selected{% endif %}>Usuário Comum</option>
                             </select>
                         </div>
-                        <!-- ======================================================= -->
-                        <!-- INÍCIO DA ADIÇÃO: Novo filtro de Status                 -->
-                        <!-- ======================================================= -->
                         <div class="col-lg-2 col-md-6">
                             <label for="status" class="form-label">Status</label>
                             <select name="status" id="status" class="form-select">
@@ -71,9 +60,6 @@
                                 <option value="todos" {% if filtro_status == 'todos' %}selected{% endif %}>Todos</option>
                             </select>
                         </div>
-                        <!-- ======================================================= -->
-                        <!-- FIM DA ADIÇÃO                                           -->
-                        <!-- ======================================================= -->
                         <div class="col-lg-3 col-md-6">
                             <label for="solicitacao" class="form-label">Status da Solicitação</label>
                             <select name="solicitacao" id="solicitacao" class="form-select">
@@ -111,31 +97,37 @@
                         </p>
 
                         <!-- Badges de permissão e status -->
-                        {% if usuario.is_superuser %}
-                            <span class="badge text-bg-danger"><i class="fas fa-shield-alt me-1"></i>Superusuário</span>
-                        {% elif usuario.is_staff %}
-                            <span class="badge text-bg-success"><i class="fas fa-user-shield me-1"></i>Membro da Equipe</span>
-                        {% else %}
-                            <span class="badge text-bg-secondary">Usuário Comum</span>
-                        {% endif %}
+                        <div class="mb-3">
+                            {% if usuario.is_superuser %}
+                                <span class="badge text-bg-danger"><i class="fas fa-shield-alt me-1"></i>Superusuário</span>
+                            {% elif usuario.is_staff %}
+                                <span class="badge text-bg-success"><i class="fas fa-user-shield me-1"></i>Membro da Equipe</span>
+                            {% else %}
+                                <span class="badge text-bg-secondary">Usuário Comum</span>
+                            {% endif %}
 
-                        {% if usuario.tem_solicitacao_pendente %}
-                        <span class="badge text-bg-warning mt-1" title="Este usuário possui uma solicitação de exclusão pendente de revisão.">
-                            <i class="fas fa-user-clock me-1"></i>Exclusão Solicitada
-                        </span>
-                        {% endif %}
+                            {% if usuario.tem_solicitacao_pendente %}
+                            <span class="badge text-bg-warning mt-1" title="Este usuário possui uma solicitação de exclusão pendente de revisão.">
+                                <i class="fas fa-user-clock me-1"></i>Exclusão Solicitada
+                            </span>
+                            {% endif %}
+                            
+                            {% if not usuario.is_active %}
+                            <span class="badge text-bg-dark mt-1" title="Este usuário está inativo e não pode fazer login.">
+                                <i class="fas fa-user-slash me-1"></i>Inativo
+                            </span>
+                            {% endif %}
+                        </div>
                         
                         <!-- ======================================================= -->
-                        <!-- INÍCIO DA ADIÇÃO: Badge para usuário inativo            -->
+                        <!-- ADIÇÃO: Exibição do tempo de inatividade              -->
                         <!-- ======================================================= -->
-                        {% if not usuario.is_active %}
-                        <span class="badge text-bg-dark mt-1" title="Este usuário está inativo e não pode fazer login.">
-                            <i class="fas fa-user-slash me-1"></i>Inativo
-                        </span>
-                        {% endif %}
+                        <div class="card-text small text-muted">
+                            <i class="fas fa-history me-2"></i>
+                            Último acesso: {{ usuario.ultimo_login|tempo_inativo }}
+                        </div>
                         <!-- ======================================================= -->
-                        <!-- FIM DA ADIÇÃO                                           -->
-                        <!-- ======================================================= -->
+
                     </div>
 
                     <!-- Dropdown de ações -->
