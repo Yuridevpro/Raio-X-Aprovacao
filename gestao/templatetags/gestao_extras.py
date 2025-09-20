@@ -1,4 +1,4 @@
-# gestao/templatetags/gestao_extras.py
+# gestao/templatetags/gestao_extras.py (ARQUIVO CORRIGIDO E FINALIZADO)
 
 from django import template
 from django.contrib.auth.models import User
@@ -6,6 +6,7 @@ from ..forms import ExclusaoUsuarioForm
 from django.utils import timezone
 from django.utils.timesince import timesince
 
+# A importação problemática de 'RegraRecompensa' foi removida.
 
 register = template.Library()
 
@@ -17,7 +18,6 @@ def tempo_inativo(last_login_date):
     if not last_login_date:
         return "Nunca acessou"
     
-    # timesince já retorna uma string amigável como "3 weeks, 2 days"
     return f"há {timesince(last_login_date)}"
 
 @register.simple_tag(takes_context=True)

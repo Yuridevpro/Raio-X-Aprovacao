@@ -2,10 +2,29 @@
 <div class="mb-4">
     <ul class="nav nav-pills nav-fill">
         <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'regras' %}active{% endif %}" href="{% url 'gestao:listar_regras_recompensa' %}">
-                <i class="fas fa-scroll me-1"></i> Regras de Recompensa
+            <a class="nav-link {% if active_tab == 'dashboard_gamificacao' %}active{% endif %}" href="{% url 'gestao:dashboard_gamificacao' %}">
+                <i class="fas fa-chart-line me-1"></i> Dashboard
             </a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'campanhas' %}active{% endif %}" href="{% url 'gestao:listar_campanhas' %}">
+                <i class="fas fa-scroll me-1"></i> Campanhas
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'trilhas' %}active{% endif %}" href="{% url 'gestao:listar_trilhas' %}">
+                <i class="fas fa-road me-1"></i> Trilhas
+            </a>
+        </li>
+
+
+
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'tipos_condicao' %}active{% endif %}" href="{% url 'gestao:listar_tipos_condicao' %}">
+                <i class="fas fa-tasks me-1"></i> Tipos de Condição
+            </a>
+        </li>
+
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'conquistas' %}active{% endif %}" href="{% url 'gestao:listar_conquistas' %}">
                 <i class="fas fa-trophy me-1"></i> Conquistas
@@ -28,7 +47,12 @@
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'configuracoes' %}active{% endif %}" href="{% url 'gestao:gerenciar_gamificacao_settings' %}">
-                <i class="fas fa-cogs me-2"></i>Configurações de XP
+                <i class="fas fa-cogs me-2"></i>Configurações
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'concessao_manual' %}active{% endif %}" href="{% url 'gestao:conceder_recompensa_manual' %}">
+                <i class="fas fa-gift me-2"></i>Concessão Manual
             </a>
         </li>
     </ul>

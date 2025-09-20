@@ -1,0 +1,53 @@
+<!-- gestao/templates/gestao/listar_tipos_condicao.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='tipos_condicao' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:criar_tipo_condicao' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Novo Tipo de Condição</a>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome da Condição</th>
+                            <th>Chave do Sistema</th>
+                            <th>Descrição</th>
+                            <th style="width: 120px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tipo in tipos_condicao %}
+                        <tr>
+                            <td class="fw-bold">{{ tipo.nome }}</td>
+                            <td><code>{{ tipo.chave }}</code></td>
+                            <td>{{ tipo.descricao }}</td>
+                            <td>
+                                <a href="{% url 'gestao:editar_tipo_condicao' tipo.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_tipo_condicao' tipo.id %}" data-item-name="{{ tipo.nome }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center p-5"><h5 class="text-muted">Nenhum tipo de condição cadastrado.</h5></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% endblock %}

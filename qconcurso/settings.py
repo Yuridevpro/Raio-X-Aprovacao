@@ -46,14 +46,14 @@ INSTALLED_APPS = [
     'django.contrib.sites',   # ✅ Adicione esta linha
 
     # Nossos Apps
-    'usuarios',
+    'usuarios.apps.UsuariosConfig',      # ALTERADO
     'questoes',
     'pratica',
     'desempenho',
     'ratelimit',
     'gestao',
     'simulados',
-    'gamificacao',
+    'gamificacao.apps.GamificacaoConfig', # ALTERADO
     'storages', # Para integração com S3
 ]
 

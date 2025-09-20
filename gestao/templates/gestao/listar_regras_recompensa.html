@@ -1,16 +1,17 @@
 <!-- gestao/templates/gestao/listar_regras_recompensa.html -->
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Gerenciar Regras de Recompensa{% endblock %}
+{% block title %}Gerenciar Campanhas de Gamificação{% endblock %}
 {% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='regras' %}
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='campanhas' %}
 
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0">Regras de Recompensa</h2>
-        <a href="{% url 'gestao:criar_regra_recompensa' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Regra</a>
+        <h2 class="h3 mb-0">Campanhas de Gamificação</h2>
+        <!-- CORREÇÃO DA URL AQUI -->
+        <a href="{% url 'gestao:criar_campanha' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Campanha</a>
     </div>
 
     {% include 'gestao/includes/_messages.html' %}
@@ -21,10 +22,10 @@
                 <table class="table table-hover mb-0 align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th>Nome da Regra</th>
+                            <th>Nome da Campanha</th>
                             <th>Gatilho</th>
                             <th>Status</th>
-                            <th>Recompensas</th>
+                            <th>Recorrência</th>
                             <th style="width: 120px;">Ações</th>
                         </tr>
                     </thead>
@@ -40,31 +41,17 @@
                                     <span class="badge bg-secondary-subtle text-secondary-emphasis">Inativo</span>
                                 {% endif %}
                             </td>
+                            <td>{{ regra.get_tipo_recorrencia_display }}</td>
                             <td>
-                                <small class="d-block text-muted">
-                                    <i class="fas fa-user-circle"></i> {{ regra.avatares.count }} Avatar(es)
-                                </small>
-                                <small class="d-block text-muted">
-                                    <i class="fas fa-id-badge"></i> {{ regra.bordas.count }} Borda(s)
-                                </small>
-                                <small class="d-block text-muted">
-                                    <i class="fas fa-image"></i> {{ regra.banners.count }} Banner(s)
-                                </small>
-                                {% if regra.xp_extra > 0 %}
-                                <small class="d-block text-muted">
-                                    <i class="fas fa-brain text-info"></i> +{{ regra.xp_extra }} XP
-                                </small>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <a href="{% url 'gestao:editar_regra_recompensa' regra.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_regra_recompensa' regra.id %}" data-item-name="{{ regra.nome }}">
+                                <!-- CORREÇÃO DAS URLs AQUI -->
+                                <a href="{% url 'gestao:editar_campanha' regra.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_campanha' regra.id %}" data-item-name="{{ regra.nome }}">
                                     <i class="fas fa-trash"></i>
                                 </button>
                             </td>
                         </tr>
                         {% empty %}
-                        <tr><td colspan="5" class="text-center p-5"><h5 class="text-muted">Nenhuma regra cadastrada.</h5></td></tr>
+                        <tr><td colspan="5" class="text-center p-5"><h5 class="text-muted">Nenhuma campanha cadastrada.</h5></td></tr>
                         {% endfor %}
                     </tbody>
                 </table>

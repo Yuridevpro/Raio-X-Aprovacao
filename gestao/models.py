@@ -11,6 +11,8 @@ from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from datetime import datetime, timedelta
+
+
 # ... (todos os outros modelos: SolicitacaoExclusao, PromocaoSuperuser, etc. permanecem aqui sem alterações) ...
 class SolicitacaoExclusao(models.Model):
     class Status(models.TextChoices):

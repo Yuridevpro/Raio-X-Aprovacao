@@ -1,8 +1,26 @@
-# usuarios/views.py (ARQUIVO COMPLETO)
+# usuarios/views.py (ARQUIVO CORRIGIDO E FINALIZADO)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
+# =======================================================================
+# IMPORTAÇÕES REORDENADAS PARA RESOLVER O ERRO
+# =======================================================================
+# 1. Imports de Gamificação vêm PRIMEIRO, para que os modelos sejam conhecidos.
+from gamificacao.models import (
+    RecompensaPendente, TrilhaDeConquistas, ConquistaUsuario, ProfileStreak, 
+    Conquista, ProfileGamificacao, MetaDiariaUsuario, RankingSemanal, 
+    RankingMensal, Avatar, Borda, Banner, GamificationSettings,
+    AvatarUsuario, BordaUsuario, BannerUsuario
+)
+from gamificacao.services import (
+    calcular_xp_para_nivel, 
+    _verificar_desbloqueio_recompensas
+)
+# 2. Agora, importamos UserProfile, que DEPENDE dos modelos de gamificação.
 from .models import UserProfile, Ativacao, PasswordResetToken
+# =======================================================================
+# FIM DA CORREÇÃO
+# =======================================================================
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
@@ -10,25 +28,11 @@ from django.urls import reverse
 from django.template.loader import render_to_string
 from django.conf import settings
 from questoes.models import Questao
-from gestao.views import criar_log
+from gestao.utils import criar_log
 from gestao.models import LogAtividade
 from .utils import enviar_email_com_template
 from django.db import transaction
 from datetime import date
-
-# --- Imports de Gamificação Corrigidos ---
-from gamificacao.models import (
-    ProfileStreak, ConquistaUsuario, Conquista, ProfileGamificacao, 
-    MetaDiariaUsuario, RankingSemanal, RankingMensal, Avatar, Borda, 
-    Banner, GamificationSettings,
-    # >>> INÍCIO DA CORREÇÃO: ADIÇÃO DAS IMPORTAÇÕES FALTANTES <<<
-    AvatarUsuario, BordaUsuario, BannerUsuario
-    # >>> FIM DA CORREÇÃO <<<
-)
-from gamificacao.services import (
-    calcular_xp_para_nivel, 
-    _verificar_desbloqueio_recompensas
-)
 from questoes.utils import paginar_itens
 
 
@@ -370,7 +374,6 @@ def _grant_all_rewards_to_staff(user_profile, Model, M2M_Manager):
     
     todos_os_itens = Model.objects.all()
     for item in todos_os_itens:
-        # A chave do argumento deve ser o nome do campo no modelo M2M em minúsculo
         m2m_field_name = Model.__name__.lower()
         M2M_Manager.get_or_create(user_profile=user_profile, **{m2m_field_name: item})
 
@@ -476,7 +479,7 @@ def equipar_avatar(request, avatar_id):
 
     if user_profile.avatar_equipado == avatar_para_equipar:
         user_profile.avatar_equipado = None
-        user_profile.borda_equipada = None # Desequipa a borda junto com o avatar
+        user_profile.borda_equipada = None
         messages.success(request, f'Avatar "{avatar_para_equipar.nome}" desequipado.')
     else:
         user_profile.avatar_equipado = avatar_para_equipar
@@ -552,3 +555,29 @@ def desequipar_item(request, tipo_item):
 
     user_profile.save()
     return redirect(redirect_url)
+
+@login_required
+def caixa_de_recompensas(request):
+    """ Exibe a página com os prêmios pendentes do usuário para resgate. """
+    user_profile = request.user.userprofile
+    recompensas = RecompensaPendente.objects.filter(
+        user_profile=user_profile, 
+        resgatado_em__isnull=True
+    ).prefetch_related('recompensa')
+    context = {
+        'recompensas_pendentes': recompensas,
+    }
+    return render(request, 'usuarios/caixa_de_recompensas.html', context)
+
+
+@login_required
+def trilhas_de_conquistas(request):
+    """ Exibe as trilhas de conquistas e o progresso do usuário nelas. """
+    user_profile = request.user.userprofile
+    trilhas = TrilhaDeConquistas.objects.prefetch_related('conquistas__pre_requisitos').all()
+    conquistas_usuario_ids = set(ConquistaUsuario.objects.filter(user_profile=user_profile).values_list('conquista_id', flat=True))
+    context = {
+        'trilhas': trilhas,
+        'conquistas_usuario_ids': conquistas_usuario_ids,
+    }
+    return render(request, 'usuarios/trilhas_de_conquistas.html', context)

@@ -1,0 +1,162 @@
+<!-- gamificacao/templates/gamificacao/loja.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% load gamificacao_extras %} <!-- ADIÇÃO CRUCIAL AQUI -->
+{% block title %}Loja de Recompensas{% endblock %}
+
+{% block head %}
+<style>
+    .loja-header {
+        background: linear-gradient(135deg, var(--cor-primaria), #357ABD);
+        color: white;
+        border-radius: var(--raio-borda);
+    }
+    .saldo-display {
+        font-size: 2rem;
+        font-weight: 700;
+    }
+    .item-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .item-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .item-card.owned {
+        opacity: 0.6;
+    }
+    .item-image {
+        height: 180px;
+        object-fit: cover;
+        background-color: #f8f9fa;
+    }
+    .preco-tag {
+        font-weight: 600;
+        color: var(--cor-primaria);
+    }
+    .btn-comprar .fa-check {
+        display: none;
+    }
+    .btn-comprar.btn-success .fa-check {
+        display: inline-block;
+    }
+    .btn-comprar.btn-success .fa-coins {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="loja-header p-4 p-md-5 text-center mb-5 shadow">
+        <i class="fas fa-store fa-3x mb-3"></i>
+        <h1 class="display-5">Loja de Recompensas</h1>
+        <p class="lead">Use seus Fragmentos de Conhecimento (FC) para adquirir itens exclusivos!</p>
+        <div class="d-inline-flex align-items-center bg-white text-dark p-2 px-4 rounded-pill shadow-sm">
+            <span class="me-3">Seu Saldo:</span>
+            <span class="saldo-display" id="saldo-atual-display">
+                <i class="fas fa-coins text-warning me-2"></i>{{ saldo_atual }}
+            </span>
+        </div>
+    </div>
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for item in itens_loja %}
+        <div class="col">
+            <!-- A LÓGICA ABAIXO AGORA FUNCIONA CORRETAMENTE -->
+            <div class="card h-100 item-card {% if item.id in itens_possuidos_ids|get_item:item|class_name %}owned{% endif %}" id="item-card-{{ item.id }}-{{ item|class_name }}">
+                <img src="{{ item.imagem.url }}" class="card-img-top item-image" alt="{{ item.nome }}">
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.nome }}</h5>
+                    <p class="card-text small text-muted">{{ item.descricao }}</p>
+                </div>
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <span class="preco-tag">
+                        <i class="fas fa-coins text-warning me-1"></i>{{ item.preco_moedas }}
+                    </span>
+                    {% if item.id in itens_possuidos_ids|get_item:item|class_name %}
+                        <button class="btn btn-sm btn-success disabled">
+                            <i class="fas fa-check me-2"></i>Adquirido
+                        </button>
+                    {% else %}
+                        <button class="btn btn-sm btn-primary btn-comprar" 
+                                data-item-id="{{ item.id }}" 
+                                data-item-tipo="{{ item|class_name }}"
+                                data-item-preco="{{ item.preco_moedas }}">
+                            <i class="fas fa-coins me-2"></i>Comprar
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center py-5">
+                 <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
+                <h4 class="h5">Loja Vazia</h4>
+                <p class="text-muted">Nenhum item à venda no momento. Volte em breve!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'js/gamification-effects.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const saldoDisplay = document.getElementById('saldo-atual-display');
+    
+    document.querySelectorAll('.btn-comprar').forEach(button => {
+        button.addEventListener('click', function() {
+            const itemId = this.dataset.itemId;
+            const itemTipo = this.dataset.itemTipo;
+            const itemPreco = parseInt(this.dataset.itemPreco, 10);
+            const saldoAtual = parseInt(saldoDisplay.textContent.replace(/\D/g, ''), 10);
+
+            if (saldoAtual < itemPreco) {
+                showNotificationModal('Saldo Insuficiente', 'Você não tem Fragmentos de Conhecimento suficientes para comprar este item.', 'warning');
+                return;
+            }
+
+            showConfirmationModal(
+                'Confirmar Compra',
+                `Você tem certeza que deseja comprar este item por ${itemPreco} FC?`,
+                () => {
+                    fetch("{% url 'gamificacao:comprar_item' %}", {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                        body: JSON.stringify({ item_id: itemId, item_tipo: itemTipo })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.status === 'success') {
+                            // Atualiza o saldo na tela
+                            saldoDisplay.innerHTML = `<i class="fas fa-coins text-warning me-2"></i>${result.novo_saldo}`;
+                            
+                            // Atualiza o saldo na navbar
+                            updateNavbarCoinBalance(result.novo_saldo);
+                            
+                            // Atualiza o botão
+                            button.classList.remove('btn-primary');
+                            button.classList.add('btn-success', 'disabled');
+                            button.innerHTML = '<i class="fas fa-check me-2"></i>Adquirido';
+                            
+                            // Adiciona a classe 'owned' ao card
+                            const card = document.getElementById(`item-card-${itemId}-${itemTipo}`);
+                            if (card) card.classList.add('owned');
+
+                            showNotificationModal('Compra Realizada!', result.message, 'success');
+                        } else {
+                            showNotificationModal('Erro na Compra', result.message, 'error');
+                        }
+                    })
+                    .catch(err => showNotificationModal('Erro de Rede', 'Não foi possível completar a compra. Tente novamente.', 'error'));
+                }
+            );
+        });
+    });
+});
+</script>
+{% endblock %}

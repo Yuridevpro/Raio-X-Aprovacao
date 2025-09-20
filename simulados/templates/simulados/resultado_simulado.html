@@ -1,3 +1,4 @@
+<!-- templates/simulados/resultado_simulado.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load pratica_extras %}
@@ -101,22 +102,23 @@
 
     <!-- DASHBOARD DE ESTATÍSTICAS -->
     <div class="row g-4 mb-5">
-        <div class="col-lg-3 col-md-6"><div class="stat-card border-success"><div class="icon text-success"><i class="fas fa-check-circle"></i></div><div class="stat-value">{{ total_acertos }}</div><div class="stat-label text-muted">Acertos</div></div></div>
-        <div class="col-lg-3 col-md-6"><div class="stat-card border-danger"><div class="icon text-danger"><i class="fas fa-times-circle"></i></div><div class="stat-value">{{ total_erros }}</div><div class="stat-label text-muted">Erros</div></div></div>
-        <div class="col-lg-3 col-md-6"><div class="stat-card border-secondary"><div class="icon text-secondary"><i class="fas fa-minus-circle"></i></div><div class="stat-value">{{ total_em_branco }}</div><div class="stat-label text-muted">Em Branco</div></div></div>
-        <div class="col-lg-3 col-md-6"><div class="stat-card border-primary"><div class="icon text-primary"><i class="fas fa-percentage"></i></div><div class="stat-value">{{ percentual_acerto }}%</div><div class="stat-label text-muted">de Aproveitamento</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-success"><div class="icon text-success"><i class="fas fa-check-circle"></i></div><div class="stat-value" data-animate="int">{{ total_acertos }}</div><div class="stat-label text-muted">Acertos</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-danger"><div class="icon text-danger"><i class="fas fa-times-circle"></i></div><div class="stat-value" data-animate="int">{{ total_erros }}</div><div class="stat-label text-muted">Erros</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-secondary"><div class="icon text-secondary"><i class="fas fa-minus-circle"></i></div><div class="stat-value" data-animate="int">{{ total_em_branco }}</div><div class="stat-label text-muted">Em Branco</div></div></div>
+        <div class="col-lg-3 col-md-6"><div class="stat-card border-primary"><div class="icon text-primary"><i class="fas fa-percentage"></i></div><div class="stat-value" data-animate="float">{{ percentual_acerto|floatformat:1 }}%</div><div class="stat-label text-muted">de Aproveitamento</div></div></div>
     </div>
     
     <div class="row g-4 mb-5">
-        <!-- ======================================================================= -->
-        <!-- LÓGICA CORRIGIDA PARA EXIBIR O CARD DE XP GANHO -->
-        <!-- ======================================================================= -->
-        {% if eventos_gamificacao.xp_ganho > 0 %}
+        {% if eventos_gamificacao.xp_ganho > 0 or eventos_gamificacao.moedas_ganhas > 0 %}
             <div class="col-md-4">
                 <div class="stat-card" style="border-color: #6f42c1;">
                     <div class="icon" style="color: #6f42c1;"><i class="fas fa-brain"></i></div>
-                    <div class="stat-value small">+{{ eventos_gamificacao.xp_ganho }}</div>
-                    <div class="stat-label text-muted">XP Ganho</div>
+                    <div class="stat-value small">+{{ eventos_gamificacao.xp_ganho }} XP</div>
+                    <div class="stat-label text-muted">
+                        {% if eventos_gamificacao.moedas_ganhas > 0 %}
+                            e +{{ eventos_gamificacao.moedas_ganhas }} Moedas
+                        {% endif %}
+                    </div>
                 </div>
             </div>
             <div class="col-md-4"><div class="stat-card"><div class="icon"><i class="fas fa-stopwatch"></i></div><div class="stat-value small">{{ tempo_gasto_formatado }}</div><div class="stat-label text-muted">Tempo Gasto</div></div></div>
@@ -215,64 +217,91 @@
 {% endblock %}
 
 {% block scripts %}
-{# Passa o dicionário completo de eventos para o JavaScript #}
 {{ eventos_gamificacao|json_script:"eventos-gamificacao-data" }}
+<script src="{% static 'js/gamification-effects.js' %}"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    /**
+     * ===================================================================
+     * FUNÇÃO DE ANIMAÇÃO DE CONTAGEM CORRIGIDA
+     * ===================================================================
+     */
+    function animateCountUp(element) {
+        const isFloat = element.dataset.animate === 'float';
+        const rawValue = element.textContent.replace('%', '').replace(',', '.').trim();
+        const finalValue = isFloat ? parseFloat(rawValue) : parseInt(rawValue, 10);
+        
+        if (isNaN(finalValue)) return;
+
+        let startValue = 0;
+        const duration = 1500; // 1.5 segundos
+        let startTime = null;
+
+        function animationStep(timestamp) {
+            if (!startTime) startTime = timestamp;
+            const progress = Math.min((timestamp - startTime) / duration, 1);
+            let currentValue = progress * (finalValue - startValue) + startValue;
+            
+            if (isFloat) {
+                element.textContent = currentValue.toFixed(1).replace('.', ',') + '%';
+            } else {
+                element.textContent = Math.floor(currentValue);
+            }
+
+            if (progress < 1) {
+                requestAnimationFrame(animationStep);
+            } else {
+                // Garante que o valor final seja exato
+                if (isFloat) {
+                    element.textContent = finalValue.toFixed(1).replace('.', ',') + '%';
+                } else {
+                    element.textContent = finalValue;
+                }
+            }
+        }
+        requestAnimationFrame(animationStep);
+    }
+    
+    // Aplica a animação apenas aos elementos marcados com data-animate
+    document.querySelectorAll('.stat-value[data-animate]').forEach(animateCountUp);
+
+    // ===================================================================
+    // LÓGICA DE NOTIFICAÇÕES (Inalterada)
+    // ===================================================================
     const eventosDataElement = document.getElementById('eventos-gamificacao-data');
     const eventos = eventosDataElement ? JSON.parse(eventosDataElement.textContent) : null;
-    
-    // Pega as recompensas de dentro do objeto principal de eventos
     const novasRecompensas = (eventos && eventos.novas_recompensas) ? eventos.novas_recompensas : [];
     
-    // Delay inicial para o usuário absorver a página de resultados primeiro
-    let delay = 750;
+    let delay = 1500; // Delay para esperar a animação de contagem
 
     if (eventos) {
-        // 1. Exibe o toast de XP base ganho no simulado
-        if (eventos.xp_ganho > 0) {
-            setTimeout(() => {
-                showGamificationToast(
-                    'Simulado Concluído!',
-                    `Você ganhou <strong>${eventos.xp_ganho} XP</strong> pelo seu desempenho!`,
-                    'fas fa-flag-checkered',
-                    '#28a745'
-                );
-            }, delay);
-            delay += 2500; // Aumenta o delay para a próxima notificação
+        if (eventos.moedas_ganhas > 0) {
+            const saldoAtual = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
+            updateNavbarCoinBalance(saldoAtual + eventos.moedas_ganhas);
         }
-
-        // 2. Exibe toasts para XP bônus vindo de regras
+        if (eventos.xp_ganho > 0) {
+            setTimeout(() => { showGamificationToast('Simulado Concluído!', `Você ganhou <strong>${eventos.xp_ganho} XP</strong> pelo seu desempenho!`, 'fas fa-flag-checkered', '#28a745'); }, delay);
+            delay += 2500;
+        }
+        if (eventos.moedas_ganhas > 0) {
+            setTimeout(() => { showCoinToast(eventos.moedas_ganhas, 'pela conclusão do simulado'); }, delay);
+            delay += 2500;
+        }
         if (eventos.regras_info && eventos.regras_info.length > 0) {
             eventos.regras_info.forEach(regra => {
                 if (regra.xp_extra > 0) {
-                    setTimeout(() => {
-                        showGamificationToast(
-                            'Bônus!',
-                            `Você ganhou <strong>+${regra.xp_extra} XP</strong> por <strong>${regra.nome}</strong>!`,
-                            'fas fa-medal',
-                            '#ffc107'
-                        );
-                    }, delay);
-                    delay += 2500; // Adiciona delay para cada toast de bônus
+                    setTimeout(() => { showGamificationToast('Bônus!', `Você ganhou <strong>+${regra.xp_extra} XP</strong> por <strong>${regra.nome}</strong>!`, 'fas fa-medal', '#ffc107'); }, delay);
+                    delay += 2500;
                 }
             });
         }
-        
-        // 3. Aciona o modal de Level Up, se houver
         if (eventos.level_up_info) {
-            setTimeout(() => {
-                triggerLevelUpNotification(eventos.level_up_info);
-            }, delay);
-            delay += 3000; // Aumenta o delay para dar tempo do modal ser fechado
+            setTimeout(() => { triggerLevelUpNotification(eventos.level_up_info); }, delay);
+            delay += 3000;
         }
-
-        // 4. Aciona o modal de Novas Recompensas
         if (novasRecompensas && novasRecompensas.length > 0) {
-            setTimeout(() => {
-                triggerNewRewardsNotification(novasRecompensas);
-            }, delay);
+            setTimeout(() => { triggerNewPendingRewardsNotification(novasRecompensas); }, delay);
         }
     }
 });

@@ -21,7 +21,8 @@
 
 {% block content %}
 <div class="container my-5">
-    <!-- Layout simplificado para todos os tipos de recompensa -->
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab=tipo %}
+    
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
@@ -31,9 +32,77 @@
                  </a>
             </div>
             <div class="card shadow-sm">
-                <div class="card-body p-4">
+                <div class="card-body p-4 p-md-5">
                     <form method="POST" enctype="multipart/form-data" id="recompensa-form" data-tipo-item="{{ tipo }}">
-                        {% include "gestao/includes/_recompensa_form_fields.html" %}
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <h5 class="h6 mb-3 border-bottom pb-2">Dados da Recompensa</h5>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                                {{ form.nome }}
+                                {% if form.nome.errors %}<div class="invalid-feedback d-block">{{ form.nome.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.raridade.id_for_label }}" class="form-label">{{ form.raridade.label }}</label>
+                                {{ form.raridade }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                            {{ form.descricao }}
+                        </div>
+                        <div class="mb-3">
+                            <label for="{{ form.imagem.id_for_label }}" class="form-label">Imagem</label>
+                            {{ form.imagem }}
+                            {% if form.instance.imagem %}
+                                <small class="form-text text-muted d-block mt-1">Imagem atual: <a href="{{ form.instance.imagem.url }}" target="_blank">{{ form.instance.imagem.name|truncatechars:30 }}</a></small>
+                            {% endif %}
+                        </div>
+
+                        {% if tipo == 'avatares' or tipo == 'bordas' %}
+                        <div class="preview-container mb-4">
+                            {% if tipo == 'avatares' %}
+                                <div id="avatar-preview-wrapper"><img id="avatar-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
+                            {% elif tipo == 'bordas' %}
+                                <div id="border-preview-wrapper"><div class="border-preview-placeholder"><i class="fas fa-user"></i></div><img id="border-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
+                            {% endif %}
+                            <p id="preview-text" class="text-muted" style="{% if form.instance.imagem %}display:none;{% endif %}">A pré-visualização aparecerá aqui.</p>
+                        </div>
+                        {% endif %}
+
+                        <hr class="my-4">
+                        <h5 class="h6 mb-3 border-bottom pb-2">Condição de Desbloqueio</h5>
+                        <div class="mb-3">
+                            <label for="{{ form.tipo_desbloqueio.id_for_label }}" class="form-label">{{ form.tipo_desbloqueio.label }}</label>
+                            {{ form.tipo_desbloqueio }}
+                        </div>
+                        
+                        <!-- Campos Condicionais -->
+                        <div id="requisito-nivel" class="mb-3" style="display: none;">
+                            <label for="{{ form.nivel_necessario.id_for_label }}" class="form-label">{{ form.nivel_necessario.label }}</label>
+                            {{ form.nivel_necessario }}
+                            {% if form.nivel_necessario.errors %}<div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div id="requisito-conquista" class="mb-3" style="display: none;">
+                            <label for="{{ form.conquista_necessaria.id_for_label }}" class="form-label">{{ form.conquista_necessaria.label }}</label>
+                            {{ form.conquista_necessaria }}
+                            {% if form.conquista_necessaria.errors %}<div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>{% endif %}
+                        </div>
+                        <div id="requisito-preco" class="mb-3" style="display: none;">
+                            <label for="{{ form.preco_moedas.id_for_label }}" class="form-label">{{ form.preco_moedas.label }}</label>
+                            {{ form.preco_moedas }}
+                            {% if form.preco_moedas.errors %}<div class="invalid-feedback d-block">{{ form.preco_moedas.errors.0 }}</div>{% endif %}
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-center gap-2">
+                            <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-secondary">Cancelar</a>
+                            <button type="submit" class="btn btn-primary px-5">Salvar</button>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -43,6 +112,5 @@
 {% endblock %}
 
 {% block scripts %}
-<!-- O script agora é mais simples e será renomeado -->
-<script src="{% static 'gestao/js/recompensa-form-preview.js' %}"></script>
+<script src="{% static 'gestao/js/recompensa-form.js' %}"></script>
 {% endblock %}

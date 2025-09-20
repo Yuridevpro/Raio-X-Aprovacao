@@ -25,6 +25,12 @@ from .forms import SimuladoWizardForm, SimuladoForm
 from .forms import SimuladoMetaForm # Adicionar importação
 from gamificacao.models import Conquista, Avatar, Borda
 
+from .forms import ConquistaForm, CondicaoVolumeQuestoesForm, CondicaoStreakForm
+from gamificacao.models import CondicaoVolumeQuestoes, CondicaoStreak
+
+from .forms import TrilhaDeConquistasForm
+from gamificacao.models import TrilhaDeConquistas
+
 from django.contrib.auth.models import User
 from .models import LogAtividade, ExclusaoLogPermanente
 from .utils import criar_log
@@ -32,12 +38,22 @@ from .utils import criar_log
 from simulados.models import Simulado, StatusSimulado
 from django.views.decorators.http import require_POST # Adicione este import
 
-from .forms import RegraRecompensaForm
-from gamificacao.models import RegraRecompensa
+from .forms import CampanhaForm
+from gamificacao.models import (
+    Conquista, GamificationSettings, Campanha, Avatar, Borda, Banner,
+    CondicaoVolumeQuestoes, CondicaoStreak, TrilhaDeConquistas, 
+) 
 
 from gamificacao.models import Conquista, Avatar, Borda, Banner
 from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm
 from django.template.loader import render_to_string # Adicionar importação
+
+from django.db.models import Avg, Sum
+from gamificacao.models import ProfileGamificacao, RecompensaPendente
+from .forms import ConcessaoManualForm
+
+from .forms import TipoCondicaoForm
+from gamificacao.models import TipoCondicao
 
 # Importações de modelos de outros apps
 from pratica.models import Notificacao
@@ -66,11 +82,20 @@ from .forms import SimuladoForm # A view agora usa o SimuladoForm
 from gamificacao.models import Conquista
 from .forms import ConquistaForm
 
-from gamificacao.models import Conquista, Avatar, Borda, Banner, GamificationSettings
+from gamificacao.models  import (
+    Conquista, ConquistaUsuario, ProfileGamificacao, MetaDiariaUsuario,
+    RankingSemanal, RankingMensal, TarefaAgendadaLog,
+    Avatar, Borda, Banner,
+    AvatarUsuario, BordaUsuario, BannerUsuario,
+    GamificationSettings
+)
+
+
 from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm, GamificationSettingsForm
 
 from django.utils import timezone
 from django.db.models import OuterRef, Subquery, Max
+
 
 
 # =======================================================================
@@ -1822,62 +1847,78 @@ def listar_simulados_gestao(request):
 @login_required
 def criar_simulado(request):
     """
-    ETAPA 1 DO ASSISTENTE: Define o nome, dificuldade e filtros iniciais do simulado.
+    ETAPA ÚNICA: Define o nome, dificuldade, filtros e JÁ ADICIONA as questões.
     """
     if request.method == 'POST':
         form = SimuladoWizardForm(request.POST)
         if form.is_valid():
-            # =======================================================================
-            # INÍCIO DA CORREÇÃO: Adicionar 'dificuldade' ao criar o objeto
-            # =======================================================================
-            simulado = Simulado.objects.create(
-                nome=form.cleaned_data['nome'],
-                dificuldade=form.cleaned_data['dificuldade'],
-                criado_por=request.user,
-                is_oficial=True
-            )
-            # =======================================================================
-            # FIM DA CORREÇÃO
-            # =======================================================================
+            # 1. Coleta os dados básicos e os filtros do formulário
+            nome = form.cleaned_data['nome']
+            dificuldade = form.cleaned_data['dificuldade']
             
-            filtros = {
-                'disciplinas': [int(d) for d in request.POST.getlist('disciplina')],
-                'assuntos': [int(a) for a in request.POST.getlist('assunto')],
-                'bancas': [int(b) for b in request.POST.getlist('banca')],
-                'instituicoes': [int(i) for i in request.POST.getlist('instituicao')],
+            filtros_post = {
+                'disciplinas': request.POST.getlist('disciplina'),
+                'assuntos': request.POST.getlist('assunto'),
+                'bancas': request.POST.getlist('banca'),
+                'instituicoes': request.POST.getlist('instituicao'),
                 'anos': request.POST.getlist('ano'),
             }
-            simulado.filtros_iniciais = filtros
-            simulado.save()
 
-            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_CRIADO, alvo=simulado, detalhes={'nome_simulado': simulado.nome, 'filtros_definidos': True})
-            messages.info(request, f'Simulado "{simulado.nome}" criado. Agora, selecione as questões que farão parte dele.')
+            # 2. Constrói a queryset de questões com base nos filtros
+            questoes_qs = Questao.objects.all()
+            if filtros_post['disciplinas']:
+                questoes_qs = questoes_qs.filter(disciplina_id__in=filtros_post['disciplinas'])
+            if filtros_post['assuntos']:
+                questoes_qs = questoes_qs.filter(assunto_id__in=filtros_post['assuntos'])
+            if filtros_post['bancas']:
+                questoes_qs = questoes_qs.filter(banca_id__in=filtros_post['bancas'])
+            if filtros_post['instituicoes']:
+                questoes_qs = questoes_qs.filter(instituicao_id__in=filtros_post['instituicoes'])
+            if filtros_post['anos']:
+                questoes_qs = questoes_qs.filter(ano__in=filtros_post['anos'])
+
+            questoes_selecionadas_ids = list(questoes_qs.values_list('id', flat=True))
             
+            # 3. Validação: Verifica se foram encontradas questões
+            if not questoes_selecionadas_ids:
+                messages.error(request, "Nenhuma questão foi encontrada com os filtros selecionados. Por favor, ajuste os filtros e tente novamente.")
+                # Retorna para o formulário mantendo os dados preenchidos
+                return redirect(request.path_info + '?' + request.POST.urlencode())
+
+            # 4. Cria o objeto Simulado
+            simulado = Simulado.objects.create(
+                nome=nome,
+                dificuldade=dificuldade,
+                criado_por=request.user,
+                is_oficial=True,
+                filtros_iniciais=filtros_post # Salva os filtros para referência
+            )
+            
+            # 5. Adiciona as questões encontradas ao simulado
+            simulado.questoes.set(questoes_selecionadas_ids)
+
+            criar_log(ator=request.user, acao=LogAtividade.Acao.SIMULADO_CRIADO, alvo=simulado, detalhes={'nome_simulado': simulado.nome, 'questoes_adicionadas': len(questoes_selecionadas_ids)})
+            messages.success(request, f'O simulado "{simulado.nome}" foi criado com {len(questoes_selecionadas_ids)} questões.')
+            
+            # Redireciona para a página de edição, caso o admin queira refinar a seleção
             return redirect('gestao:editar_simulado', simulado_id=simulado.id)
     else:
-        form = SimuladoWizardForm()
+        form = SimuladoWizardForm(request.GET) # Usa GET para preencher o form se houver erro
 
     context = {
         'form': form, 
-        'titulo': 'Criar Novo Simulado (Etapa 1 de 2)',
+        'titulo': 'Criar Novo Simulado',
         'form_action_url': reverse('gestao:criar_simulado'),
-        'prefix': '',
         'disciplinas': Disciplina.objects.all().order_by('nome'),
         'bancas': Banca.objects.all().order_by('nome'),
         'instituicoes': Instituicao.objects.all().order_by('nome'),
         'anos': Questao.objects.exclude(ano__isnull=True).values_list('ano', flat=True).distinct().order_by('-ano'),
         'assuntos_url': reverse('questoes:get_assuntos_por_disciplina'),
-        'selected_disciplinas': [],
-        'selected_assuntos': [],
-        'selected_bancas': [],
-        'selected_instituicoes': [],
-        'selected_anos': [],
-        'selected_assuntos_json': "[]",
-        'palavra_chave_buscada': "",
-        'exibir_filtro_palavra': False,  
-        'form_classes': 'hide-palavra'
+        'selected_disciplinas': [int(i) for i in request.GET.getlist('disciplina') if i.isdigit()],
+        'selected_assuntos_json': json.dumps([int(i) for i in request.GET.getlist('assunto') if i.isdigit()]),
     }
     return render(request, 'gestao/form_criar_simulado_etapa1.html', context)
+
 
 @user_passes_test(is_staff_member)
 @login_required
@@ -2096,72 +2137,80 @@ def api_contar_questoes_filtro(request):
 @login_required
 def listar_conquistas(request):
     """Lista todas as conquistas cadastradas no sistema."""
-    conquistas_list = Conquista.objects.all().order_by('nome')
-    paginated_object, page_numbers, per_page = paginar_itens(request, conquistas_list, 15)
-    
-    context = {
-        'conquistas': paginated_object,
-        'paginated_object': paginated_object,
-        'page_numbers': page_numbers,
-        'per_page': per_page,
-    }
+    conquistas_list = Conquista.objects.select_related('trilha').all()
+    context = {'conquistas': conquistas_list, 'active_tab': 'conquistas'}
     return render(request, 'gestao/listar_conquistas.html', context)
+
+
+# gestao/views.py (função criar_conquista corrigida e finalizada)
 
 @user_passes_test(is_staff_member)
 @login_required
+@transaction.atomic
 def criar_conquista(request):
-    """Cria uma nova conquista."""
+    """Cria uma nova conquista e redireciona para a edição completa."""
     if request.method == 'POST':
-        form = ConquistaForm(request.POST)
-        if form.is_valid():
-            conquista = form.save()
-            
-            # =======================================================================
-            # CORREÇÃO: Passando o nome do objeto nos detalhes do log.
-            # =======================================================================
-            criar_log(
-                ator=request.user, 
-                acao=LogAtividade.Acao.CONQUISTA_CRIADA, 
-                alvo=conquista,
-                detalhes={'nome': conquista.nome} # <-- LINHA CORRIGIDA/ADICIONADA
-            )
-            # =======================================================================
-
-            messages.success(request, f'A conquista "{conquista.nome}" foi criada com sucesso.')
-            return redirect('gestao:listar_conquistas')
+        form_conquista = ConquistaForm(request.POST)
+        if form_conquista.is_valid():
+            conquista = form_conquista.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_CRIADA, alvo=conquista, detalhes={'nome': conquista.nome})
+            messages.success(request, f'A conquista "{conquista.nome}" foi criada. Agora, configure suas condições e recompensas.')
+            return redirect('gestao:editar_conquista', conquista_id=conquista.id)
     else:
-        form = ConquistaForm()
-        
-    context = {'form': form, 'titulo': 'Criar Nova Conquista'}
+        form_conquista = ConquistaForm()
+
+    context = {
+        'form_conquista': form_conquista,
+        'todos_tipos_condicao': TipoCondicao.objects.all(),
+        'condicoes_atuais': {},
+        'titulo': 'Criar Nova Conquista',
+        'active_tab': 'conquistas'
+    }
     return render(request, 'gestao/form_conquista.html', context)
 
 @user_passes_test(is_staff_member)
 @login_required
+@transaction.atomic
 def editar_conquista(request, conquista_id):
-    """Edita uma conquista existente."""
+    """Edita uma conquista existente, suas recompensas e condições."""
     conquista = get_object_or_404(Conquista, id=conquista_id)
+
     if request.method == 'POST':
-        form = ConquistaForm(request.POST, instance=conquista)
-        if form.is_valid():
-            form.save()
+        form_conquista = ConquistaForm(request.POST, instance=conquista)
+        if form_conquista.is_valid():
+            conquista_salva = form_conquista.save(commit=False)
+            recompensas = {
+                'xp': form_conquista.cleaned_data.get('recompensa_xp') or 0,
+                'moedas': form_conquista.cleaned_data.get('recompensa_moedas') or 0,
+                'avatares': list(form_conquista.cleaned_data.get('recompensa_avatares').values_list('id', flat=True)),
+                'bordas': list(form_conquista.cleaned_data.get('recompensa_bordas').values_list('id', flat=True)),
+                'banners': list(form_conquista.cleaned_data.get('recompensa_banners').values_list('id', flat=True)),
+            }
+            conquista_salva.recompensas = {k: v for k, v in recompensas.items() if v}
+            conquista_salva.save()
+            form_conquista.save_m2m()
 
-            # =======================================================================
-            # CORREÇÃO: Passando o nome do objeto nos detalhes do log.
-            # =======================================================================
-            criar_log(
-                ator=request.user, 
-                acao=LogAtividade.Acao.CONQUISTA_EDITADA, 
-                alvo=conquista,
-                detalhes={'nome': conquista.nome} # <-- LINHA CORRIGIDA/ADICIONADA
-            )
-            # =======================================================================
-
-            messages.success(request, f'A conquista "{conquista.nome}" foi atualizada com sucesso.')
+            conquista_salva.condicoes.all().delete()
+            for key, value in request.POST.items():
+                if key.startswith('condicao-'):
+                    parts = key.split('-'); tipo_id, param_name = int(parts[1]), parts[2]
+                    condicao_obj, _ = Condicao.objects.get_or_create(conquista=conquista_salva, tipo_id=tipo_id)
+                    if value:
+                        condicao_obj.parametros_valores[param_name] = int(value) if value.isdigit() else value
+                        condicao_obj.save()
+            
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_EDITADA, alvo=conquista_salva, detalhes={'nome': conquista_salva.nome})
+            messages.success(request, f'A conquista "{conquista_salva.nome}" foi atualizada com sucesso.')
             return redirect('gestao:listar_conquistas')
     else:
-        form = ConquistaForm(instance=conquista)
+        form_conquista = ConquistaForm(instance=conquista)
 
-    context = {'form': form, 'titulo': f'Editando: {conquista.nome}', 'conquista': conquista}
+    context = {
+        'form_conquista': form_conquista,
+        'todos_tipos_condicao': TipoCondicao.objects.all(),
+        'condicoes_atuais': {c.tipo_id: c.parametros_valores for c in conquista.condicoes.all()},
+        'titulo': f'Editando Conquista: {conquista.nome}', 'conquista': conquista, 'active_tab': 'conquistas'
+    }
     return render(request, 'gestao/form_conquista.html', context)
 
 @user_passes_test(is_staff_member)
@@ -2500,49 +2549,280 @@ def aprovar_exclusao_logs(request, solicitacao_id):
 
 @user_passes_test(is_staff_member)
 @login_required
-def listar_regras_recompensa(request):
-    regras = RegraRecompensa.objects.all().order_by('nome')
+def listar_campanhas(request): # <- NOME CORRIGIDO
+    """Lista todas as Campanhas de Gamificação."""
+    regras = Campanha.objects.all().order_by('nome') # <- MODELO CORRIGIDO
     context = {
         'regras': regras,
-        'active_tab': 'regras' # Para o submenu
+        'active_tab': 'campanhas', # <- NOME DA ABA CORRIGIDO
+        'titulo': 'Campanhas de Gamificação'
     }
-    return render(request, 'gestao/listar_regras_recompensa.html', context)
+    return render(request, 'gestao/listar_regras_recompensa.html', context) # O template pode manter o nome antigo por enquanto
 
 @user_passes_test(is_staff_member)
 @login_required
-def criar_ou_editar_regra_recompensa(request, regra_id=None):
-    if regra_id:
-        regra = get_object_or_404(RegraRecompensa, id=regra_id)
-        titulo = f"Editando Regra: {regra.nome}"
+def criar_ou_editar_campanha(request, campanha_id=None):
+    if campanha_id:
+        instancia = get_object_or_404(Campanha, id=campanha_id)
+        titulo = f"Editando Campanha: {instancia.nome}"
     else:
-        regra = None
-        titulo = "Criar Nova Regra de Recompensa"
+        instancia = None
+        titulo = "Criar Nova Campanha de Recompensa"
         
     if request.method == 'POST':
-        form = RegraRecompensaForm(request.POST, instance=regra)
+        form = CampanhaForm(request.POST, instance=instancia)
         if form.is_valid():
-            nova_regra = form.save()
-            acao_log = LogAtividade.Acao.REGRA_RECOMPENSA_EDITADA if regra else LogAtividade.Acao.REGRA_RECOMPENSA_CRIADA
-            criar_log(ator=request.user, acao=acao_log, alvo=nova_regra, detalhes={'nome': nova_regra.nome})
-            messages.success(request, f"Regra '{nova_regra.nome}' salva com sucesso.")
-            return redirect('gestao:listar_regras_recompensa')
+            nova_campanha = form.save(commit=False)
+            
+            grupos = []
+            grupo_indices = sorted(list(set([key.split('-')[1] for key in request.POST if key.startswith('grupo-')])))
+
+            for index in grupo_indices:
+                grupo = {
+                    'condicao_posicao_exata': int(request.POST.get(f'grupo-{index}-posicao_exata') or 0),
+                    'condicao_posicao_ate': int(request.POST.get(f'grupo-{index}-posicao_ate') or 0),
+                    'condicao_min_acertos_percent': int(request.POST.get(f'grupo-{index}-min_acertos_percent') or 0),
+                    'xp_extra': int(request.POST.get(f'grupo-{index}-xp_extra') or 0),
+                    'moedas_extras': int(request.POST.get(f'grupo-{index}-moedas_extras') or 0),
+                    'avatares': [int(v) for v in request.POST.getlist(f'grupo-{index}-avatares')],
+                    'bordas': [int(v) for v in request.POST.getlist(f'grupo-{index}-bordas')],
+                    'banners': [int(v) for v in request.POST.getlist(f'grupo-{index}-banners')],
+                }
+                grupos.append({k: v for k, v in grupo.items() if v})
+
+            nova_campanha.grupos_de_condicoes = grupos
+            nova_campanha.save()
+            
+            acao_log = LogAtividade.Acao.REGRA_RECOMPENSA_EDITADA if instancia else LogAtividade.Acao.REGRA_RECOMPENSA_CRIADA
+            criar_log(ator=request.user, acao=acao_log, alvo=nova_campanha, detalhes={'nome': nova_campanha.nome})
+            messages.success(request, f"Campanha '{nova_campanha.nome}' salva com sucesso.")
+            return redirect('gestao:listar_campanhas') # <- REDIRECIONAMENTO CORRIGIDO
     else:
-        form = RegraRecompensaForm(instance=regra)
+        form = CampanhaForm(instance=instancia)
         
     context = {
         'form': form,
         'titulo': titulo,
-        'active_tab': 'regras'
+        'campanha': instancia,
+        'active_tab': 'campanhas',
+        'avatares_json': json.dumps(list(Avatar.objects.values('id', 'nome'))),
+        'bordas_json': json.dumps(list(Borda.objects.values('id', 'nome'))),
+        'banners_json': json.dumps(list(Banner.objects.values('id', 'nome'))),
     }
     return render(request, 'gestao/form_regra_recompensa.html', context)
+
 
 @user_passes_test(is_staff_member)
 @require_POST
 @login_required
-def deletar_regra_recompensa(request, regra_id):
-    regra = get_object_or_404(RegraRecompensa, id=regra_id)
-    nome_regra = regra.nome
-    criar_log(ator=request.user, acao=LogAtividade.Acao.REGRA_RECOMPENSA_DELETADA, detalhes={'nome': nome_regra})
-    regra.delete()
-    messages.success(request, f"A regra '{nome_regra}' foi deletada.")
-    return redirect('gestao:listar_regras_recompensa')
+def deletar_campanha(request, campanha_id): # <- NOME E PARÂMETRO CORRIGIDOS
+    """Deleta uma Campanha de Gamificação."""
+    campanha = get_object_or_404(Campanha, id=campanha_id) # <- MODELO CORRIGIDO
+    nome_campanha = campanha.nome
+    criar_log(ator=request.user, acao=LogAtividade.Acao.REGRA_RECOMPENSA_DELETADA, detalhes={'nome': nome_campanha})
+    campanha.delete()
+    messages.success(request, f"A campanha '{nome_campanha}' foi deletada.")
+    return redirect('gestao:listar_campanhas') # <- REDIRECIONAMENTO CORRIGIDO
+
+@user_passes_test(is_staff_member)
+@login_required
+def dashboard_gamificacao(request):
+    """ Exibe o painel com as principais métricas de gamificação. """
+    
+    # Métricas Gerais
+    total_usuarios_gamificados = ProfileGamificacao.objects.filter(xp__gt=0).count()
+    media_niveis = ProfileGamificacao.objects.aggregate(media=Avg('level'))['media'] or 0
+    total_moedas_circulacao = ProfileGamificacao.objects.aggregate(total=Sum('moedas'))['total'] or 0
+
+    # Recompensas Mais Populares (já desbloqueadas)
+    avatares_populares = AvatarUsuario.objects.values('avatar__nome').annotate(total=Count('id')).order_by('-total')[:5]
+    bordas_populares = BordaUsuario.objects.values('borda__nome').annotate(total=Count('id')).order_by('-total')[:5]
+
+    # Últimos Prêmios Pendentes (para o admin ver o que está sendo ganho)
+    ultimos_premios_pendentes = RecompensaPendente.objects.filter(resgatado_em__isnull=True).select_related(
+        'user_profile__user'
+    ).prefetch_related('recompensa')[:10]
+
+    # Top 5 Usuários por XP
+    top_usuarios_xp = ProfileGamificacao.objects.select_related('user_profile__user').order_by('-xp')[:5]
+
+    context = {
+        'active_tab': 'dashboard_gamificacao',
+        'total_usuarios_gamificados': total_usuarios_gamificados,
+        'media_niveis': media_niveis,
+        'total_moedas_circulacao': total_moedas_circulacao,
+        'avatares_populares': avatares_populares,
+        'bordas_populares': bordas_populares,
+        'ultimos_premios_pendentes': ultimos_premios_pendentes,
+        'top_usuarios_xp': top_usuarios_xp,
+    }
+    return render(request, 'gestao/dashboard_gamificacao.html', context)
+
+
+@user_passes_test(is_staff_member)
+@login_required
+@transaction.atomic
+def conceder_recompensa_manual(request):
+    """ View para o admin conceder moedas ou recompensas a um usuário. """
+    if request.method == 'POST':
+        form = ConcessaoManualForm(request.POST)
+        if form.is_valid():
+            usuario = form.cleaned_data['usuario']
+            tipo = form.cleaned_data['tipo_recompensa']
+            justificativa = form.cleaned_data['justificativa']
+            user_profile = usuario.userprofile
+            gamificacao_data = user_profile.gamificacao_data
+            
+            detalhes_log = {
+                'usuario_alvo': usuario.username,
+                'justificativa': justificativa,
+                'tipo': tipo,
+            }
+
+            if tipo == 'MOEDAS':
+                quantidade = form.cleaned_data['quantidade_moedas']
+                gamificacao_data.moedas += quantidade
+                gamificacao_data.save(update_fields=['moedas'])
+                detalhes_log['quantidade'] = quantidade
+                messages.success(request, f"{quantidade} moedas concedidas a {usuario.username} com sucesso.")
+            
+            else: # Tipos de recompensa cosmética
+                recompensa = form.cleaned_data.get(tipo.lower())
+                
+                # Envia para a caixa de recompensas do usuário
+                _, created = RecompensaPendente.objects.get_or_create(
+                    user_profile=user_profile,
+                    content_type=ContentType.objects.get_for_model(recompensa),
+                    object_id=recompensa.id,
+                    defaults={'origem_desbloqueio': f"Concedido por administrador: {justificativa}"}
+                )
+
+                if created:
+                    detalhes_log['recompensa'] = recompensa.nome
+                    messages.success(request, f'O item "{recompensa.nome}" foi enviado para a caixa de recompensas de {usuario.username}.')
+                else:
+                    messages.warning(request, f'O usuário {usuario.username} já possui ou tem este item pendente.')
+
+            criar_log(
+                ator=request.user,
+                acao=LogAtividade.Acao.RECOMPENSA_CONCEDIDA_MANUALMENTE,
+                alvo=usuario,
+                detalhes=detalhes_log
+            )
+            return redirect('gestao:conceder_recompensa_manual')
+    else:
+        form = ConcessaoManualForm()
+        
+    context = {
+        'form': form,
+        'active_tab': 'concessao_manual',
+        'titulo': 'Conceder Recompensa Manualmente'
+    }
+    return render(request, 'gestao/conceder_recompensa_manual.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_trilhas(request):
+    """Lista todas as Trilhas de Conquistas."""
+    trilhas = TrilhaDeConquistas.objects.annotate(num_conquistas=Count('conquistas')).all()
+    context = {
+        'trilhas': trilhas,
+        'active_tab': 'trilhas',
+        'titulo': 'Trilhas de Conquistas'
+    }
+    return render(request, 'gestao/listar_trilhas.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def criar_trilha(request):
+    """Cria uma nova Trilha de Conquistas."""
+    if request.method == 'POST':
+        form = TrilhaDeConquistasForm(request.POST)
+        if form.is_valid():
+            trilha = form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_CRIADA, alvo=trilha, detalhes={'tipo': 'Trilha', 'nome': trilha.nome}) # Reutilizando log
+            messages.success(request, f'A trilha "{trilha.nome}" foi criada com sucesso.')
+            return redirect('gestao:listar_trilhas')
+    else:
+        form = TrilhaDeConquistasForm()
+    
+    context = {'form': form, 'titulo': 'Criar Nova Trilha'}
+    return render(request, 'gestao/form_trilha.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def editar_trilha(request, trilha_id):
+    """Edita uma Trilha de Conquistas existente."""
+    trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
+    if request.method == 'POST':
+        form = TrilhaDeConquistasForm(request.POST, instance=trilha)
+        if form.is_valid():
+            form.save()
+            criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_EDITADA, alvo=trilha, detalhes={'tipo': 'Trilha', 'nome': trilha.nome})
+            messages.success(request, f'A trilha "{trilha.nome}" foi atualizada com sucesso.')
+            return redirect('gestao:listar_trilhas')
+    else:
+        form = TrilhaDeConquistasForm(instance=trilha)
+
+    context = {'form': form, 'titulo': f'Editando Trilha: {trilha.nome}'}
+    return render(request, 'gestao/form_trilha.html', context)
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_trilha(request, trilha_id):
+    """Deleta uma Trilha de Conquistas."""
+    trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
+    nome_trilha = trilha.nome
+    trilha.delete()
+    criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_DELETADA, alvo=None, detalhes={'tipo': 'Trilha', 'nome_deletado': nome_trilha})
+    messages.success(request, f'A trilha "{nome_trilha}" foi deletada com sucesso.')
+    return redirect('gestao:listar_trilhas')
+
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_tipos_condicao(request):
+    """Lista todos os Tipos de Condição gerenciáveis."""
+    tipos_condicao = TipoCondicao.objects.all()
+    context = {
+        'tipos_condicao': tipos_condicao,
+        'active_tab': 'tipos_condicao',
+        'titulo': 'Tipos de Condição para Conquistas'
+    }
+    return render(request, 'gestao/listar_tipos_condicao.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def criar_ou_editar_tipo_condicao(request, tipo_id=None):
+    """Cria ou edita um Tipo de Condição."""
+    instancia = get_object_or_404(TipoCondicao, id=tipo_id) if tipo_id else None
+    titulo = f"Editando Tipo de Condição: {instancia.nome}" if instancia else "Criar Novo Tipo de Condição"
+
+    if request.method == 'POST':
+        form = TipoCondicaoForm(request.POST, instance=instancia)
+        if form.is_valid():
+            try:
+                # Valida se o campo de parâmetros é um JSON válido
+                json.loads(form.cleaned_data['parametros_configuraveis'])
+                form.save()
+                messages.success(request, "Tipo de condição salvo com sucesso!")
+                return redirect('gestao:listar_tipos_condicao')
+            except json.JSONDecodeError:
+                form.add_error('parametros_configuraveis', 'O formato do JSON é inválido.')
+    else:
+        form = TipoCondicaoForm(instance=instancia)
+
+    context = {'form': form, 'titulo': titulo, 'active_tab': 'tipos_condicao'}
+    return render(request, 'gestao/form_tipo_condicao.html', context)
+
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_tipo_condicao(request, tipo_id):
+    """Deleta um Tipo de Condição."""
+    tipo = get_object_or_404(TipoCondicao, id=tipo_id)
+    tipo.delete()
+    messages.success(request, f"O tipo de condição '{tipo.nome}' foi deletado.")
+    return redirect('gestao:listar_tipos_condicao')

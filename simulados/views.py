@@ -393,6 +393,7 @@ def finalizar_simulado(request, sessao_id):
     # 5. Redireciona para a página de resultados
     return redirect('simulados:resultado_simulado', sessao_id=sessao.id)
 
+
 def formatar_tempo_gasto(total_seconds):
     if total_seconds < 0:
         total_seconds = 0
@@ -487,7 +488,6 @@ def resultado_simulado(request, sessao_id):
     }
 
     return render(request, 'simulados/resultado_simulado.html', context)
-
 
 @login_required
 def historico_simulado(request, simulado_id):

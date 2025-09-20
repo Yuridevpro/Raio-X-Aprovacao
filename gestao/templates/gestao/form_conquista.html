@@ -1,63 +1,103 @@
 <!-- gestao/templates/gestao/form_conquista.html -->
-
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <h2 class="h3 mb-4">{{ titulo }}</h2>
-            <div class="card shadow-sm">
-                <div class="card-body p-4">
-                    <form method="POST">
-                        {% csrf_token %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
-                            {{ form.nome }}
-                            {{ form.nome.errors }}
-                        </div>
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='conquistas' %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:listar_conquistas' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+    </div>
 
-                        <div class="mb-3">
-                            <label for="{{ form.chave.id_for_label }}" class="form-label">{{ form.chave.label }}</label>
-                            {{ form.chave }}
-                            <div class="form-text">{{ form.chave.help_text }}</div>
-                            {{ form.chave.errors }}
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
-                            {{ form.descricao }}
-                            {{ form.descricao.errors }}
-                        </div>
-                        
+    <form method="POST">
+        {% csrf_token %}
+        <div class="row">
+            <!-- Coluna Principal -->
+            <div class="col-lg-8">
+                <!-- Card de Dados Gerais -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><h5 class="mb-0">Dados Gerais da Conquista</h5></div>
+                    <div class="card-body p-4">
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.nome.label }}</label>{{ form_conquista.nome }}</div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}</div>
                         <div class="row">
-                            <div class="col-md-9">
-                                <div class="mb-3">
-                                    <label for="{{ form.icone.id_for_label }}" class="form-label">{{ form.icone.label }}</label>
-                                    {{ form.icone }}
-                                    <div class="form-text">{{ form.icone.help_text }}</div>
-                                    {{ form.icone.errors }}
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                 <div class="mb-3">
-                                    <label for="{{ form.cor.id_for_label }}" class="form-label">{{ form.cor.label }}</label>
-                                    {{ form.cor }}
-                                    {{ form.cor.errors }}
-                                </div>
-                            </div>
+                            <div class="col-md-8 mb-3"><label class="form-label">{{ form_conquista.icone.label }}</label>{{ form_conquista.icone }}</div>
+                            <div class="col-md-4 mb-3"><label class="form-label">{{ form_conquista.cor.label }}</label>{{ form_conquista.cor }}</div>
                         </div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}</div>
+                        <div class="form-check form-switch mt-3">{{ form_conquista.is_secreta }}<label class="form-check-label" for="{{ form_conquista.is_secreta.id_for_label }}">{{ form_conquista.is_secreta.label }}</label></div>
+                    </div>
+                </div>
 
-                        <div class="mt-4 d-flex justify-content-center gap-2">
-                            <a href="{% url 'gestao:listar_conquistas' %}" class="btn btn-secondary">Cancelar</a>
-                            <button type="submit" class="btn btn-primary px-5">Salvar</button>
+                <!-- Card de Recompensas -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><h5 class="mb-0">Recompensas ao Desbloquear</h5></div>
+                    <div class="card-body p-4">
+                        <div class="row">
+                            <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_xp.label }}</label>{{ form_conquista.recompensa_xp }}</div>
+                            <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_moedas.label }}</label>{{ form_conquista.recompensa_moedas }}</div>
                         </div>
-                    </form>
+                        <div class="mb-3"><label class="form-label">Avatares</label>{{ form_conquista.recompensa_avatares }}</div>
+                        <div class="mb-3"><label class="form-label">Bordas</label>{{ form_conquista.recompensa_bordas }}</div>
+                        <div class="mb-3"><label class="form-label">Banners</label>{{ form_conquista.recompensa_banners }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coluna de Condições -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header"><h5 class="mb-0">Condições de Desbloqueio</h5></div>
+                    <div class="card-body p-4">
+                        <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS para ganhar a conquista.</p>
+                        
+                        <div class="accordion" id="accordionCondicoes">
+                            <!-- Condição de Volume -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolume">Volume de Questões</button></h2>
+                                <div id="collapseVolume" class="accordion-collapse collapse" data-bs-parent="#accordionCondicoes">
+                                    <div class="accordion-body">
+                                        {{ form_cond_volume.as_p }}
+                                        <button type="submit" name="salvar_cond_volume" class="btn btn-sm btn-secondary">Ativar/Salvar esta condição</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Condição de Streak -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStreak">Sequência de Prática (Streak)</button></h2>
+                                <div id="collapseStreak" class="accordion-collapse collapse" data-bs-parent="#accordionCondicoes">
+                                    <div class="accordion-body">
+                                        {{ form_cond_streak.as_p }}
+                                        <button type="submit" name="salvar_cond_streak" class="btn btn-sm btn-secondary">Ativar/Salvar esta condição</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <div class="mt-4 d-flex justify-content-center">
+            <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Conquista e Recompensas</button>
+        </div>
+    </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.tom-select').forEach((el) => {
+        new TomSelect(el, { plugins: ['remove_button'], create: false, placeholder: 'Selecione um ou mais itens...' });
+    });
+});
+</script>
 {% endblock %}

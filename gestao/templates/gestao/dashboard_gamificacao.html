@@ -1,0 +1,64 @@
+<!-- gestao/templates/gestao/dashboard_gamificacao.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Dashboard de Gamificação{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='dashboard_gamificacao' %}
+
+    <!-- Métricas Gerais -->
+    <div class="row g-4 mb-5">
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body"><i class="fas fa-users fa-2x text-primary mb-2"></i><h5 class="card-title">{{ total_usuarios_gamificados }}</h5><p class="card-text text-muted">Usuários Ativos na Gamificação</p></div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body"><i class="fas fa-star fa-2x text-warning mb-2"></i><h5 class="card-title">{{ media_niveis|floatformat:1 }}</h5><p class="card-text text-muted">Nível Médio dos Usuários</p></div>
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-6">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body"><i class="fas fa-coins fa-2x text-success mb-2"></i><h5 class="card-title">{{ total_moedas_circulacao }}</h5><p class="card-text text-muted">Moedas em Circulação</p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Top Usuários -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Top 5 Usuários por XP</h5></div>
+                <div class="list-group list-group-flush">
+                    {% for p in top_usuarios_xp %}
+                    <a href="#" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        {{ p.user_profile.user.username }}
+                        <span class="badge bg-primary rounded-pill">{{ p.xp }} XP</span>
+                    </a>
+                    {% empty %}
+                    <li class="list-group-item text-muted">Nenhum dado disponível.</li>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        <!-- Últimos Prêmios Ganhos -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Últimos Prêmios Ganhos (Pendentes)</h5></div>
+                <div class="list-group list-group-flush">
+                    {% for premio in ultimos_premios_pendentes %}
+                    <div class="list-group-item">
+                        <strong>{{ premio.user_profile.user.username }}</strong> ganhou "{{ premio.recompensa.nome }}"
+                        <div class="small text-muted">{{ premio.data_ganho|timesince }} atrás</div>
+                    </div>
+                    {% empty %}
+                    <li class="list-group-item text-muted">Nenhum prêmio pendente.</li>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

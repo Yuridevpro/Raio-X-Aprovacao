@@ -19,6 +19,10 @@ urlpatterns = [
     path('perfil/alterar-senha/', views.alterar_senha, name='alterar_senha'),
     path('perfil/deletar-conta/', views.deletar_conta, name='deletar_conta'),
     
+    path('perfil/caixa-de-recompensas/', views.caixa_de_recompensas, name='caixa_de_recompensas'),
+    path('perfil/trilhas-de-conquistas/', views.trilhas_de_conquistas, name='trilhas_de_conquistas'),
+
+    
     # NOVAS ROTAS PARA COLEÇÕES SEPARADAS
     path('perfil/colecao/avatares/', views.colecao_avatares, name='colecao_avatares'),
     path('perfil/colecao/bordas/', views.colecao_bordas, name='colecao_bordas'),

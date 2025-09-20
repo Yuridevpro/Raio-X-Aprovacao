@@ -112,6 +112,21 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'gamificacao:ranking' %}">Ranking</a>
                     </li>
+
+
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'gamificacao:loja' %}">
+                            <i class="fas fa-store me-1"></i> Loja
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">
+                            <i class="fas fa-coins text-warning me-1"></i>
+                            <!-- ID ADICIONADO AQUI -->
+                            <span id="navbar-coin-balance">{{ saldo_moedas_usuario }}</span>
+                        </a>
+                    </li>
+
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">

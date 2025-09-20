@@ -1,0 +1,128 @@
+<!-- usuarios/templates/usuarios/caixa_de_recompensas.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Minha Caixa de Recompensas{% endblock %}
+
+{% block head %}
+<style>
+    .premio-card {
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background-color: #fff;
+    }
+    .premio-card .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        background-color: #f8f9fa;
+    }
+    .btn-resgatar .fa-check {
+        display: none;
+    }
+    .btn-resgatar.btn-success .fa-check {
+        display: inline-block;
+    }
+    .btn-resgatar.btn-success .fa-gift {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0">Caixa de Recompensas</h2>
+            <p class="text-muted">Resgate os prêmios que você ganhou!</p>
+        </div>
+        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil
+        </a>
+    </div>
+
+    {% include 'usuarios/includes/_messages.html' %}
+
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+        {% for premio in recompensas_pendentes %}
+        <div class="col" id="premio-card-{{ premio.id }}">
+            <div class="card h-100 shadow-sm premio-card">
+                <img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
+                    <p class="card-text small text-muted flex-grow-1">
+                        Desbloqueado por: <strong>{{ premio.origem_desbloqueio }}</strong><br>
+                        Ganho em: {{ premio.data_ganho|date:"d/m/Y" }}
+                    </p>
+                    <button class="btn btn-primary w-100 mt-3 btn-resgatar" data-pendente-id="{{ premio.id }}">
+                        <i class="fas fa-gift me-2"></i>
+                        <i class="fas fa-check me-2"></i>
+                        <span>Resgatar</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center py-5">
+                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                <h4 class="h5">Sua caixa de recompensas está vazia</h4>
+                <p class="text-muted">Continue praticando para desbloquear novos itens!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.btn-resgatar').forEach(button => {
+        button.addEventListener('click', function() {
+            const pendenteId = this.dataset.pendenteId;
+            const card = document.getElementById(`premio-card-${pendenteId}`);
+
+            this.disabled = true;
+            this.querySelector('span').textContent = 'Resgatando...';
+
+            fetch("{% url 'gamificacao:resgatar_recompensa' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ pendente_id: pendenteId })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.status === 'success') {
+                    // Atualiza o botão para o estado "Resgatado"
+                    button.classList.remove('btn-primary');
+                    button.classList.add('btn-success');
+                    button.querySelector('span').textContent = 'Resgatado!';
+                    
+                    // Dispara o confete
+                    if (window.confetti) {
+                        const rect = button.getBoundingClientRect();
+                        const origin = {
+                            x: (rect.left + rect.width / 2) / window.innerWidth,
+                            y: (rect.top + rect.height / 2) / window.innerHeight
+                        };
+                        confetti({ particleCount: 100, spread: 70, origin: origin });
+                    }
+                    
+                    showNotificationModal('Prêmio Resgatado!', result.message, 'success');
+                } else {
+                    button.disabled = false;
+                    button.querySelector('span').textContent = 'Resgatar';
+                    showNotificationModal('Erro ao Resgatar', result.message, 'error');
+                }
+            })
+            .catch(err => {
+                button.disabled = false;
+                button.querySelector('span').textContent = 'Resgatar';
+                showNotificationModal('Erro de Rede', 'Não foi possível resgatar o prêmio. Tente novamente.', 'error');
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

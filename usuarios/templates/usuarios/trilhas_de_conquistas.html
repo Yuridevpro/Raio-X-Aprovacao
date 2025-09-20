@@ -1,0 +1,81 @@
+<!-- usuarios/templates/usuarios/trilhas_de_conquistas.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Minhas Trilhas de Conquistas{% endblock %}
+
+{% block head %}
+<style>
+    .trilha-card { border-left: 4px solid var(--cor-primaria); }
+    .conquista-node { display: flex; align-items: center; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; transition: all 0.3s ease; }
+    .conquista-node.unlocked { background-color: #d1e7dd; border: 1px solid #a3cfbb; }
+    .conquista-node.available { background-color: #cff4fc; border: 1px solid #9eeaf9; box-shadow: 0 0 15px rgba(3, 169, 244, 0.4); }
+    .conquista-node.locked { background-color: #f8f9fa; border: 1px solid #dee2e6; opacity: 0.7; }
+    .conquista-icon-wrapper { flex-shrink: 0; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.8rem; margin-right: 1rem; }
+    .unlocked .conquista-icon-wrapper { background-color: var(--cor-sucesso); color: white; }
+    .available .conquista-icon-wrapper { background-color: var(--cor-info); color: white; }
+    .locked .conquista-icon-wrapper { background-color: #e9ecef; color: #6c757d; }
+    .conquista-details h6 { margin-bottom: 0.25rem; }
+    .conquista-details p { margin-bottom: 0; font-size: 0.9rem; color: #495057; }
+    .locked .conquista-details p { color: #6c757d; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h2 class="h3 mb-0">Minha Coleção</h2>
+            <p class="text-muted">Acompanhe seu progresso e veja as próximas conquistas a serem desbloqueadas.</p>
+        </div>
+        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil</a>
+    </div>
+
+    {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='trilhas_de_conquistas' %}
+
+    {% for trilha in trilhas %}
+    <div class="card shadow-sm mb-4 trilha-card">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="{{ trilha.icone }} me-2 text-primary"></i>{{ trilha.nome }}</h5>
+        </div>
+        <div class="card-body p-4">
+            <p class="text-muted">{{ trilha.descricao }}</p>
+            {% for conquista in trilha.conquistas.all %}
+                {% if conquista.is_secreta and conquista.id not in conquistas_usuario_ids %}
+                    <!-- Não mostra conquistas secretas não desbloqueadas -->
+                {% else %}
+                    {% with pre_requisitos_ids=conquista.pre_requisitos.all|values_list:'id'|flat %}
+                    {% with pre_requisitos_satisfeitos=pre_requisitos_ids|issubset:conquistas_usuario_ids %}
+                    
+                    {% if conquista.id in conquistas_usuario_ids %}
+                        {% with status="unlocked" %}
+                    {% elif pre_requisitos_satisfeitos %}
+                        {% with status="available" %}
+                    {% else %}
+                        {% with status="locked" %}
+                    {% endif %}
+                    
+                    <div class="conquista-node {{ status }}">
+                        <div class="conquista-icon-wrapper" style="{% if status == 'unlocked' %}background-color: {{ conquista.cor }}{% endif %}">
+                            <i class="{{ conquista.icone }}"></i>
+                        </div>
+                        <div class="conquista-details">
+                            <h6 class="fw-bold">{{ conquista.nome }}</h6>
+                            <p>{{ conquista.descricao }}</p>
+                        </div>
+                    </div>
+
+                    {% endwith %}{% endwith %}{% endwith %}
+                    {% endwith %}
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% empty %}
+    <div class="card card-body text-center py-5">
+        <i class="fas fa-road fa-3x text-muted mb-3"></i>
+        <h4 class="h5">Nenhuma trilha de conquistas disponível</h4>
+        <p class="text-muted">Fique de olho! Novas jornadas serão adicionadas em breve.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

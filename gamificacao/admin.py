@@ -1,78 +1,88 @@
-# gamificacao/admin.py (NOVO ARQUIVO)
+# gamificacao/admin.py (ARQUIVO COMPLETO E CORRIGIDO)
 
 from django.contrib import admin
-from .models import ProfileStreak, Conquista, ConquistaUsuario
+from .models import (
+    GamificationSettings, ProfileGamificacao, ProfileStreak, MetaDiariaUsuario,
+    RankingSemanal, RankingMensal, TrilhaDeConquistas, Conquista, ConquistaUsuario,
+    Campanha, CampanhaUsuarioCompletion, Avatar, Borda, Banner,
+    RecompensaPendente, AvatarUsuario, BordaUsuario, BannerUsuario,
+    TipoCondicao, Condicao  # Importando os modelos corretos
+)
+
+# =======================================================================
+# INLINE PARA CONDIÇÕES (AGORA USANDO TabularInline PADRÃO)
+# =======================================================================
+class CondicaoInline(admin.TabularInline):
+    model = Condicao
+    extra = 1
+    verbose_name = "Condição de Desbloqueio"
+    verbose_name_plural = "Condições de Desbloqueio"
+
+# =======================================================================
+# ADMIN PARA TRILHAS E CONQUISTAS
+# =======================================================================
+@admin.register(TrilhaDeConquistas)
+class TrilhaDeConquistasAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'ordem', 'descricao')
+    search_fields = ('nome',)
 
 @admin.register(Conquista)
 class ConquistaAdmin(admin.ModelAdmin):
-    """ Admin para criar e gerenciar as conquistas disponíveis na plataforma. """
-    list_display = ('nome', 'chave', 'descricao', 'icone', 'cor')
-    search_fields = ('nome', 'chave', 'descricao')
-    list_filter = ('cor',)
-    ordering = ('nome',)
+    list_display = ('nome', 'trilha', 'is_secreta')
+    list_filter = ('trilha', 'is_secreta')
+    search_fields = ('nome', 'descricao')
+    filter_horizontal = ('pre_requisitos',)
     
-    # Preenche o campo 'chave' automaticamente com base no 'nome' (sugestão)
-    prepopulated_fields = {'chave': ('nome',)}
-
-@admin.register(ProfileStreak)
-class ProfileStreakAdmin(admin.ModelAdmin):
-    """
-    Admin de apenas leitura para visualizar os dados de streak dos usuários.
-    Os dados são atualizados automaticamente via signals.
-    """
-    list_display = ('user_profile', 'current_streak', 'max_streak', 'last_practice_date')
-    search_fields = ('user_profile__user__username',)
-    readonly_fields = ('user_profile', 'current_streak', 'max_streak', 'last_practice_date')
-    ordering = ('-current_streak',)
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False # Apenas visualização
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-@admin.register(ConquistaUsuario)
-class ConquistaUsuarioAdmin(admin.ModelAdmin):
-    """ Admin para visualizar quais usuários desbloquearam quais conquistas. """
-    list_display = ('user_profile', 'conquista', 'data_conquista')
-    list_filter = ('conquista', 'data_conquista')
-    search_fields = ('user_profile__user__username', 'conquista__nome')
-    readonly_fields = ('user_profile', 'conquista', 'data_conquista')
+    # Usa o novo Inline concreto
+    inlines = [CondicaoInline] 
     
-    # raw_id_fields é bom para performance quando há muitos usuários/conquistas
-    raw_id_fields = ('user_profile', 'conquista')
-    
-    ordering = ('-data_conquista',)
-
-    def has_add_permission(self, request):
-        return False
-
-# gamificacao/admin.py
-
-from django.contrib import admin
-from .models import GamificationSettings
-
-@admin.register(GamificationSettings)
-class GamificationSettingsAdmin(admin.ModelAdmin):
-    """
-    Admin interface for the singleton GamificationSettings model.
-    """
-    list_display = (
-        'xp_por_acerto', 
-        'xp_por_erro', 
-        'xp_bonus_meta_diaria', 
-        'meta_diaria_questoes',
-        'acertos_consecutivos_para_bonus'
+    fieldsets = (
+        ('Informações Gerais', {'fields': ('nome', 'descricao', 'trilha', 'icone', 'cor', 'is_secreta')}),
+        ('Hierarquia', {'fields': ('pre_requisitos',)}),
+        ('Recompensas Diretas (JSON)', {'classes': ('collapse',), 'fields': ('recompensas',)}),
     )
 
-    # Impede que os administradores criem novas instâncias,
-    # já que este é um modelo singleton (só pode haver uma configuração).
-    def has_add_permission(self, request):
-        return False
+# =======================================================================
+# ADMIN PARA CAMPANHAS E RECOMPENSAS
+# =======================================================================
+@admin.register(Campanha)
+class CampanhaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'gatilho', 'tipo_recorrencia', 'ativo', 'data_inicio', 'data_fim')
+    list_filter = ('ativo', 'gatilho', 'tipo_recorrencia')
+    search_fields = ('nome',)
 
-    # Impede que os administradores deletem a única instância.
-    def has_delete_permission(self, request, obj=None):
-        return False
+@admin.register(Avatar)
+class AvatarAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_desbloqueio', 'raridade', 'preco_moedas')
+    list_filter = ('tipo_desbloqueio', 'raridade'); search_fields = ('nome',)
+
+@admin.register(Borda)
+class BordaAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_desbloqueio', 'raridade', 'preco_moedas')
+    list_filter = ('tipo_desbloqueio', 'raridade'); search_fields = ('nome',)
+
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'tipo_desbloqueio', 'raridade', 'preco_moedas')
+    list_filter = ('tipo_desbloqueio', 'raridade'); search_fields = ('nome',)
+    
+@admin.register(TipoCondicao)
+class TipoCondicaoAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'chave', 'descricao')
+    search_fields = ('nome', 'chave')
+
+# =======================================================================
+# REGISTRO DOS OUTROS MODELOS
+# =======================================================================
+admin.site.register(GamificationSettings)
+admin.site.register(ProfileGamificacao)
+admin.site.register(ProfileStreak)
+admin.site.register(MetaDiariaUsuario)
+admin.site.register(RankingSemanal)
+admin.site.register(RankingMensal)
+admin.site.register(ConquistaUsuario)
+admin.site.register(CampanhaUsuarioCompletion)
+admin.site.register(RecompensaPendente)
+admin.site.register(AvatarUsuario)
+admin.site.register(BordaUsuario)
+admin.site.register(BannerUsuario)

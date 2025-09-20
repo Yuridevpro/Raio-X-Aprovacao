@@ -808,7 +808,6 @@
             const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
             
             if (!alternativaSelecionada) { 
-                // A função showNotificationModal (do seu _modais_pratica.html) deve ser global
                 window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
                 return; 
             }
@@ -855,9 +854,9 @@
                     feedbackDiv.style.display = 'block';
 
                     // --- 2. Lógica de Notificações de Gamificação (Toasts) ---
-                    let delay = 0; // Delay inicial de 0ms
+                    let delay = 100; // Delay inicial de 100ms
 
-                    // Notificação de ganho de XP (a mais importante)
+                    // Notificação de ganho de XP
                     if (result.xp_ganho > 0) {
                         let xpTitle = `+${result.xp_ganho} XP`;
                         let xpBody = 'Sua resposta foi registrada com sucesso!';
@@ -866,24 +865,38 @@
                             xpBody = 'Você ativou o bônus por acertos consecutivos!';
                         }
                         showGamificationToast(xpTitle, xpBody, 'fas fa-brain', '#6f42c1');
-                        delay += 2500; // Define o tempo para a próxima notificação aparecer
+                        delay += 2000;
                     }
-
-                    // Notificação de Level Up
-                    if (result.level_up_info) {
-                        const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>!`;
+                    
+                    // Notificação de ganho de Moedas
+                    if (result.moedas_ganhas > 0) {
+                        const saldoAtual = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
+                        updateNavbarCoinBalance(saldoAtual + result.moedas_ganhas);
+                        
                         setTimeout(() => {
-                            showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
+                            showCoinToast(result.moedas_ganhas, 'pela sua resposta');
                         }, delay);
-                        delay += 2500;
+                        delay += 2000;
                     }
 
                     // Notificação de Meta Diária
                     if (result.meta_completa_info) {
                         const meta = result.meta_completa_info;
-                        const metaBody = `Você completou sua meta de ${meta.total_questoes} questões e ganhou <strong>+${meta.xp_bonus} XP</strong> de bônus!`;
+                        const saldoAtualMoedas = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
+                        updateNavbarCoinBalance(saldoAtualMoedas + meta.moedas_bonus);
+
+                        const metaBody = `Você completou sua meta e ganhou <strong>+${meta.xp_bonus} XP</strong> e <strong>+${meta.moedas_bonus} FC</strong> de bônus!`;
                         setTimeout(() => {
                             showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745');
+                        }, delay);
+                        delay += 2500;
+                    }
+
+                    // Notificação de Level Up (agora aponta para a Caixa de Recompensas)
+                    if (result.level_up_info) {
+                        const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>! Novos prêmios podem estar esperando na sua Caixa de Recompensas.`;
+                        setTimeout(() => {
+                            showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
                         }, delay);
                         delay += 2500;
                     }

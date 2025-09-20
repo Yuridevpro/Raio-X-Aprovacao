@@ -1,0 +1,45 @@
+<!-- gestao/templates/gestao/form_trilha.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0">{{ titulo }}</h2>
+        <a href="{% url 'gestao:listar_trilhas' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar para a Lista
+        </a>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4 p-md-5">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label class="form-label">{{ form.nome.label }}</label>
+                    {{ form.nome }}
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">{{ form.descricao.label }}</label>
+                    {{ form.descricao }}
+                </div>
+                 <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">{{ form.icone.label }}</label>
+                        {{ form.icone }}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">{{ form.ordem.label }}</label>
+                        {{ form.ordem }}
+                    </div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Trilha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

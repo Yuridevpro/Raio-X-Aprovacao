@@ -1,4 +1,4 @@
-# gestao/urls.py
+# gestao/urls.py (ARQUIVO CORRIGIDO E FINALIZADO)
 
 from django.urls import path
 from . import views
@@ -65,10 +65,9 @@ urlpatterns = [
     path('logs/deletar/<int:log_id>/', views.deletar_log_atividade, name='deletar_log_atividade'),
     path('logs/acoes-em-massa/', views.logs_acoes_em_massa, name='logs_acoes_em_massa'),
     path('logs/mover-para-lixeira/', views.mover_logs_antigos_para_lixeira, name='mover_logs_antigos_para_lixeira'),
-    path('logs/lixeira/limpar/', views.limpar_lixeira_logs, name='limpar_lixeira_logs'), # <-- NOVA URL
+    path('logs/lixeira/limpar/', views.limpar_lixeira_logs, name='limpar_lixeira_logs'),
 
     path('logs/lixeira/', views.listar_logs_deletados, name='listar_logs_deletados'),
-    # NOVAS URLS PARA EXCLUSÃO PERMANENTE DE LOGS
     path('logs/lixeira/solicitar-exclusao/', views.solicitar_exclusao_logs, name='solicitar_exclusao_logs'),
     path('logs/solicitacoes-exclusao/', views.listar_solicitacoes_exclusao_logs, name='listar_solicitacoes_exclusao_logs'),
     path('logs/solicitacoes-exclusao/aprovar/<int:solicitacao_id>/', views.aprovar_exclusao_logs, name='aprovar_exclusao_logs'),
@@ -79,9 +78,6 @@ urlpatterns = [
     path('api/visualizar-questao/<int:questao_id>/', views.visualizar_questao_ajax, name='visualizar_questao_ajax'),
     path('api/visualizar-comentario/<int:comentario_id>/', views.visualizar_comentario_ajax, name='visualizar_comentario_ajax'),
     
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Sintaxe dos conversores de caminho
-    # =======================================================================
     path('simulados/', views.listar_simulados_gestao, name='listar_simulados_gestao'),
     path('simulados/novo/', views.criar_simulado, name='criar_simulado'),
     path('simulados/editar/<int:simulado_id>/', views.editar_simulado, name='editar_simulado'),
@@ -91,23 +87,38 @@ urlpatterns = [
     path('simulados/api/editar-meta/<int:simulado_id>/', views.editar_simulado_meta_ajax, name='editar_simulado_meta_ajax'),
     
     # =======================================================================
-    # URLS DE GAMIFICAÇÃO ATUALIZADAS
+    # URLS DE GAMIFICAÇÃO CORRIGIDAS E FINALIZADAS
     # =======================================================================
+    path('gamificacao/dashboard/', views.dashboard_gamificacao, name='dashboard_gamificacao'),
+    path('gamificacao/conceder-recompensa/', views.conceder_recompensa_manual, name='conceder_recompensa_manual'),
     path('gamificacao/configuracoes/', views.gerenciar_gamificacao_settings, name='gerenciar_gamificacao_settings'),
-    path('gamificacao/regras/', views.listar_regras_recompensa, name='listar_regras_recompensa'),
-    path('gamificacao/regras/nova/', views.criar_ou_editar_regra_recompensa, name='criar_regra_recompensa'),
-    path('gamificacao/regras/editar/<int:regra_id>/', views.criar_ou_editar_regra_recompensa, name='editar_regra_recompensa'),
-    path('gamificacao/regras/deletar/<int:regra_id>/', views.deletar_regra_recompensa, name='deletar_regra_recompensa'),
+    
+    # URLs de Campanhas (CORRIGIDAS)
+    path('gamificacao/campanhas/', views.listar_campanhas, name='listar_campanhas'),
+    path('gamificacao/campanhas/nova/', views.criar_ou_editar_campanha, name='criar_campanha'),
+    path('gamificacao/campanhas/editar/<int:campanha_id>/', views.criar_ou_editar_campanha, name='editar_campanha'),
+    path('gamificacao/campanhas/deletar/<int:campanha_id>/', views.deletar_campanha, name='deletar_campanha'),
+
+    # URLs de Trilhas e Conquistas
+    path('gamificacao/trilhas/', views.listar_trilhas, name='listar_trilhas'),
+    path('gamificacao/trilhas/nova/', views.criar_trilha, name='criar_trilha'),
+    path('gamificacao/trilhas/editar/<int:trilha_id>/', views.editar_trilha, name='editar_trilha'),
+    path('gamificacao/trilhas/deletar/<int:trilha_id>/', views.deletar_trilha, name='deletar_trilha'),
+    
+    # NOVAS URLS PARA GERENCIAR TIPOS DE CONDIÇÃO
+    path('gamificacao/condicoes/', views.listar_tipos_condicao, name='listar_tipos_condicao'),
+    path('gamificacao/condicoes/nova/', views.criar_ou_editar_tipo_condicao, name='criar_tipo_condicao'),
+    path('gamificacao/condicoes/editar/<int:tipo_id>/', views.criar_ou_editar_tipo_condicao, name='editar_tipo_condicao'),
+    path('gamificacao/condicoes/deletar/<int:tipo_id>/', views.deletar_tipo_condicao, name='deletar_tipo_condicao'),
+    
     path('gamificacao/conquistas/', views.listar_conquistas, name='listar_conquistas'),
     path('gamificacao/conquistas/nova/', views.criar_conquista, name='criar_conquista'),
     path('gamificacao/conquistas/editar/<int:conquista_id>/', views.editar_conquista, name='editar_conquista'),
     path('gamificacao/conquistas/deletar/<int:conquista_id>/', views.deletar_conquista, name='deletar_conquista'),
 
-    # Rotas específicas para cada tipo de recompensa
+    # Rotas de Recompensas (Avatares, Bordas, Banners)
     path('gamificacao/<str:tipo>/', views.listar_recompensas, name='listar_recompensas'),
     path('gamificacao/<str:tipo>/nova/', views.criar_recompensa, name='criar_recompensa'),
     path('gamificacao/<str:tipo>/editar/<int:recompensa_id>/', views.editar_recompensa, name='editar_recompensa'),
     path('gamificacao/<str:tipo>/deletar/<int:recompensa_id>/', views.deletar_recompensa, name='deletar_recompensa'),
-    
-    
 ]

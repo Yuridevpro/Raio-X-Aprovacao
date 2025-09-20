@@ -1,0 +1,93 @@
+<!-- gestao/templates/gestao/conceder_recompensa_manual.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block head %}
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+    .recompensa-field { display: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='concessao_manual' %}
+    <h2 class="h3 mb-4">{{ titulo }}</h2>
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-body p-4 p-md-5">
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.usuario.id_for_label }}" class="form-label">{{ form.usuario.label }}</label>
+                        {{ form.usuario }}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.tipo_recompensa.id_for_label }}" class="form-label">{{ form.tipo_recompensa.label }}</label>
+                        {{ form.tipo_recompensa }}
+                    </div>
+                </div>
+                
+                <div id="field_moedas" class="mb-3 recompensa-field">
+                    <label for="{{ form.quantidade_moedas.id_for_label }}" class="form-label">{{ form.quantidade_moedas.label }}</label>
+                    {{ form.quantidade_moedas }}
+                </div>
+                <div id="field_avatar" class="mb-3 recompensa-field">
+                    <label for="{{ form.avatar.id_for_label }}" class="form-label">{{ form.avatar.label }}</label>
+                    {{ form.avatar }}
+                </div>
+                <div id="field_borda" class="mb-3 recompensa-field">
+                    <label for="{{ form.borda.id_for_label }}" class="form-label">{{ form.borda.label }}</label>
+                    {{ form.borda }}
+                </div>
+                <div id="field_banner" class="mb-3 recompensa-field">
+                    <label for="{{ form.banner.id_for_label }}" class="form-label">{{ form.banner.label }}</label>
+                    {{ form.banner }}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.justificativa.id_for_label }}" class="form-label">{{ form.justificativa.label }}</label>
+                    {{ form.justificativa }}
+                    <div class="form-text">{{ form.justificativa.help_text }}</div>
+                </div>
+
+                <div class="mt-4 d-flex justify-content-center">
+                    <button type="submit" class="btn btn-primary btn-lg px-5">Conceder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new TomSelect('.tom-select-user', { create: false, placeholder: 'Digite para buscar um usuário...' });
+    
+    const tipoSelect = document.getElementById('id_tipo_recompensa');
+    const recompensaFields = document.querySelectorAll('.recompensa-field');
+
+    function toggleRecompensaFields() {
+        const selectedType = tipoSelect.value;
+        recompensaFields.forEach(field => {
+            field.style.display = 'none';
+        });
+
+        if (selectedType) {
+            const fieldToShow = document.getElementById(`field_${selectedType.toLowerCase()}`);
+            if (fieldToShow) {
+                fieldToShow.style.display = 'block';
+            }
+        }
+    }
+
+    tipoSelect.addEventListener('change', toggleRecompensaFields);
+    toggleRecompensaFields(); // Executa na inicialização
+});
+</script>
+{% endblock %}
