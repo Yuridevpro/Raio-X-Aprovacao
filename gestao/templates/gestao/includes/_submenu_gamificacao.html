@@ -2,6 +2,11 @@
 <div class="mb-4">
     <ul class="nav nav-pills nav-fill">
         <li class="nav-item">
+            <a class="nav-link {% if active_tab == 'regras' %}active{% endif %}" href="{% url 'gestao:listar_regras_recompensa' %}">
+                <i class="fas fa-scroll me-1"></i> Regras de Recompensa
+            </a>
+        </li>
+        <li class="nav-item">
             <a class="nav-link {% if active_tab == 'conquistas' %}active{% endif %}" href="{% url 'gestao:listar_conquistas' %}">
                 <i class="fas fa-trophy me-1"></i> Conquistas
             </a>
@@ -16,15 +21,11 @@
                 <i class="fas fa-id-badge me-1"></i> Bordas
             </a>
         </li>
-        <!-- ======================================================================= -->
-        <!-- NOVO LINK PARA BANNERS -->
-        <!-- ======================================================================= -->
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'banners' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='banners' %}">
                 <i class="fas fa-image me-1"></i> Banners
             </a>
         </li>
-
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'configuracoes' %}active{% endif %}" href="{% url 'gestao:gerenciar_gamificacao_settings' %}">
                 <i class="fas fa-cogs me-2"></i>Configurações de XP

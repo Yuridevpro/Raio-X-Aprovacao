@@ -8,10 +8,13 @@ from gamificacao.models import Conquista, GamificationSettings
 from simulados.models import Simulado, StatusSimulado, NivelDificuldade
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 from gamificacao.models import Conquista, Avatar, Borda, Banner
-
+from gamificacao.models import RegraRecompensa
+from django import forms
+from gamificacao.models import RegraRecompensa
+import json # Importar json
 
 from gamificacao.models import Conquista, GamificationSettings
-# ...
+
 
 class GamificationSettingsForm(forms.ModelForm):
     class Meta:
@@ -286,3 +289,66 @@ class BannerForm(RecompensaBaseForm):
             'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
             'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
         }
+        
+class RegraRecompensaForm(forms.ModelForm):
+    # Campos virtuais que serão exibidos ao admin
+    condicao_top_n = forms.IntegerField(
+        label="Top N Posições",
+        required=False,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        help_text="A regra será aplicada para usuários até esta posição no ranking."
+    )
+    condicao_min_acertos_percent = forms.IntegerField(
+        label="Mínimo de Acertos (%)",
+        required=False,
+        min_value=0,
+        max_value=100,
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        help_text="A regra será aplicada se o % de acertos do usuário for igual ou maior."
+    )
+
+    class Meta:
+        model = RegraRecompensa
+        # O campo 'condicoes' é excluído do formulário direto
+        exclude = ['condicoes']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
+            'gatilho': forms.Select(attrs={'class': 'form-select', 'id': 'id_gatilho_select'}), # Adicionado ID
+            'avatares': forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+            'bordas': forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+            'banners': forms.SelectMultiple(attrs={'class': 'form-select tom-select'}),
+            'xp_extra': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Se for uma instância existente, preenche os campos virtuais a partir do JSON
+        if self.instance and self.instance.pk and self.instance.condicoes:
+            self.fields['condicao_top_n'].initial = self.instance.condicoes.get('top_n')
+            self.fields['condicao_min_acertos_percent'].initial = self.instance.condicoes.get('min_acertos_percent')
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Constrói o dicionário de 'condicoes' a partir dos campos virtuais
+        condicoes_dict = {}
+        gatilho = self.cleaned_data.get('gatilho')
+        
+        if gatilho in [RegraRecompensa.Gatilho.RANKING_SEMANAL_TOP_N, RegraRecompensa.Gatilho.RANKING_MENSAL_TOP_N]:
+            top_n = self.cleaned_data.get('condicao_top_n')
+            if top_n is not None:
+                condicoes_dict['top_n'] = top_n
+                
+        elif gatilho == RegraRecompensa.Gatilho.COMPLETAR_SIMULADO:
+            min_acertos = self.cleaned_data.get('condicao_min_acertos_percent')
+            if min_acertos is not None:
+                condicoes_dict['min_acertos_percent'] = min_acertos
+        
+        instance.condicoes = condicoes_dict
+        
+        if commit:
+            instance.save()
+            self.save_m2m() # Importante para salvar as relações ManyToMany
+            
+        return instance

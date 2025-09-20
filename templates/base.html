@@ -1,3 +1,5 @@
+<!-- base.html -->
+
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
@@ -12,28 +14,28 @@
     <!-- Nosso CSS base -->
     <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
     
-    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.css" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.1/cropper.min.js" defer></script>
-     -->
-
     <!-- Outros CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
+
+    <!-- ======================================================================= -->
+    <!-- NOVA ADIÇÃO 1: SCRIPT DO CONFETTI -->
+    <!-- Adiciona a biblioteca que cria o efeito de confete. -->
+    <!-- ======================================================================= -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
         .footer-custom .text-muted {
             color: rgba(255, 255, 255, 0.7) !important;
         }
 
-        /* ======================================================================= */
         /* ESTILOS PARA O AVATAR E BORDA NA NAVBAR */
-        /* ======================================================================= */
         .navbar-avatar-container {
             position: relative;
             width: 28px;
             height: 28px;
-            display: inline-flex; /* Usamos flex para centralizar facilmente */
+            display: inline-flex;
             align-items: center;
             justify-content: center;
             vertical-align: middle;
@@ -45,20 +47,17 @@
             border-radius: 50%;
             object-fit: cover;
             position: relative;
-            z-index: 1; /* Fica abaixo da borda */
+            z-index: 1;
         }
         .navbar-border-image {
             position: absolute;
-            /* Ajustamos o tamanho para ser um pouco maior que o container */
             top: -4px;
             left: -4px;
             width: 36px;
             height: 36px;
             pointer-events: none;
-            z-index: 2; /* Borda fica por cima */
+            z-index: 2;
         }
-        
-        /* Estilos para quando uma borda quadrada for equipada */
         .navbar-avatar-container.with-frame {
             width: 32px;
             height: 32px;
@@ -66,7 +65,7 @@
         .navbar-avatar-container.with-frame .navbar-avatar-image {
             width: 65%;
             height: 65%;
-            border-radius: 4px; /* Deixa o avatar interno quadrado */
+            border-radius: 4px;
         }
         .navbar-avatar-container.with-frame .navbar-border-image {
             top: 0;
@@ -81,7 +80,7 @@
 </head>
 <body>
 
-    <!-- NAVBAR ATUALIZADA -->
+    <!-- NAVBAR (sem alterações) -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{% url 'home' %}">
@@ -115,9 +114,6 @@
                     </li>
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <!-- =========================================================== -->
-                            <!-- LÓGICA COMPLETA DO AVATAR/BORDA NA NAVBAR -->
-                            <!-- =========================================================== -->
                             <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
                                 {% if borda_equipada_url %}
                                     <img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">
@@ -157,7 +153,7 @@
         {% endblock %}
     </main>
 
-    <!-- RODAPÉ ATUALIZADO -->
+    <!-- RODAPÉ (sem alterações) -->
     <footer class="footer-custom mt-auto">
         <div class="container py-5">
             <div class="row">
@@ -165,7 +161,6 @@
                     <h5 class="fw-bold mb-3"><i class="fas fa-chart-line me-2"></i>Raio-X da Aprovaçao</h5>
                     <p class="text-muted small">Estude de forma inteligente. Acompanhe seu progresso e conquiste sua aprovação.</p>
                 </div>
-
                 <div class="col-lg-2 col-md-6 mb-4 mb-lg-0">
                     <h5 class="fw-bold mb-3">Navegação</h5>
                     <ul class="list-unstyled">
@@ -177,12 +172,10 @@
                         {% endif %}
                     </ul>
                 </div>
-
                 <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
                     <h5 class="fw-bold mb-3">Sobre</h5>
                     <p class="text-muted small">Plataforma desenvolvida para auxiliar estudantes na preparação para concursos públicos.</p>
                 </div>
-
                 <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
                     <h5 class="fw-bold mb-3">Conecte-se</h5>
                     <div class="footer-social">
@@ -192,14 +185,13 @@
                     </div>
                 </div>
             </div>
-
             <div class="text-center pt-4 mt-4 border-top border-secondary">
                 <p class="text-muted small mb-0">&copy; {% now "Y" %} Raio-X da Aprovaçao. Todos os direitos reservados.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Container Único para Toasts e Modais Genéricos -->
+    <!-- Container Único para Toasts e Modais Genéricos (sem alterações) -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header">
@@ -221,7 +213,13 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{% static 'js/notificacoes.js' %}"></script>
 
-    <!-- SCRIPT PARA MENSAGENS AUTO-DISMISS -->
+    <!-- ======================================================================= -->
+    <!-- NOVA ADIÇÃO 2: SCRIPT DE EFEITOS DE GAMIFICAÇÃO -->
+    <!-- Carrega nosso script customizado que controla os modais e o confete. -->
+    <!-- ======================================================================= -->
+    <script src="{% static 'js/gamification-effects.js' %}"></script>
+
+    <!-- SCRIPT PARA MENSAGENS AUTO-DISMISS (sem alterações) -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert[role="alert"]');
@@ -236,8 +234,6 @@
     </script>
     
     {% block scripts %}
-
-    
     {% endblock %}
 
 </body>

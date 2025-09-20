@@ -1,5 +1,7 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load pratica_extras %}
+
 {% block title %}Resultado do Simulado{% endblock %}
 
 {% block head %}
@@ -106,8 +108,23 @@
     </div>
     
     <div class="row g-4 mb-5">
-        <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-stopwatch"></i></div><div class="stat-value small">{{ tempo_gasto_formatado }}</div><div class="stat-label text-muted">Tempo Gasto</div></div></div>
-        <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-tachometer-alt"></i></div><div class="stat-value small">{{ acertos_por_minuto }}</div><div class="stat-label text-muted">Acertos por Minuto</div></div></div>
+        <!-- ======================================================================= -->
+        <!-- LÓGICA CORRIGIDA PARA EXIBIR O CARD DE XP GANHO -->
+        <!-- ======================================================================= -->
+        {% if eventos_gamificacao.xp_ganho > 0 %}
+            <div class="col-md-4">
+                <div class="stat-card" style="border-color: #6f42c1;">
+                    <div class="icon" style="color: #6f42c1;"><i class="fas fa-brain"></i></div>
+                    <div class="stat-value small">+{{ eventos_gamificacao.xp_ganho }}</div>
+                    <div class="stat-label text-muted">XP Ganho</div>
+                </div>
+            </div>
+            <div class="col-md-4"><div class="stat-card"><div class="icon"><i class="fas fa-stopwatch"></i></div><div class="stat-value small">{{ tempo_gasto_formatado }}</div><div class="stat-label text-muted">Tempo Gasto</div></div></div>
+            <div class="col-md-4"><div class="stat-card"><div class="icon"><i class="fas fa-tachometer-alt"></i></div><div class="stat-value small">{{ acertos_por_minuto }}</div><div class="stat-label text-muted">Acertos por Minuto</div></div></div>
+        {% else %}
+            <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-stopwatch"></i></div><div class="stat-value small">{{ tempo_gasto_formatado }}</div><div class="stat-label text-muted">Tempo Gasto</div></div></div>
+            <div class="col-md-6"><div class="stat-card"><div class="icon"><i class="fas fa-tachometer-alt"></i></div><div class="stat-value small">{{ acertos_por_minuto }}</div><div class="stat-label text-muted">Acertos por Minuto</div></div></div>
+        {% endif %}
     </div>
 
     <!-- DESEMPENHO POR DISCIPLINA -->
@@ -195,4 +212,69 @@
         </a>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+{# Passa o dicionário completo de eventos para o JavaScript #}
+{{ eventos_gamificacao|json_script:"eventos-gamificacao-data" }}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const eventosDataElement = document.getElementById('eventos-gamificacao-data');
+    const eventos = eventosDataElement ? JSON.parse(eventosDataElement.textContent) : null;
+    
+    // Pega as recompensas de dentro do objeto principal de eventos
+    const novasRecompensas = (eventos && eventos.novas_recompensas) ? eventos.novas_recompensas : [];
+    
+    // Delay inicial para o usuário absorver a página de resultados primeiro
+    let delay = 750;
+
+    if (eventos) {
+        // 1. Exibe o toast de XP base ganho no simulado
+        if (eventos.xp_ganho > 0) {
+            setTimeout(() => {
+                showGamificationToast(
+                    'Simulado Concluído!',
+                    `Você ganhou <strong>${eventos.xp_ganho} XP</strong> pelo seu desempenho!`,
+                    'fas fa-flag-checkered',
+                    '#28a745'
+                );
+            }, delay);
+            delay += 2500; // Aumenta o delay para a próxima notificação
+        }
+
+        // 2. Exibe toasts para XP bônus vindo de regras
+        if (eventos.regras_info && eventos.regras_info.length > 0) {
+            eventos.regras_info.forEach(regra => {
+                if (regra.xp_extra > 0) {
+                    setTimeout(() => {
+                        showGamificationToast(
+                            'Bônus!',
+                            `Você ganhou <strong>+${regra.xp_extra} XP</strong> por <strong>${regra.nome}</strong>!`,
+                            'fas fa-medal',
+                            '#ffc107'
+                        );
+                    }, delay);
+                    delay += 2500; // Adiciona delay para cada toast de bônus
+                }
+            });
+        }
+        
+        // 3. Aciona o modal de Level Up, se houver
+        if (eventos.level_up_info) {
+            setTimeout(() => {
+                triggerLevelUpNotification(eventos.level_up_info);
+            }, delay);
+            delay += 3000; // Aumenta o delay para dar tempo do modal ser fechado
+        }
+
+        // 4. Aciona o modal de Novas Recompensas
+        if (novasRecompensas && novasRecompensas.length > 0) {
+            setTimeout(() => {
+                triggerNewRewardsNotification(novasRecompensas);
+            }, delay);
+        }
+    }
+});
+</script>
 {% endblock %}

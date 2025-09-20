@@ -11,7 +11,7 @@
                 <h2 class="text-center h4 mb-4">Reenviar E-mail de Ativação</h2>
                 <p class="text-muted text-center mb-4">Se você não recebeu o e-mail de ativação ou seu link expirou, digite seu e-mail abaixo para receber um novo.</p>
 
-                {% include 'includes/_messages.html' %}
+                {% include 'usuarios/includes/_messages.html' %}
 
                 <form action="{% url 'reenviar_ativacao' %}" method="POST">
                     {% csrf_token %}

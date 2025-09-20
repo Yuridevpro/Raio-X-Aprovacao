@@ -58,6 +58,24 @@
         <p class="lead">Veja sua posição e compare seu desempenho com outros estudantes.</p>
     </div>
 
+     <!-- NOVO BLOCO DE RECOMPENSAS EM DISPUTA -->
+     {% if recompensas_em_disputa %}
+     <div class="card shadow-sm mb-4 bg-light">
+         <div class="card-body text-center">
+             <h5 class="card-title"><i class="fas fa-trophy text-warning me-2"></i>Recompensas da Semana</h5>
+             <p class="text-muted">Fique no Top 3 esta semana para ganhar prêmios exclusivos!</p>
+             <div class="d-flex justify-content-center gap-3">
+                 {% for recompensa in recompensas_em_disputa %}
+                 <div title="{{ recompensa.nome }} ({{ recompensa.get_raridade_display }})">
+                     <img src="{{ recompensa.imagem.url }}" width="60" height="60" class="rounded-circle border border-2">
+                 </div>
+                 {% endfor %}
+             </div>
+         </div>
+     </div>
+     {% endif %}
+ 
+
     <!-- Abas de Navegação -->
     <ul class="nav nav-pills nav-fill mb-4">
         <li class="nav-item">

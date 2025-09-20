@@ -32,6 +32,9 @@ from .utils import criar_log
 from simulados.models import Simulado, StatusSimulado
 from django.views.decorators.http import require_POST # Adicione este import
 
+from .forms import RegraRecompensaForm
+from gamificacao.models import RegraRecompensa
+
 from gamificacao.models import Conquista, Avatar, Borda, Banner
 from .forms import ConquistaForm, AvatarForm, BordaForm, BannerForm
 from django.template.loader import render_to_string # Adicionar importação
@@ -2494,3 +2497,52 @@ def aprovar_exclusao_logs(request, solicitacao_id):
         messages.error(request, message)
     
     return redirect('gestao:listar_solicitacoes_exclusao_logs')
+
+@user_passes_test(is_staff_member)
+@login_required
+def listar_regras_recompensa(request):
+    regras = RegraRecompensa.objects.all().order_by('nome')
+    context = {
+        'regras': regras,
+        'active_tab': 'regras' # Para o submenu
+    }
+    return render(request, 'gestao/listar_regras_recompensa.html', context)
+
+@user_passes_test(is_staff_member)
+@login_required
+def criar_ou_editar_regra_recompensa(request, regra_id=None):
+    if regra_id:
+        regra = get_object_or_404(RegraRecompensa, id=regra_id)
+        titulo = f"Editando Regra: {regra.nome}"
+    else:
+        regra = None
+        titulo = "Criar Nova Regra de Recompensa"
+        
+    if request.method == 'POST':
+        form = RegraRecompensaForm(request.POST, instance=regra)
+        if form.is_valid():
+            nova_regra = form.save()
+            acao_log = LogAtividade.Acao.REGRA_RECOMPENSA_EDITADA if regra else LogAtividade.Acao.REGRA_RECOMPENSA_CRIADA
+            criar_log(ator=request.user, acao=acao_log, alvo=nova_regra, detalhes={'nome': nova_regra.nome})
+            messages.success(request, f"Regra '{nova_regra.nome}' salva com sucesso.")
+            return redirect('gestao:listar_regras_recompensa')
+    else:
+        form = RegraRecompensaForm(instance=regra)
+        
+    context = {
+        'form': form,
+        'titulo': titulo,
+        'active_tab': 'regras'
+    }
+    return render(request, 'gestao/form_regra_recompensa.html', context)
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_regra_recompensa(request, regra_id):
+    regra = get_object_or_404(RegraRecompensa, id=regra_id)
+    nome_regra = regra.nome
+    criar_log(ator=request.user, acao=LogAtividade.Acao.REGRA_RECOMPENSA_DELETADA, detalhes={'nome': nome_regra})
+    regra.delete()
+    messages.success(request, f"A regra '{nome_regra}' foi deletada.")
+    return redirect('gestao:listar_regras_recompensa')

@@ -1,4 +1,4 @@
-# usuarios/views.py
+# usuarios/views.py (ARQUIVO COMPLETO)
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -20,7 +20,10 @@ from datetime import date
 from gamificacao.models import (
     ProfileStreak, ConquistaUsuario, Conquista, ProfileGamificacao, 
     MetaDiariaUsuario, RankingSemanal, RankingMensal, Avatar, Borda, 
-    Banner, GamificationSettings  # <-- MUDANÇA: Importando o modelo de configurações
+    Banner, GamificationSettings,
+    # >>> INÍCIO DA CORREÇÃO: ADIÇÃO DAS IMPORTAÇÕES FALTANTES <<<
+    AvatarUsuario, BordaUsuario, BannerUsuario
+    # >>> FIM DA CORREÇÃO <<<
 )
 from gamificacao.services import (
     calcular_xp_para_nivel, 
@@ -224,7 +227,6 @@ def _get_profile_context(user_profile):
     """
     Função auxiliar que busca TODOS os dados de gamificação e perfil.
     """
-    # <-- MUDANÇA: Carrega as configurações de gamificação do banco de dados
     settings = GamificationSettings.load()
 
     streak_data, _ = ProfileStreak.objects.get_or_create(user_profile=user_profile)
@@ -235,7 +237,6 @@ def _get_profile_context(user_profile):
         data=date.today()
     )
     
-    # <-- MUDANÇA: Usa a configuração do banco de dados (settings) em vez da constante
     if settings.meta_diaria_questoes > 0:
         progresso_meta_diaria_percentual = min((meta_hoje.questoes_resolvidas / settings.meta_diaria_questoes * 100), 100)
     else:
@@ -264,7 +265,6 @@ def _get_profile_context(user_profile):
         'todas_as_conquistas': todas_as_conquistas,
         'conquistas_desbloqueadas_ids': conquistas_desbloqueadas_ids,
         'meta_hoje': meta_hoje,
-        # <-- MUDANÇA: Usa a configuração do banco de dados (settings)
         'meta_diaria_total': settings.meta_diaria_questoes, 
         'progresso_meta_diaria_percentual': progresso_meta_diaria_percentual,
         'trofeus_semanais': trofeus_semanais,
@@ -363,10 +363,23 @@ def reenviar_ativacao(request):
 # VIEWS DE COLEÇÃO
 # =======================================================================
 
+def _grant_all_rewards_to_staff(user_profile, Model, M2M_Manager):
+    """Concede todas as recompensas de um tipo a um membro da equipe."""
+    if not user_profile.user.is_staff:
+        return
+    
+    todos_os_itens = Model.objects.all()
+    for item in todos_os_itens:
+        # A chave do argumento deve ser o nome do campo no modelo M2M em minúsculo
+        m2m_field_name = Model.__name__.lower()
+        M2M_Manager.get_or_create(user_profile=user_profile, **{m2m_field_name: item})
+
+
 @login_required
 def colecao_avatares(request):
     user_profile = request.user.userprofile
     _verificar_desbloqueio_recompensas(user_profile)
+    _grant_all_rewards_to_staff(user_profile, Avatar, AvatarUsuario.objects)
     
     base_queryset = Avatar.objects.all()
     filtro_raridade = request.GET.get('raridade')
@@ -395,6 +408,7 @@ def colecao_avatares(request):
 def colecao_bordas(request):
     user_profile = request.user.userprofile
     _verificar_desbloqueio_recompensas(user_profile)
+    _grant_all_rewards_to_staff(user_profile, Borda, BordaUsuario.objects)
 
     base_queryset = Borda.objects.all()
     filtro_raridade = request.GET.get('raridade')
@@ -423,6 +437,7 @@ def colecao_bordas(request):
 def colecao_banners(request):
     user_profile = request.user.userprofile
     _verificar_desbloqueio_recompensas(user_profile)
+    _grant_all_rewards_to_staff(user_profile, Banner, BannerUsuario.objects)
 
     base_queryset = Banner.objects.all()
     filtro_raridade = request.GET.get('raridade')
@@ -461,7 +476,7 @@ def equipar_avatar(request, avatar_id):
 
     if user_profile.avatar_equipado == avatar_para_equipar:
         user_profile.avatar_equipado = None
-        user_profile.borda_equipada = None
+        user_profile.borda_equipada = None # Desequipa a borda junto com o avatar
         messages.success(request, f'Avatar "{avatar_para_equipar.nome}" desequipado.')
     else:
         user_profile.avatar_equipado = avatar_para_equipar
@@ -518,11 +533,11 @@ def equipar_banner(request, banner_id):
 def desequipar_item(request, tipo_item):
     user_profile = request.user.userprofile
     
-    redirect_url = 'meu_perfil' # Default redirect
+    redirect_url = 'meu_perfil'
     if tipo_item == 'avatar':
         user_profile.avatar_equipado = None
         user_profile.borda_equipada = None
-        messages.success(request, 'Avatar desequipado com sucesso.')
+        messages.success(request, 'Avatar e borda desequipados com sucesso.')
         redirect_url = 'colecao_avatares'
     elif tipo_item == 'borda':
         user_profile.borda_equipada = None

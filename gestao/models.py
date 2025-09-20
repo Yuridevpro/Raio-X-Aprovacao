@@ -237,6 +237,8 @@ class LogAtividade(models.Model):
         SIMULADO_EDITADO = 'SIMULADO_EDITADO', 'Simulado Editado'
         SIMULADO_DELETADO = 'SIMULADO_DELETADO', 'Simulado Deletado'
         
+        
+        
         CONQUISTA_CRIADA = 'CONQUISTA_CRIADA', 'Conquista Criada'
         CONQUISTA_EDITADA = 'CONQUISTA_EDITADA', 'Conquista Editada'
         CONQUISTA_DELETADA = 'CONQUISTA_DELETADA', 'Conquista Deletada'
@@ -256,6 +258,13 @@ class LogAtividade(models.Model):
         SOLICITACAO_EXCLUSAO_LOG_CRIADA = 'SOLICITACAO_EXCLUSAO_LOG_CRIADA', 'Solicitação de Exclusão de Log Criada'
         SOLICITACAO_EXCLUSAO_LOG_APROVADA = 'SOLICITACAO_EXCLUSAO_LOG_APROVADA', 'Aprovação de Exclusão de Log Registrada'
         LOG_DELETADO_PERMANENTEMENTE = 'LOG_DELETADO_PERMANENTEMENTE', 'Log Deletado Permanentemente'
+        
+         # NOVAS AÇÕES DE GAMIFICAÇÃO
+        REGRA_RECOMPENSA_CRIADA = 'REGRA_RECOMPENSA_CRIADA', 'Regra de Recompensa Criada'
+        REGRA_RECOMPENSA_EDITADA = 'REGRA_RECOMPENSA_EDITADA', 'Regra de Recompensa Editada'
+        REGRA_RECOMPENSA_DELETADA = 'REGRA_RECOMPENSA_DELETADA', 'Regra de Recompensa Deletada'
+        RECOMPENSA_CONCEDIDA_MANUALMENTE = 'RECOMPENSA_CONCEDIDA_MANUALMENTE', 'Recompensa Concedida Manualmente'
+        RECOMPENSA_REVOGADA = 'RECOMPENSA_REVOGADA', 'Recompensa Revogada'
 
     ator = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     acao = models.CharField(max_length=50, choices=Acao.choices)

@@ -60,8 +60,4 @@ def get_assuntos(request, disciplina_id):
     data = [{"id": a.id, "nome": a.nome} for a in assuntos]
     return JsonResponse(data, safe=False)
 
-def get_assuntos(request, disciplina_id):
-    assuntos = Assunto.objects.filter(disciplina_id=disciplina_id).order_by('nome')
-    data = [{"id": a.id, "nome": a.nome} for a in assuntos]
-    return JsonResponse(data, safe=False)
 

@@ -1,4 +1,4 @@
-# simulados/views.py
+# simulados/views.py (ARQUIVO COMPLETO)
 
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
@@ -13,16 +13,15 @@ import json
 import markdown
 from django.contrib.auth.models import User
 from django.urls import reverse
+from collections import defaultdict
+from django.db.models import Prefetch
 
 from .models import Simulado, SessaoSimulado, RespostaSimulado, StatusSimulado, NivelDificuldade
 from questoes.models import Questao, Disciplina, Banca, Instituicao, Assunto
 from .forms import SimuladoAvancadoForm
 from questoes.utils import paginar_itens
 from django.views.decorators.cache import never_cache
-from collections import defaultdict
-from django.db.models import Prefetch
-
-# simulados/views.py
+from gamificacao.services import processar_conclusao_simulado
 
 @login_required
 def listar_simulados(request):
@@ -139,7 +138,6 @@ def listar_simulados_oficiais(request):
     per_page = request.GET.get('per_page', 9)
     page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=per_page)
     
-    # Adiciona as disciplinas principais a cada simulado paginado
     for simulado in page_obj.object_list:
         simulado.principais_disciplinas = []
         if hasattr(simulado, 'questoes_com_disciplinas'):
@@ -149,7 +147,6 @@ def listar_simulados_oficiais(request):
                     disciplinas[questao.disciplina.nome] += 1
             simulado.principais_disciplinas = [item[0] for item in sorted(disciplinas.items(), key=lambda x: x[1], reverse=True)[:2]]
 
-    # --- Contexto ---
     context = {
         'simulados': page_obj,
         'paginated_object': page_obj,
@@ -175,13 +172,8 @@ def listar_simulados_oficiais(request):
 
 
 @login_required
-@require_POST # Garante que a view só pode ser acessada via método POST
+@require_POST
 def excluir_simulado(request, simulado_id):
-    """
-    Exclui um simulado que foi criado pelo usuário logado.
-    """
-    # A busca get_object_or_404 garante que o simulado existe e pertence ao usuário.
-    # Se qualquer uma das condições falhar, um erro 404 será retornado.
     simulado = get_object_or_404(Simulado, id=simulado_id, criado_por=request.user)
     
     nome_simulado = simulado.nome
@@ -189,9 +181,6 @@ def excluir_simulado(request, simulado_id):
     
     messages.success(request, f"O simulado '{nome_simulado}' foi excluído com sucesso.")
     return redirect('simulados:listar_simulados')
-# ===========================================================
-# FIM DA ADIÇÃO
-# ===========================================================
 
 @login_required
 def iniciar_ou_continuar_sessao(request, simulado_id):
@@ -210,10 +199,6 @@ def iniciar_ou_continuar_sessao(request, simulado_id):
 
 @login_required
 def gerar_simulado_avancado(request):
-    """
-    Página de criação avançada de simulados, permitindo seleção
-    granular de disciplinas e quantidade de questões.
-    """
     if request.method == 'POST':
         form = SimuladoAvancadoForm(request.POST)
         if form.is_valid():
@@ -231,16 +216,9 @@ def gerar_simulado_avancado(request):
                         qtd = int(qtd_str)
 
                         if qtd > 0:
-                            # ===========================================================
-                            # INÍCIO DA CORREÇÃO: Usando o manager padrão `objects`
-                            # para buscar apenas questões ATIVAS.
-                            # ===========================================================
                             ids_disponiveis = list(Questao.objects.filter(
                                 disciplina_id=disciplina_id
                             ).values_list('id', flat=True))
-                            # ===========================================================
-                            # FIM DA CORREÇÃO
-                            # ===========================================================
 
                             qtd_real = min(qtd, len(ids_disponiveis))
                             ids_sorteados = sample(ids_disponiveis, qtd_real)
@@ -266,42 +244,26 @@ def gerar_simulado_avancado(request):
     else:
         form = SimuladoAvancadoForm()
 
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Filtrando apenas questões ativas na contagem inicial.
-    # `Questao.objects` já faz isso por padrão por causa do nosso custom manager.
-    # =======================================================================
     context = {
         'form': form,
         'disciplinas': Disciplina.objects.annotate(
             num_questoes=Count('questao', filter=models.Q(questao__is_deleted=False))
         ).filter(num_questoes__gt=0).order_by('nome')
     }
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
     return render(request, 'simulados/gerar_simulado_avancado.html', context)
 
 
 @login_required
 def api_contar_questoes_por_disciplina(request):
-    """
-    API que retorna a contagem de questões ATIVAS para uma lista de IDs de disciplina.
-    """
     disciplina_ids_str = request.GET.get('ids', '')
     if not disciplina_ids_str:
         return JsonResponse({'status': 'error', 'message': 'Nenhum ID fornecido'}, status=400)
     
     disciplina_ids = [int(id) for id in disciplina_ids_str.split(',') if id.isdigit()]
     
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Adicionando o filtro para contar apenas questões ativas.
-    # =======================================================================
     contagens = Disciplina.objects.filter(id__in=disciplina_ids).annotate(
         num_questoes=Count('questao', filter=models.Q(questao__is_deleted=False))
     ).values('id', 'num_questoes')
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
     
     data = {item['id']: item['num_questoes'] for item in contagens}
     
@@ -322,13 +284,7 @@ def realizar_simulado(request, sessao_id):
 
     questoes_data = []
     for i, questao in enumerate(questoes, 1):
-        # ===========================================================
-        # INÍCIO DA MODIFICAÇÃO
-        # ===========================================================
         banca_nome = "Inédita" if questao.is_inedita else (questao.banca.nome if questao.banca else '')
-        # ===========================================================
-        # FIM DA MODIFICAÇÃO
-        # ===========================================================
 
         questoes_data.append({
             'numero': i,
@@ -337,13 +293,7 @@ def realizar_simulado(request, sessao_id):
             'alternativas': questao.get_alternativas_dict(),
             'resposta_usuario': mapa_respostas.get(questao.id),
             'disciplina': questao.disciplina.nome,
-            # ===========================================================
-            # INÍCIO DA MODIFICAÇÃO
-            # ===========================================================
             'banca': banca_nome,
-            # ===========================================================
-            # FIM DA MODIFICAÇÃO
-            # ===========================================================
             'ano': questao.ano or '',
         })
 
@@ -380,19 +330,67 @@ def registrar_resposta_simulado(request, sessao_id):
 
 @login_required
 def finalizar_simulado(request, sessao_id):
+    """
+    Processa a finalização de uma sessão de simulado.
+    1. Corrige as respostas.
+    2. Finaliza a sessão.
+    3. Chama o serviço de gamificação para processar XP e recompensas.
+    4. Serializa os resultados da gamificação e os armazena na sessão do usuário.
+    5. Redireciona para a página de resultados.
+    """
+    # Garante que a sessão pertence ao usuário logado.
     sessao = get_object_or_404(SessaoSimulado, id=sessao_id, usuario=request.user)
+
+    # Se a sessão já foi finalizada, redireciona diretamente para os resultados.
     if sessao.finalizado:
         return redirect('simulados:resultado_simulado', sessao_id=sessao.id)
 
+    # 1. Correção das respostas
+    # Este passo é importante para garantir que o status de acerto/erro esteja salvo
+    # antes de chamar os serviços de gamificação e de cálculo de resultados.
     respostas_para_corrigir = RespostaSimulado.objects.filter(sessao=sessao).select_related('questao')
     for resposta in respostas_para_corrigir:
         if resposta.alternativa_selecionada:
             resposta.foi_correta = (resposta.alternativa_selecionada == resposta.questao.gabarito)
         else:
             resposta.foi_correta = False
-        resposta.save()
+        # Usamos update_fields para uma pequena otimização, salvando apenas o campo alterado.
+        resposta.save(update_fields=['foi_correta'])
     
-    sessao.finalizar_sessao()
+    # 2. Finaliza a sessão (marcando a data/hora de fim)
+    sessao.finalizar_sessao() # Supondo que este método atualize o campo data_fim e 'finalizado'.
+    
+    # 3. Processa os eventos de gamificação
+    eventos_gamificacao = processar_conclusao_simulado(sessao)
+    
+    # 4. Serializa os resultados para armazenamento na sessão
+    # A sessão do Django usa JSON, que não pode lidar com objetos complexos como models do Django.
+    # Por isso, convertemos as recompensas em um formato de dicionário simples.
+    if eventos_gamificacao and 'novas_recompensas' in eventos_gamificacao:
+        # A função processar_conclusao_simulado já retorna as recompensas serializadas,
+        # então o código abaixo é uma garantia de que o formato está correto para a sessão.
+        # Se você já ajustou o service, esta conversão pode não ser estritamente necessária,
+        # mas mantê-la torna a view mais robusta.
+        
+        recompensas_serializaveis = []
+        for recompensa in eventos_gamificacao['novas_recompensas']:
+            # Verifica se o item já é um dicionário (serializado pelo service)
+            if isinstance(recompensa, dict):
+                recompensas_serializaveis.append(recompensa)
+            else: # Caso contrário, serializa aqui
+                recompensas_serializaveis.append({
+                    'nome': recompensa.nome,
+                    'imagem_url': recompensa.imagem.url if recompensa.imagem else '',
+                    'raridade': recompensa.get_raridade_display(),
+                    'tipo': recompensa.__class__.__name__
+                })
+        eventos_gamificacao['novas_recompensas'] = recompensas_serializaveis
+
+    # Armazena o dicionário completo e seguro para JSON na sessão do usuário.
+    # A view de resultado irá ler esta chave da sessão.
+    request.session['eventos_gamificacao_simulado'] = eventos_gamificacao
+
+    # 5. Redireciona para a página de resultados
     return redirect('simulados:resultado_simulado', sessao_id=sessao.id)
 
 def formatar_tempo_gasto(total_seconds):
@@ -421,13 +419,16 @@ def resultado_simulado(request, sessao_id):
         messages.warning(request, "Você precisa finalizar o simulado para ver os resultados.")
         return redirect('simulados:realizar_simulado', sessao_id=sessao.id)
 
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Lógica do Dashboard de Resultados
-    # =======================================================================
+    eventos_gamificacao = request.session.pop('eventos_gamificacao_simulado', None)
+    
+    # A lista de recompensas já vem serializada da view 'finalizar_simulado'
+    novas_recompensas_json = []
+    if eventos_gamificacao and eventos_gamificacao.get('novas_recompensas'):
+        novas_recompensas_json = eventos_gamificacao['novas_recompensas']
+
     respostas_usuario = sessao.respostas.select_related('questao__disciplina', 'questao__banca').order_by('questao__id')
     questoes_simulado = sessao.simulado.questoes.all()
     
-    # --- Métricas Principais ---
     total_questoes = questoes_simulado.count()
     total_acertos = respostas_usuario.filter(foi_correta=True).count()
     total_respondidas = respostas_usuario.exclude(alternativa_selecionada__isnull=True).count()
@@ -435,7 +436,6 @@ def resultado_simulado(request, sessao_id):
     total_em_branco = total_questoes - total_respondidas
     percentual_acerto = (total_acertos / total_questoes * 100) if total_questoes > 0 else 0
 
-    # --- Métricas de Tempo ---
     tempo_gasto_td = sessao.data_fim - sessao.data_inicio
     tempo_gasto_segundos = tempo_gasto_td.total_seconds()
     tempo_gasto_formatado = formatar_tempo_gasto(tempo_gasto_segundos)
@@ -443,7 +443,6 @@ def resultado_simulado(request, sessao_id):
     tempo_em_minutos = tempo_gasto_segundos / 60
     acertos_por_minuto = (total_acertos / tempo_em_minutos) if tempo_em_minutos > 0 else 0
 
-    # --- Desempenho por Disciplina ---
     desempenho_disciplina = defaultdict(lambda: {'acertos': 0, 'total': 0})
     for resposta in respostas_usuario:
         disciplina = resposta.questao.disciplina.nome
@@ -461,7 +460,6 @@ def resultado_simulado(request, sessao_id):
         for disc, data in desempenho_disciplina.items()
     ]
     
-    # --- Revisão Detalhada (lógica existente) ---
     mapa_respostas = {r.questao_id: r for r in respostas_usuario}
     revisao_detalhada = []
     for i, questao in enumerate(questoes_simulado.order_by('id'), 1):
@@ -484,19 +482,15 @@ def resultado_simulado(request, sessao_id):
         'acertos_por_minuto': round(acertos_por_minuto, 2),
         'desempenho_disciplina': desempenho_final,
         'revisao_detalhada': revisao_detalhada,
+        'eventos_gamificacao': eventos_gamificacao,
+        'novas_recompensas_json': json.dumps(novas_recompensas_json),
     }
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
 
     return render(request, 'simulados/resultado_simulado.html', context)
 
+
 @login_required
 def historico_simulado(request, simulado_id):
-    """
-    Lista, com paginação, todo o histórico de sessões finalizadas
-    de um usuário para um simulado específico.
-    """
     simulado = get_object_or_404(Simulado, id=simulado_id)
     
     sessoes_list = SessaoSimulado.objects.filter(
@@ -522,7 +516,6 @@ def historico_simulado(request, simulado_id):
 @login_required
 @require_POST
 def excluir_sessao_simulado(request, sessao_id):
-    """ Exclui uma única tentativa (sessão) do histórico do usuário. """
     sessao = get_object_or_404(SessaoSimulado, id=sessao_id, usuario=request.user)
     simulado_id = sessao.simulado.id
     sessao.delete()
@@ -533,7 +526,6 @@ def excluir_sessao_simulado(request, sessao_id):
 @login_required
 @require_POST
 def limpar_historico_simulado(request, simulado_id):
-    """ Exclui TODAS as tentativas (sessões) de um simulado do histórico do usuário. """
     simulado = get_object_or_404(Simulado, id=simulado_id)
     sessoes = SessaoSimulado.objects.filter(simulado=simulado, usuario=request.user, finalizado=True)
     
@@ -545,8 +537,3 @@ def limpar_historico_simulado(request, simulado_id):
         messages.info(request, "Não havia histórico para ser limpo.")
         
     return redirect('simulados:listar_simulados')
-# =======================================================================
-# FIM DA ADIÇÃO
-# =======================================================================
-
-

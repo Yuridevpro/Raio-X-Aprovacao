@@ -4,7 +4,7 @@
 <div class="col">
     <div class="card h-100 collection-card {% if item.id in desbloqueados_ids %}unlocked{% else %}locked{% endif %}">
         
-        <!-- Imagem com proporção correta para banner vs. avatar/borda -->
+        <!-- Imagem -->
         {% if tipo_item == 'banner' %}
             <img src="{{ item.imagem.url }}" class="card-img-top bg-light" alt="{{ item.nome }}" style="aspect-ratio: 16 / 9;">
         {% else %}
@@ -17,16 +17,19 @@
                 <span class="rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
             </div>
 
-            <!-- Condição de Desbloqueio -->
+            <!-- >>> INÍCIO DA MUDANÇA: CONDIÇÃO DE DESBLOQUEIO DINÂMICA <<< -->
             <small class="text-muted mb-2 unlock-condition">
                 {% if item.tipo_desbloqueio == 'NIVEL' %}
                     <i class="fas fa-star me-1"></i> Desbloqueia no Nível {{ item.nivel_necessario }}
                 {% elif item.tipo_desbloqueio == 'CONQUISTA' and item.conquista_necessaria %}
                     <i class="fas fa-trophy me-1"></i> Pela conquista "{{ item.conquista_necessaria.nome }}"
+                {% elif item.tipo_desbloqueio == 'REGRA' %}
+                     <i class="fas fa-scroll me-1"></i> Por Regra Automática
                 {% else %}
                      <i class="fas fa-gift me-1"></i> Recompensa Especial
                 {% endif %}
             </small>
+            <!-- >>> FIM DA MUDANÇA <<< -->
 
             <p class="card-text flex-grow-1">{{ item.descricao }}</p>
 

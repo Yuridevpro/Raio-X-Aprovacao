@@ -94,6 +94,10 @@ urlpatterns = [
     # URLS DE GAMIFICAÇÃO ATUALIZADAS
     # =======================================================================
     path('gamificacao/configuracoes/', views.gerenciar_gamificacao_settings, name='gerenciar_gamificacao_settings'),
+    path('gamificacao/regras/', views.listar_regras_recompensa, name='listar_regras_recompensa'),
+    path('gamificacao/regras/nova/', views.criar_ou_editar_regra_recompensa, name='criar_regra_recompensa'),
+    path('gamificacao/regras/editar/<int:regra_id>/', views.criar_ou_editar_regra_recompensa, name='editar_regra_recompensa'),
+    path('gamificacao/regras/deletar/<int:regra_id>/', views.deletar_regra_recompensa, name='deletar_regra_recompensa'),
     path('gamificacao/conquistas/', views.listar_conquistas, name='listar_conquistas'),
     path('gamificacao/conquistas/nova/', views.criar_conquista, name='criar_conquista'),
     path('gamificacao/conquistas/editar/<int:conquista_id>/', views.editar_conquista, name='editar_conquista'),
