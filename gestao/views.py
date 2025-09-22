@@ -2601,12 +2601,14 @@ def criar_ou_editar_campanha(request, campanha_id=None):
             for index in grupo_indices:
                 posicao_exata = request.POST.get(f'grupo-{index}-posicao_exata')
                 posicao_ate = request.POST.get(f'grupo-{index}-posicao_ate')
-
-                # Se 'Posição Exata' for preenchido, ele tem prioridade.
-                if posicao_exata:
-                    posicao_ate = ''
+                if posicao_exata: posicao_ate = ''
 
                 grupo_data = {
+                    # =======================================================================
+                    # ADIÇÃO: Captura o nome do grupo do formulário.
+                    # =======================================================================
+                    'nome_grupo': request.POST.get(f'grupo-{index}-nome_grupo', f'Grupo #{int(index) + 1}'),
+                    # =======================================================================
                     'condicao_posicao_exata': posicao_exata,
                     'condicao_posicao_ate': posicao_ate,
                     'condicao_min_acertos_percent': request.POST.get(f'grupo-{index}-min_acertos_percent'),
@@ -2617,11 +2619,7 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                     'banners': [int(v) for v in request.POST.getlist(f'grupo-{index}-banners')],
                 }
 
-                # =======================================================================
-                # NOVA LÓGICA PARA LER CONDIÇÕES DINÂMICAS DO POST
-                # =======================================================================
                 condicoes_dinamicas = []
-                # Encontra todos os índices de condições dinâmicas para este grupo específico
                 cond_indices = sorted(list(set([key.split('-')[3] for key in request.POST if key.startswith(f'grupo-{index}-cond-var-')])))
                 
                 for c_index in cond_indices:
@@ -2629,7 +2627,6 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                     op = request.POST.get(f'grupo-{index}-cond-op-{c_index}')
                     val = request.POST.get(f'grupo-{index}-cond-val-{c_index}')
                     
-                    # Adiciona a condição apenas se todos os campos estiverem preenchidos
                     if var_id and op and val:
                         condicoes_dinamicas.append({
                             'variavel_id': int(var_id),
@@ -2639,17 +2636,13 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                 
                 if condicoes_dinamicas:
                     grupo_data['condicoes'] = condicoes_dinamicas
-                # =======================================================================
 
-                # Limpa o dicionário de valores vazios antes de salvar
                 grupo_limpo = {}
                 for key, value in grupo_data.items():
-                    # Para listas (avatares, condicoes), adiciona se não estiverem vazias
                     if isinstance(value, list):
-                        if value:
-                            grupo_limpo[key] = value
-                    # Para outros valores, adiciona se não forem vazios
+                        if value: grupo_limpo[key] = value
                     elif value:
+                        # Permite que o nome do grupo (string) seja salvo
                         grupo_limpo[key] = int(value) if str(value).isdigit() else value
                 
                 if grupo_limpo:
@@ -2665,28 +2658,18 @@ def criar_ou_editar_campanha(request, campanha_id=None):
     else:
         form = CampanhaForm(instance=instancia)
     
-    # Busca e passa todos os dados necessários para o frontend
     avatares_disponiveis = list(Avatar.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
     bordas_disponiveis = list(Borda.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
     banners_disponiveis = list(Banner.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
-    
-    # =======================================================================
-    # ADIÇÃO: Envia a lista de Variáveis do Jogo para o template
-    # =======================================================================
     variaveis_disponiveis = list(VariavelDoJogo.objects.values('id', 'nome_exibicao'))
-    # =======================================================================
-    
     grupos_de_condicoes = instancia.grupos_de_condicoes if instancia and isinstance(instancia.grupos_de_condicoes, list) else []
         
     context = {
-        'form': form,
-        'titulo': titulo,
-        'campanha': instancia,
-        'active_tab': 'campanhas',
+        'form': form, 'titulo': titulo, 'campanha': instancia, 'active_tab': 'campanhas',
         'avatares_disponiveis': avatares_disponiveis,
         'bordas_disponiveis': bordas_disponiveis,
         'banners_disponiveis': banners_disponiveis,
-        'variaveis_disponiveis': variaveis_disponiveis, # <-- Passando para o template
+        'variaveis_disponiveis': variaveis_disponiveis,
         'grupos_de_condicoes': grupos_de_condicoes,
     }
     return render(request, 'gestao/form_regra_recompensa.html', context)

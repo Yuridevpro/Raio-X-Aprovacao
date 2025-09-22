@@ -11,4 +11,6 @@ urlpatterns = [
     path('loja/', views.loja, name='loja'),
     path('api/comprar-item/', views.comprar_item_ajax, name='comprar_item'),
     path('api/resgatar-recompensa/', views.resgatar_recompensa_ajax, name='resgatar_recompensa'),
+    path('eventos/', views.campanhas_ativas, name='campanhas_ativas'),
+
 ]

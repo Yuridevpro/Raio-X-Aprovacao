@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo_pagina }}{% endblock %}
+
+{% block head %}
+<style>
+    .campanha-card {
+        border-left: 5px solid var(--cor-primaria);
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    .campanha-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+    }
+    .recompensa-icon {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <i class="fas fa-bullhorn fa-3x text-primary mb-3"></i>
+        <h1 class="display-5 fw-bold">{{ titulo_pagina }}</h1>
+        <p class="lead text-muted">Fique por dentro dos desafios ativos e ganhe recompensas exclusivas!</p>
+    </div>
+
+    <div class="row g-4">
+        {% for campanha in campanhas_ativas %}
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100 campanha-card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">{{ campanha.nome }}</h5>
+                    {% if campanha.data_fim %}
+                        <small class="text-muted">Termina em: {{ campanha.data_fim|date:"d/m/Y" }}</small>
+                    {% else %}
+                        <small class="text-muted">Evento Contínuo</small>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <p><strong>Gatilho:</strong> {{ campanha.get_gatilho_display }}</p>
+                    {% if campanha.simulado_especifico %}
+                        <p><strong>Desafio:</strong> Concluir o simulado "{{ campanha.simulado_especifico.nome }}"</p>
+                    {% endif %}
+                    
+                    <hr>
+                    <h6>Prêmios:</h6>
+                    {% for grupo in campanha.grupos_de_condicoes %}
+                        <div class="p-2 rounded mb-2 {% if forloop.counter|divisibleby:2 %}bg-light{% endif %}">
+                            <p class="fw-bold mb-1">{{ grupo.nome_grupo|default:"Prêmios" }}</p>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                {% if grupo.xp_extra > 0 %}<span class="badge bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ grupo.xp_extra }} XP</span>{% endif %}
+                                {% if grupo.moedas_extras > 0 %}<span class="badge bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ grupo.moedas_extras }} Moedas</span>{% endif %}
+                                {% for recompensa in grupo.recompensas_detalhadas %}
+                                    <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" title="{{ recompensa.nome }} ({{ recompensa.get_raridade_display }})" data-bs-toggle="tooltip">
+                                {% endfor %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center py-5">
+                <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
+                <h4 class="h5">Nenhum evento ativo no momento</h4>
+                <p class="text-muted">Volte em breve para conferir os próximos desafios!</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Inicializa os tooltips do Bootstrap
+document.addEventListener('DOMContentLoaded', function () {
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl)
+  })
+});
+</script>
+{% endblock %}

@@ -1,3 +1,5 @@
+<!-- gestao/templates/gestao/form_conquista.html (Arquivo Completo) -->
+
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -6,11 +8,17 @@
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <style>
     /* Estilos para o construtor de condições aprimorado */
-    .formset-row {
+    .formset-row > div {
+        /* Hack para fazer o grid funcionar com a estrutura do Django formset */
+        display: contents;
+    }
+    .formset-row-inner {
         display: grid;
         grid-template-columns: 1fr 1fr 1fr auto;
         gap: 0.75rem;
         align-items: center;
+    }
+    .formset-row-wrapper {
         padding: 0.75rem;
         border-radius: .5rem;
         margin-bottom: 0.5rem;
@@ -18,22 +26,21 @@
         border: 1px solid #dee2e6;
     }
     .formset-row label { display: none; }
-    .delete-checkbox-wrapper { 
-        text-align: center;
-        /* Para o ícone de lixeira */
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+    .delete-checkbox-wrapper { text-align: center; }
     .formset-row .form-select, .formset-row .form-control { font-size: 0.875rem; }
-    /* Esconde o checkbox de deletar, pois usaremos apenas o botão de lixeira */
     .formset-row input[type="checkbox"] { display: none; }
+    .context-field {
+        display: none; /* Começa escondido */
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+        border-top: 1px dashed #ced4da;
+    }
 
     /* Estilos para o Seletor de Ícones */
     #iconPickerModal .modal-body { max-height: 60vh; overflow-y: auto; }
     #iconGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.5rem; }
     .icon-item { display: flex; align-items: center; justify-content: center; height: 60px; border: 1px solid #dee2e6; border-radius: 0.25rem; font-size: 1.5rem; cursor: pointer; transition: all 0.2s ease; }
-    .icon-item:hover { background-color: #0d6efd; color: white; transform: scale(1.1); }
+    .icon-item:hover { background-color: var(--cor-primaria); color: white; transform: scale(1.1); }
     #iconPreview { font-size: 1.5rem; min-width: 40px; text-align: center; }
 </style>
 {% endblock %}
@@ -62,12 +69,15 @@
                             <div class="col-md-8 mb-3">
                                 <label for="{{ form_conquista.icone.id_for_label }}" class="form-label">{{ form_conquista.icone.label }}</label>
                                 <div class="input-group">
-                                    <span class="input-group-text" id="iconPreview"><i class="{{ form_conquista.icone.value|default:'' }}"></i></span>
+                                    <span class="input-group-text" id="iconPreview"><i class=""></i></span>
                                     {{ form_conquista.icone }}
                                     <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#iconPickerModal"><i class="fas fa-search"></i></button>
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3"><label class="form-label">{{ form_conquista.cor.label }}</label>{{ form_conquista.cor }}</div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form_conquista.cor.id_for_label }}" class="form-label">{{ form_conquista.cor.label }}</label>
+                                {{ form_conquista.cor }}
+                            </div>
                         </div>
 
                         <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}<small class="form-text text-muted">Apenas conquistas desta mesma trilha podem ser pré-requisitos.</small></div>
@@ -94,48 +104,35 @@
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><h5 class="mb-0">Condições de Desbloqueio</h5></div>
                     <div class="card-body p-4">
-                        <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS para desbloquear.</p>
+                        <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS.</p>
                         
                         <div id="condicao-formset-container">
                             <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;">
                                 <label class="form-label small text-muted">Variável</label>
                                 <label class="form-label small text-muted">Operador</label>
                                 <label class="form-label small text-muted">Valor</label>
-                                <label class="form-label small text-muted"></label>
                             </div>
                             {{ formset_condicao.management_form }}
-                            
-                            <!-- Container para os formulários do formset -->
-                            <div id="formset-forms">
-                                {% for form in formset_condicao.forms %}
-                                    <div class="formset-row">
-                                        {{ form.id }}
-                                        {{ form.variavel }}
-                                        {{ form.operador }}
-                                        {{ form.valor }}
-                                        <div class="delete-checkbox-wrapper">
-                                            {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
-                                            <a href="javascript:void(0)" class="delete-row"><i class="fas fa-trash text-danger"></i></a>
+                            {% for form in formset_condicao.forms %}
+                                <div class="formset-row">
+                                    <div class="formset-row-wrapper">
+                                        <div class="formset-row-inner">
+                                            {{ form.id }}
+                                            {{ form.variavel }}
+                                            {{ form.operador }}
+                                            {{ form.valor }}
+                                            <div class="delete-checkbox-wrapper">
+                                                {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="context-field">
+                                            {{ form.disciplina_contexto.label_tag }}
+                                            {{ form.disciplina_contexto }}
                                         </div>
                                     </div>
-                                {% endfor %}
-                            </div>
-
-                            <!-- Template para novos formulários -->
-                            <div style="display:none;" id="empty-form-template">
-                                <div class="formset-row">
-                                    {{ formset_condicao.empty_form.id }}
-                                    {{ formset_condicao.empty_form.variavel }}
-                                    {{ formset_condicao.empty_form.operador }}
-                                    {{ formset_condicao.empty_form.valor }}
-                                    <div class="delete-checkbox-wrapper">
-                                        {{ formset_condicao.empty_form.DELETE }}
-                                        <a href="javascript:void(0)" class="delete-row"><i class="fas fa-trash text-danger"></i></a>
-                                    </div>
                                 </div>
-                            </div>
+                            {% endfor %}
                         </div>
-                        <button type="button" class="btn btn-outline-success btn-sm mt-2 w-100 add-row"><i class="fas fa-plus me-2"></i>Adicionar Condição</button>
                     </div>
                 </div>
             </div>
@@ -147,17 +144,17 @@
     </form>
 </div>
 
-<!-- Modal do Seletor de Ícones (sem alterações) -->
+<!-- Modal do Seletor de Ícones -->
 <div class="modal fade" id="iconPickerModal" tabindex="-1" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title" id="iconPickerModalLabel">Selecione um Ícone</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
-      <div class="modal-body">
-        <div class="mb-3"><input type="text" id="iconSearchInput" class="form-control" placeholder="Buscar ícone pelo nome..."></div>
-        <div id="iconGrid"><div class="text-center w-100 p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div></div>
-      </div>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="iconPickerModalLabel">Selecione um Ícone</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><input type="text" id="iconSearchInput" class="form-control" placeholder="Buscar ícone pelo nome..."></div>
+                <div id="iconGrid"><div class="text-center w-100 p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div></div>
+            </div>
+        </div>
     </div>
-  </div>
 </div>
 {% endblock %}
 
@@ -166,113 +163,119 @@
 <script src="{% static 'js/jquery.formset.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
-$(function() {
-    // =======================================================================
-    // INICIALIZAÇÃO DO FORMSET CORRIGIDA E SIMPLIFICADA
-    // =======================================================================
-    $('#formset-forms').formset({
-        prefix: '{{ formset_condicao.prefix }}',
-        formCssClass: 'formset-row',
-        addSelector: '.add-row',
-        deleteSelector: '.delete-row',
-        formTemplate: '#empty-form-template',
-        added: function(row) {
-            // Callback opcional quando uma linha é adicionada
-            console.log('Nova condição adicionada');
-        },
-        removed: function(row) {
-            // Esconde a linha e marca o checkbox DELETE
-            row.hide();
-            row.find('input[type="checkbox"][id$="-DELETE"]').prop('checked', true);
-        }
-    });
+    function handleContextFields() {
+        document.querySelectorAll('.formset-row').forEach(row => {
+            const variavelSelect = row.querySelector('select[name$="-variavel"]');
+            const contextField = row.querySelector('.context-field');
 
-    // =======================================================================
-    // INICIALIZAÇÃO DO TOMSELECT (JÁ ESTAVA CORRETA)
-    // Agora vai funcionar para os campos de recompensa também.
-    // =======================================================================
-    document.querySelectorAll('.tom-select').forEach((el) => {
-        new TomSelect(el, {
-            plugins: { remove_button: { title: 'Remover este item' } },
-            placeholder: 'Selecione um ou mais itens...',
-            create: false // Impede a criação de novas opções
-        });
-    });
-});
+            function toggleContext() {
+                if (!variavelSelect || !contextField) return;
+                const selectedOptionText = variavelSelect.options[variavelSelect.selectedIndex]?.text.toLowerCase() || '';
+                
+                if (selectedOptionText.includes('acertos') || selectedOptionText.includes('respostas')) {
+                    contextField.style.display = 'block';
+                } else {
+                    contextField.style.display = 'none';
+                    const disciplinaSelect = contextField.querySelector('select');
+                    if (disciplinaSelect) disciplinaSelect.value = '';
+                }
+            }
 
-// =======================================================================
-// LÓGICA DO SELETOR DE ÍCONES (sem alterações, já funcional)
-// =======================================================================
-document.addEventListener('DOMContentLoaded', function() {
-    const iconPickerModal = document.getElementById('iconPickerModal');
-    if (!iconPickerModal) return;
-
-    const iconGrid = document.getElementById('iconGrid');
-    const searchInput = document.getElementById('iconSearchInput');
-    const targetInput = document.getElementById('{{ form_conquista.icone.id_for_label }}');
-    const iconPreview = document.getElementById('iconPreview').querySelector('i');
-    
-    let allIcons = [];
-    const modal = new bootstrap.Modal(iconPickerModal);
-
-    function updatePreview() {
-        iconPreview.className = targetInput.value || '';
-    }
-
-    iconPickerModal.addEventListener('show.bs.modal', async function () {
-        if (allIcons.length > 0) return;
-        try {
-            const response = await fetch("{% static 'vendor/fontawesome/icons.json' %}");
-            if (!response.ok) throw new Error('Network response was not ok');
-            const iconsData = await response.json();
-            allIcons = Object.keys(iconsData).filter(key => iconsData[key].styles.includes('solid'));
-            renderIcons(allIcons.slice(0, 200));
-        } catch (error) {
-            console.error("Erro ao carregar o arquivo de ícones:", error);
-            iconGrid.innerHTML = '<p class="text-danger text-center">Não foi possível carregar os ícones.</p>';
-        }
-    });
-
-    function renderIcons(icons) {
-        iconGrid.innerHTML = '';
-        if (icons.length === 0) {
-            iconGrid.innerHTML = '<p class="text-muted text-center w-100">Nenhum ícone encontrado.</p>';
-            return;
-        }
-        icons.forEach(iconName => {
-            const iconClass = `fas fa-${iconName}`;
-            const iconItem = document.createElement('div');
-            iconItem.className = 'icon-item';
-            iconItem.dataset.class = iconClass;
-            iconItem.title = iconName;
-            const i = document.createElement('i');
-            i.className = iconClass;
-            iconItem.appendChild(i);
-            iconGrid.appendChild(iconItem);
+            variavelSelect.addEventListener('change', toggleContext);
+            toggleContext(); // Executa ao carregar para verificar o estado inicial
         });
     }
 
-    searchInput.addEventListener('input', function() {
-        const searchTerm = this.value.toLowerCase().trim();
-        if (!searchTerm) {
-            renderIcons(allIcons.slice(0, 200));
-            return;
-        }
-        const filteredIcons = allIcons.filter(iconName => iconName.includes(searchTerm));
-        renderIcons(filteredIcons);
+    $(function() {
+        $('#condicao-formset-container .formset-row').formset({
+            prefix: '{{ formset_condicao.prefix }}',
+            addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
+            deleteText: '<i class="fas fa-trash text-danger"></i>',
+            addCssClass: 'btn btn-outline-success btn-sm mt-2 w-100',
+            deleteCssClass: 'btn btn-sm btn-link p-0',
+            added: function(row) {
+                handleContextFields(); // Aplica a lógica de contexto para novas linhas
+            }
+        });
+
+        document.querySelectorAll('.tom-select').forEach((el) => {
+            new TomSelect(el, {
+                plugins: { remove_button: { title: 'Remover este item' } },
+                placeholder: 'Selecione um ou mais itens...'
+            });
+        });
+
+        handleContextFields(); // Executa ao carregar a página
     });
 
-    iconGrid.addEventListener('click', function(e) {
-        const iconItem = e.target.closest('.icon-item');
-        if (iconItem) {
-            targetInput.value = iconItem.dataset.class;
+    document.addEventListener('DOMContentLoaded', function() {
+        // Lógica do Seletor de Ícones (sem alterações)
+        const iconPickerModal = document.getElementById('iconPickerModal');
+        if (iconPickerModal) {
+            const iconGrid = document.getElementById('iconGrid');
+            const searchInput = document.getElementById('iconSearchInput');
+            const targetInput = document.getElementById('{{ form_conquista.icone.id_for_label }}');
+            const iconPreview = document.getElementById('iconPreview').querySelector('i');
+            let allIcons = [];
+            const modal = new bootstrap.Modal(iconPickerModal);
+
+            function updatePreview() { iconPreview.className = targetInput.value || ''; }
+            
+            iconPickerModal.addEventListener('show.bs.modal', async function () {
+                if (allIcons.length > 0) return;
+                try {
+                    const response = await fetch("{% static 'vendor/fontawesome/icons.json' %}");
+                    if (!response.ok) throw new Error('Network response was not ok');
+                    const iconsData = await response.json();
+                    allIcons = Object.keys(iconsData).filter(key => iconsData[key].styles.includes('solid'));
+                    renderIcons(allIcons.slice(0, 200));
+                } catch (error) {
+                    console.error("Erro ao carregar o arquivo de ícones:", error);
+                    iconGrid.innerHTML = '<p class="text-danger text-center">Não foi possível carregar os ícones.</p>';
+                }
+            });
+
+            function renderIcons(icons) {
+                iconGrid.innerHTML = '';
+                if (icons.length === 0) {
+                    iconGrid.innerHTML = '<p class="text-muted text-center w-100">Nenhum ícone encontrado.</p>';
+                    return;
+                }
+                icons.forEach(iconName => {
+                    const iconClass = `fas fa-${iconName}`;
+                    const iconItem = document.createElement('div');
+                    iconItem.className = 'icon-item';
+                    iconItem.dataset.class = iconClass;
+                    iconItem.title = iconName;
+                    const i = document.createElement('i');
+                    i.className = iconClass;
+                    iconItem.appendChild(i);
+                    iconGrid.appendChild(iconItem);
+                });
+            }
+
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                if (!searchTerm) {
+                    renderIcons(allIcons.slice(0, 200));
+                    return;
+                }
+                const filteredIcons = allIcons.filter(iconName => iconName.includes(searchTerm));
+                renderIcons(filteredIcons);
+            });
+
+            iconGrid.addEventListener('click', function(e) {
+                const iconItem = e.target.closest('.icon-item');
+                if (iconItem) {
+                    targetInput.value = iconItem.dataset.class;
+                    updatePreview();
+                    modal.hide();
+                }
+            });
+            
+            targetInput.addEventListener('input', updatePreview);
             updatePreview();
-            modal.hide();
         }
     });
-    
-    targetInput.addEventListener('input', updatePreview);
-    updatePreview();
-});
 </script>
 {% endblock %}

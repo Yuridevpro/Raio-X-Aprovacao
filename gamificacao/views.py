@@ -325,3 +325,50 @@ def resgatar_recompensa_ajax(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': 'Ocorreu um erro inesperado.'}, status=500)
+    
+
+@login_required
+def campanhas_ativas(request):
+    """
+    Exibe uma página para os usuários com todas as campanhas e eventos ativos.
+    """
+    agora = timezone.now()
+    campanhas = Campanha.objects.filter(
+        ativo=True,
+        data_inicio__lte=agora
+    ).filter(
+        Q(data_fim__gte=agora) | Q(data_fim__isnull=True)
+    ).prefetch_related('simulado_especifico').order_by('data_fim')
+
+    # =======================================================================
+    # CORREÇÃO: Inicializa os dicionários de recompensas ANTES de qualquer loop.
+    # =======================================================================
+    # 1. Coleta TODOS os IDs de recompensa de TODAS as campanhas de uma vez.
+    all_reward_ids = {'avatares': set(), 'bordas': set(), 'banners': set()}
+    for campanha in campanhas:
+        for grupo in campanha.grupos_de_condicoes:
+            all_reward_ids['avatares'].update(grupo.get('avatares', []))
+            all_reward_ids['bordas'].update(grupo.get('bordas', []))
+            all_reward_ids['banners'].update(grupo.get('banners', []))
+    
+    # 2. Faz apenas 3 queries no banco para buscar todos os objetos necessários.
+    avatars_map = {a.id: a for a in Avatar.objects.filter(id__in=all_reward_ids['avatares'])}
+    bordas_map = {b.id: b for b in Borda.objects.filter(id__in=all_reward_ids['bordas'])}
+    banners_map = {b.id: b for b in Banner.objects.filter(id__in=all_reward_ids['banners'])}
+    # =======================================================================
+
+    # 3. Agora, anexa os objetos de recompensa detalhados a cada grupo.
+    # Esta parte agora é segura, pois os dicionários já existem.
+    for campanha in campanhas:
+        for grupo in campanha.grupos_de_condicoes:
+            grupo['recompensas_detalhadas'] = []
+            grupo['recompensas_detalhadas'].extend([avatars_map[id] for id in grupo.get('avatares', []) if id in avatars_map])
+            grupo['recompensas_detalhadas'].extend([bordas_map[id] for id in grupo.get('bordas', []) if id in bordas_map])
+            grupo['recompensas_detalhadas'].extend([banners_map[id] for id in grupo.get('banners', []) if id in banners_map])
+
+    context = {
+        'campanhas_ativas': campanhas,
+        'titulo_pagina': 'Eventos e Campanhas',
+        'active_tab': 'campanhas_ativas',
+    }
+    return render(request, 'gamificacao/campanhas_ativas.html', context)

@@ -1,10 +1,19 @@
-<!-- usuarios/templates/usuarios/includes/_colecao_submenu.html -->
 <ul class="nav nav-pills nav-fill mb-4">
+    <!-- ======================================================================= -->
+    <!-- NOVO LINK ADICIONADO -->
+    <!-- ======================================================================= -->
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'campanhas_ativas' %}active{% endif %}" href="{% url 'gamificacao:campanhas_ativas' %}">
+            <i class="fas fa-bullhorn me-1"></i> Eventos
+        </a>
+    </li>
+    <!-- ======================================================================= -->
+
     <li class="nav-item">
         <a class="nav-link {% if active_tab == 'caixa_de_recompensas' %}active{% endif %}" href="{% url 'caixa_de_recompensas' %}">
             <i class="fas fa-box-open me-1"></i> Caixa de Recompensas
-            {% if recompensas_pendentes_count > 0 %}
-                <span class="badge rounded-pill bg-danger ms-1">{{ recompensas_pendentes_count }}</span>
+            {% if request.user.userprofile.recompensas_pendentes.count > 0 %}
+                <span class="badge rounded-pill bg-danger ms-1">{{ request.user.userprofile.recompensas_pendentes.count }}</span>
             {% endif %}
         </a>
     </li>

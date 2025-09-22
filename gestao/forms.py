@@ -246,10 +246,48 @@ class ConquistaForm(forms.ModelForm):
             self.fields['recompensa_banners'].initial = Banner.objects.filter(id__in=recompensas.get('banners', []))
 
 
+class CondicaoForm(forms.ModelForm):
+    """Form customizado que adiciona um campo de contexto (Disciplina)."""
+    disciplina_contexto = forms.ModelChoiceField(
+        queryset=Disciplina.objects.all().order_by('nome'),
+        required=False,
+        label="Filtrar por Disciplina",
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm mt-1'})
+    )
+
+    class Meta:
+        model = Condicao
+        fields = ('variavel', 'operador', 'valor', 'disciplina_contexto')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk and self.instance.contexto_json.get('disciplina_id'):
+            try:
+                self.fields['disciplina_contexto'].initial = Disciplina.objects.get(pk=self.instance.contexto_json['disciplina_id'])
+            except Disciplina.DoesNotExist:
+                pass
+
+    def save(self, commit=True):
+        # Transforma a seleção do campo no JSON correto antes de salvar
+        disciplina = self.cleaned_data.get('disciplina_contexto')
+        self.instance.contexto_json = {'disciplina_id': disciplina.id} if disciplina else {}
+        # Remove o campo temporário para não dar erro ao salvar o modelo Condicao
+        self.cleaned_data.pop('disciplina_contexto', None)
+        
+        # Chama o método save original, mas apenas com os campos do modelo
+        instance = super(forms.ModelForm, self).save(commit=False)
+        if commit:
+            instance.save()
+        return instance
+
+# =======================================================================
+# ATUALIZAÇÃO DO FORMSET PARA USAR O FORM CUSTOMIZADO
+# =======================================================================
 CondicaoFormSet = inlineformset_factory(
-    parent_model=Conquista, 
-    model=Condicao,
-    fields=('variavel', 'operador', 'valor'),
+    Conquista, 
+    Condicao,
+    form=CondicaoForm,  # <-- USA O NOVO FORM
+    fields=('variavel', 'operador', 'valor', 'disciplina_contexto'),
     extra=1,
     can_delete=True,
     widgets={
@@ -258,6 +296,7 @@ CondicaoFormSet = inlineformset_factory(
         'valor': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
     }
 )
+
 
 class VariavelDoJogoForm(forms.ModelForm):
     # =======================================================================
@@ -304,28 +343,23 @@ class VariavelDoJogoForm(forms.ModelForm):
 class CampanhaForm(forms.ModelForm):
     class Meta:
         model = Campanha
-        fields = ['nome', 'ativo', 'gatilho', 'data_inicio', 'data_fim', 'tipo_recorrencia']
+        fields = ['nome', 'ativo', 'gatilho', 'simulado_especifico', 'data_inicio', 'data_fim', 'tipo_recorrencia']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'gatilho': forms.Select(attrs={'class': 'form-select', 'id': 'id_gatilho_select'}),
-            
-            # =======================================================================
-            # CORREÇÃO PRINCIPAL AQUI:
-            # Usamos um widget específico para o formato correto do HTML5.
-            # O Django se encarregará de formatar a data de 'DD/MM/YYYY' para 'YYYY-MM-DDTHH:MM'.
-            # =======================================================================
+            'simulado_especifico': forms.Select(attrs={'class': 'form-select'}),
             'data_inicio': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
             'data_fim': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}, format='%Y-%m-%dT%H:%M'),
-            # =======================================================================
-            
             'tipo_recorrencia': forms.Select(attrs={'class': 'form-select'}),
         }
     
-    # Adicionamos um __init__ para garantir que os campos de data não sejam obrigatórios
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['data_fim'].required = False
+        # Garante que o campo de simulado puxe apenas os oficiais e esteja ordenado
+        self.fields['simulado_especifico'].queryset = Simulado.objects.filter(is_oficial=True).order_by('-data_criacao')
+        self.fields['simulado_especifico'].required = False
 
 # =======================================================================
 # FORMULÁRIO DE CONCESSÃO MANUAL

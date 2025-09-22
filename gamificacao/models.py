@@ -11,7 +11,8 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 from questoes.models import Disciplina, Assunto, Banca # Usado no contexto_json
 from django.core.exceptions import ValidationError
-
+from simulados.models import Simulado # Adicione esta importação no topo
+from questoes.models import Disciplina, Assunto, Banca 
 
 # =======================================================================
 # MODELO DE CONFIGURAÇÕES GLOBAIS DA GAMIFICAÇÃO
@@ -298,32 +299,26 @@ class Condicao(models.Model):
         DIFERENTE = '!=', 'Diferente de'
 
     conquista = models.ForeignKey('Conquista', on_delete=models.CASCADE, related_name="condicoes")
-    
-    # =======================================================================
-    # CORREÇÃO AQUI: Adicionar `null=True` e mudar para `on_delete=models.SET_NULL`
-    # Isso permite que a migração seja criada sem problemas.
-    # on_delete=SET_NULL é mais seguro que PROTECT em muitos casos. Se você deletar
-    # uma VariavelDoJogo, a Condicao não será deletada, mas ficará com a variável nula.
-    # =======================================================================
-    variavel = models.ForeignKey(
-        VariavelDoJogo, 
-        on_delete=models.SET_NULL, 
-        null=True, 
-        verbose_name="Variável a ser verificada"
-    )
-    # =======================================================================
-
+    variavel = models.ForeignKey(VariavelDoJogo, on_delete=models.SET_NULL, null=True, verbose_name="Variável a ser verificada")
     operador = models.CharField(max_length=4, choices=Operador.choices, default=Operador.MAIOR_IGUAL)
     valor = models.IntegerField(verbose_name="Valor para comparar", default=0)
     
-    contexto_json = models.JSONField(default=dict, blank=True, verbose_name="Filtros Adicionais (JSON)", help_text="Opcional. Use para filtrar variáveis. Ex: {'disciplina_id': 5}")
+    # =======================================================================
+    # CAMPO ADICIONADO
+    # =======================================================================
+    contexto_json = models.JSONField(
+        default=dict, 
+        blank=True, 
+        verbose_name="Filtros Adicionais (JSON)", 
+        help_text="Opcional. Use para filtrar variáveis. Ex: {'disciplina_id': 5}"
+    )
+    # =======================================================================
 
     class Meta:
         verbose_name = "Condição"
         verbose_name_plural = "Condições"
 
     def __str__(self):
-        # Adiciona uma checagem para evitar erro se a variável for nula
         if self.variavel:
             return f"Se '{self.variavel.nome_exibicao}' for '{self.get_operador_display()}' '{self.valor}'"
         return "Condição Inválida (sem variável)"
@@ -380,7 +375,10 @@ class Campanha(models.Model):
         COMPLETAR_SIMULADO = 'COMPLETAR_SIMULADO', 'Ao Completar um Simulado'
         RANKING_SEMANAL_CONCLUIDO = 'RANKING_SEMANAL_CONCLUIDO', 'Ao Fechar o Ranking Semanal'
         RANKING_MENSAL_CONCLUIDO = 'RANKING_MENSAL_CONCLUIDO', 'Ao Fechar o Ranking Mensal'
-    
+        PRIMEIRA_ACAO_DO_DIA = 'PRIMEIRA_ACAO_DO_DIA', 'Na Primeira Ação do Dia'
+        META_DIARIA_CONCLUIDA = 'META_DIARIA_CONCLUIDA', 'Ao Concluir a Meta Diária'
+
+
     class TipoRecorrencia(models.TextChoices):
         UNICA = 'UNICA', 'Apenas Uma Vez (Geral)'
         UNICA_POR_USUARIO = 'UNICA_POR_USUARIO', 'Apenas Uma Vez por Usuário'
@@ -394,8 +392,28 @@ class Campanha(models.Model):
     data_fim = models.DateTimeField(null=True, blank=True, verbose_name="Fim da Vigência (opcional)")
     tipo_recorrencia = models.CharField(max_length=20, choices=TipoRecorrencia.choices, default=TipoRecorrencia.SEMANAL)
     gatilho = models.CharField(max_length=50, choices=Gatilho.choices, verbose_name="Gatilho de Ativação")
+    simulado_especifico = models.ForeignKey(
+        Simulado, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True, 
+        verbose_name="Simulado Específico (Opcional)",
+        help_text="Se um simulado for selecionado, esta campanha só será ativada pela conclusão dele."
+    )
     grupos_de_condicoes = JSONField(default=list, blank=True, verbose_name="Grupos de Condições e Recompensas")
     def __str__(self): return self.nome
+    
+class ConquistaDiariaGlobalLog(models.Model):
+    TIPO_CHOICES = [
+        ('META_DIARIA', 'Primeiro a Concluir a Meta Diária'),
+    ]
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    data = models.DateField()
+    tipo = models.CharField(max_length=50, choices=TIPO_CHOICES)
+    conquistado_em = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('data', 'tipo') # Garante que só haja um registro por dia/tipo
 
 class CampanhaUsuarioCompletion(models.Model):
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
