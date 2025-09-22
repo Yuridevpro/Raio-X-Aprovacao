@@ -1,12 +1,31 @@
 <!-- usuarios/templates/usuarios/includes/_colecao_submenu.html -->
-<nav class="nav nav-pills nav-fill mb-4">
-    <a class="nav-link {% if active_tab == 'avatar' %}active{% endif %}" href="{% url 'colecao_avatares' %}">
-        <i class="fas fa-user-circle me-2"></i>Avatares
-    </a>
-    <a class="nav-link {% if active_tab == 'borda' %}active{% endif %}" href="{% url 'colecao_bordas' %}">
-        <i class="fas fa-id-badge me-2"></i>Bordas
-    </a>
-    <a class="nav-link {% if active_tab == 'banner' %}active{% endif %}" href="{% url 'colecao_banners' %}">
-        <i class="fas fa-image me-2"></i>Banners
-    </a>
-</nav>
+<ul class="nav nav-pills nav-fill mb-4">
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'caixa_de_recompensas' %}active{% endif %}" href="{% url 'caixa_de_recompensas' %}">
+            <i class="fas fa-box-open me-1"></i> Caixa de Recompensas
+            {% if recompensas_pendentes_count > 0 %}
+                <span class="badge rounded-pill bg-danger ms-1">{{ recompensas_pendentes_count }}</span>
+            {% endif %}
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'trilhas_de_conquistas' %}active{% endif %}" href="{% url 'trilhas_de_conquistas' %}">
+            <i class="fas fa-road me-1"></i> Trilhas
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'avatar' %}active{% endif %}" href="{% url 'colecao_avatares' %}">
+            <i class="fas fa-user-circle me-1"></i> Avatares
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'borda' %}active{% endif %}" href="{% url 'colecao_bordas' %}">
+            <i class="fas fa-id-badge me-1"></i> Bordas
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if active_tab == 'banner' %}active{% endif %}" href="{% url 'colecao_banners' %}">
+            <i class="fas fa-image me-1"></i> Banners
+        </a>
+    </li>
+</ul>

@@ -10,7 +10,7 @@
         <h2 class="h3 mb-0">Painel de Gestão</h2>
     </div>
     
-    {% if messages %}{% for message in messages %}<div class="alert alert-{{ message.tags|default:'info' }}">{{ message }}</div>{% endfor %}{% endif %}
+    {% include 'gestao/includes/_messages.html' %}
 
     <div class="row">
         <!-- Card de Questões -->
@@ -29,6 +29,7 @@
             </div>
         </div>
 
+        <!-- Card de Simulados -->
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card text-center h-100 shadow-sm">
                 <div class="card-body d-flex flex-column justify-content-between p-4">
@@ -45,34 +46,40 @@
         </div>
 
 
-        <!-- Card de Gamificação (agora com dropdown) -->
-<div class="col-lg-3 col-md-6 mb-4">
-    <div class="card text-center h-100 shadow-sm">
-        <div class="card-body d-flex flex-column justify-content-between p-4">
-            <div>
-                <h5 class="card-title">Gamificação</h5>
-                <i class="fas fa-trophy display-4 text-warning text-opacity-50 my-3"></i>
-                <div class="list-group list-group-flush text-start">
-                    <a href="{% url 'gestao:listar_conquistas' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        Conquistas <span class="badge bg-primary rounded-pill">{{ total_conquistas }}</span>
-                    </a>
-                    <a href="{% url 'gestao:listar_recompensas' tipo='avatares' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        Avatares <span class="badge bg-primary rounded-pill">{{ total_avatares }}</span>
-                    </a>
-                    <a href="{% url 'gestao:listar_recompensas' tipo='bordas' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        Bordas <span class="badge bg-primary rounded-pill">{{ total_bordas }}</span>
-                    </a>
-                     <a href="{% url 'gestao:listar_recompensas' tipo='banners' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                        Banners <span class="badge bg-primary rounded-pill">{{ total_banners }}</span>
+        <!-- ======================================================================= -->
+        <!-- CARD DE GAMIFICAÇÃO CORRIGIDO E UNIFICADO -->
+        <!-- ======================================================================= -->
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body d-flex flex-column justify-content-between p-4">
+                    <div>
+                        <h5 class="card-title">Gamificação</h5>
+                        <i class="fas fa-trophy display-4 text-warning text-opacity-50 my-3"></i>
+                        <div class="list-group list-group-flush text-start">
+                            <!-- Link principal para o novo fluxo -->
+                            <a href="{% url 'gestao:listar_trilhas' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Trilhas & Conquistas
+                                <span class="badge bg-primary rounded-pill">{{ total_conquistas }}</span>
+                            </a>
+                            <!-- Links para as recompensas (itens) -->
+                            <a href="{% url 'gestao:listar_recompensas' tipo='avatares' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Avatares <span class="badge bg-secondary rounded-pill">{{ total_avatares }}</span>
+                            </a>
+                            <a href="{% url 'gestao:listar_recompensas' tipo='bordas' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Bordas <span class="badge bg-secondary rounded-pill">{{ total_bordas }}</span>
+                            </a>
+                            <a href="{% url 'gestao:listar_recompensas' tipo='banners' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                                Banners <span class="badge bg-secondary rounded-pill">{{ total_banners }}</span>
+                            </a>
+                        </div>
+                    </div>
+                    <!-- Botão principal aponta para o dashboard de gamificação -->
+                    <a href="{% url 'gestao:dashboard_gamificacao' %}" class="btn btn-warning mt-3">
+                        <i class="fas fa-chart-line me-2"></i>Dashboard de Gamificação
                     </a>
                 </div>
             </div>
-            <a href="{% url 'gestao:gerenciar_gamificacao_settings' %}" class="btn btn-warning mt-3">
-                <i class="fas fa-cogs me-2"></i>Gerenciar Regras de XP
-            </a>
         </div>
-    </div>
-</div>
         
         
         <!-- Card de Notificações -->
@@ -81,99 +88,69 @@
                 <div class="card-body d-flex flex-column justify-content-between p-4">
                     <div>
                         <h5 class="card-title">Notificações Pendentes</h5>
-                        <i class="fas fa-bell display-4 text-warning text-opacity-50 my-3"></i>
+                        <i class="fas fa-bell display-4 text-danger text-opacity-50 my-3"></i>
                     </div>
-                    <a href="{% url 'gestao:listar_notificacoes' %}" class="btn btn-warning mt-3 d-flex justify-content-center align-items-center">
+                    <a href="{% url 'gestao:listar_notificacoes' %}" class="btn btn-danger mt-3 d-flex justify-content-center align-items-center">
                         <span>Ver Notificações</span>
                         {% if notificacoes_pendentes > 0 %}
-                            <span class="badge text-bg-dark rounded-pill ms-2">{{ notificacoes_pendentes }}</span>
+                            <span class="badge text-bg-light rounded-pill ms-2">{{ notificacoes_pendentes }}</span>
                         {% endif %}
                     </a>
                 </div>
             </div>
         </div>
 
-        <!-- Card de Solicitações de Exclusão (Visível para todo o Staff) -->
-        {% if user.is_staff %}
-        <div class="col-lg-3 col-md-6 mb-4">
-            <div class="card text-center h-100 shadow-sm">
-                <div class="card-body d-flex flex-column justify-content-between p-4">
-                    <div>
-                        <h5 class="card-title">Solicitações de Exclusão</h5>
-                         <i class="fas fa-user-slash display-4 text-danger text-opacity-50 my-3"></i>
-                    </div>
-                    {% if user.is_superuser %}
-                        <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="btn btn-danger mt-3 d-flex justify-content-center align-items-center">
-                            <span>Revisar Solicitações</span>
-                            {% if solicitacoes_pendentes_count > 0 %}
-                                <span class="badge text-bg-light rounded-pill ms-2">{{ solicitacoes_pendentes_count }}</span>
-                            {% endif %}
-                        </a>
-                    {% else %}
-                        <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="btn btn-outline-danger mt-3 d-flex justify-content-center align-items-center">
-                            <span>Ver Solicitações</span>
-                            {% if solicitacoes_pendentes_count > 0 %}
-                                <span class="badge text-bg-danger rounded-pill ms-2">{{ solicitacoes_pendentes_count }}</span>
-                            {% endif %}
-                        </a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Card de Gestão de Usuários -->
-        {% if user.is_staff %}
+        <!-- O restante dos cards (Usuários, Logs, etc.) permanece igual -->
+        
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card text-center h-100 shadow-sm">
                 <div class="card-body d-flex flex-column justify-content-between p-4">
                     <div>
                         <h5 class="card-title">Usuários</h5>
-                        <i class="fas fa-users-cog display-4 text-info text-opacity-50 my-3"></i>
+                        <i class="fas fa-users-cog display-4 text-secondary text-opacity-50 my-3"></i>
                     </div>
-                    <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-outline-info mt-3">
-                        <span>{{ user.is_superuser|yesno:"Gerenciar,Visualizar" }} Usuários</span>
+                    <a href="{% url 'gestao:listar_usuarios' %}" class="btn btn-outline-secondary mt-3">
+                        <span>Gerenciar Usuários</span>
                     </a>
                 </div>
             </div>
         </div>
-        {% endif %}
 
-        <!-- Card de Registro de Atividades -->
         {% if user.is_superuser %}
         <div class="col-lg-3 col-md-6 mb-4">
             <div class="card text-center h-100 shadow-sm">
                 <div class="card-body d-flex flex-column justify-content-between p-4">
                     <div>
                         <h5 class="card-title">Registro de Atividades</h5>
-                        <i class="fas fa-history display-4 text-secondary text-opacity-50 my-3"></i>
+                        <i class="fas fa-history display-4 text-dark text-opacity-50 my-3"></i>
                     </div>
-                    <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-outline-secondary mt-3">
+                    <a href="{% url 'gestao:listar_logs_atividade' %}" class="btn btn-outline-dark mt-3">
                         <span>Ver Registros</span>
                     </a>
                 </div>
             </div>
         </div>
-        {% endif %}
-
-        <!-- Card de Ações de Superusuário -->
-        {% if user.is_superuser %}
-        <div class="col-lg-3 col-md-6 mb-4">
+        
+        <div class="col-lg-6 mb-4">
             <div class="card h-100 shadow-sm">
                 <div class="card-body d-flex flex-column p-4 text-center">
-                    <h5 class="card-title">Ações de Superusuário</h5>
-                    <i class="fas fa-user-shield display-4 text-danger text-opacity-50 my-3"></i>
+                    <h5 class="card-title">Solicitações de Superusuário</h5>
+                    <i class="fas fa-user-shield display-4 text-success text-opacity-50 my-3"></i>
                     <div class="list-group list-group-flush mt-auto">
+                        <a href="{% url 'gestao:listar_solicitacoes_exclusao' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            Exclusão de Usuários
+                            <span class="badge bg-danger rounded-pill">{{ solicitacoes_pendentes_count|default:0 }}</span>
+                        </a>
                         <a href="{% url 'gestao:listar_solicitacoes_promocao' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Promoções
                             <span class="badge bg-warning rounded-pill">{{ promocoes_pendentes_count|default:0 }}</span>
                         </a>
                         <a href="{% url 'gestao:listar_solicitacoes_despromocao' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
                             Despromoções
-                            <span class="badge bg-danger rounded-pill">{{ despromocoes_pendentes_count|default:0 }}</span>
+                            <span class="badge bg-secondary rounded-pill">{{ despromocoes_pendentes_count|default:0 }}</span>
                         </a>
                         <a href="{% url 'gestao:listar_solicitacoes_exclusao_superuser' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-                            Exclusões
+                            Exclusões de Superusuário
                             <span class="badge bg-dark rounded-pill">{{ exclusoes_superuser_pendentes_count|default:0 }}</span>
                         </a>
                     </div>

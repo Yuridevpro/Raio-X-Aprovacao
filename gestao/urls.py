@@ -1,4 +1,4 @@
-# gestao/urls.py (ARQUIVO CORRIGIDO E FINALIZADO)
+# gestao/urls.py (ARQUIVO COMPLETO E FINALIZADO)
 
 from django.urls import path
 from . import views
@@ -87,36 +87,36 @@ urlpatterns = [
     path('simulados/api/editar-meta/<int:simulado_id>/', views.editar_simulado_meta_ajax, name='editar_simulado_meta_ajax'),
     
     # =======================================================================
-    # URLS DE GAMIFICAÇÃO CORRIGIDAS E FINALIZADAS
+    # URLS DE GAMIFICAÇÃO (FLUXO NOVO E UNIFICADO)
     # =======================================================================
     path('gamificacao/dashboard/', views.dashboard_gamificacao, name='dashboard_gamificacao'),
     path('gamificacao/conceder-recompensa/', views.conceder_recompensa_manual, name='conceder_recompensa_manual'),
     path('gamificacao/configuracoes/', views.gerenciar_gamificacao_settings, name='gerenciar_gamificacao_settings'),
     
-    # URLs de Campanhas (CORRIGIDAS)
+    # URLs de Campanhas
     path('gamificacao/campanhas/', views.listar_campanhas, name='listar_campanhas'),
     path('gamificacao/campanhas/nova/', views.criar_ou_editar_campanha, name='criar_campanha'),
     path('gamificacao/campanhas/editar/<int:campanha_id>/', views.criar_ou_editar_campanha, name='editar_campanha'),
     path('gamificacao/campanhas/deletar/<int:campanha_id>/', views.deletar_campanha, name='deletar_campanha'),
 
-    # URLs de Trilhas e Conquistas
+    # --- URLs de Trilhas e Conquistas (FLUXO NOVO) ---
     path('gamificacao/trilhas/', views.listar_trilhas, name='listar_trilhas'),
-    path('gamificacao/trilhas/nova/', views.criar_trilha, name='criar_trilha'),
-    path('gamificacao/trilhas/editar/<int:trilha_id>/', views.editar_trilha, name='editar_trilha'),
+    path('gamificacao/trilhas/nova/', views.criar_ou_editar_trilha, name='criar_trilha'),
+    path('gamificacao/trilhas/editar/<int:trilha_id>/', views.criar_ou_editar_trilha, name='editar_trilha'),
     path('gamificacao/trilhas/deletar/<int:trilha_id>/', views.deletar_trilha, name='deletar_trilha'),
-    
-    # NOVAS URLS PARA GERENCIAR TIPOS DE CONDIÇÃO
-    path('gamificacao/condicoes/', views.listar_tipos_condicao, name='listar_tipos_condicao'),
-    path('gamificacao/condicoes/nova/', views.criar_ou_editar_tipo_condicao, name='criar_tipo_condicao'),
-    path('gamificacao/condicoes/editar/<int:tipo_id>/', views.criar_ou_editar_tipo_condicao, name='editar_tipo_condicao'),
-    path('gamificacao/condicoes/deletar/<int:tipo_id>/', views.deletar_tipo_condicao, name='deletar_tipo_condicao'),
-    
-    path('gamificacao/conquistas/', views.listar_conquistas, name='listar_conquistas'),
-    path('gamificacao/conquistas/nova/', views.criar_conquista, name='criar_conquista'),
-    path('gamificacao/conquistas/editar/<int:conquista_id>/', views.editar_conquista, name='editar_conquista'),
+    path('gamificacao/trilhas/<int:trilha_id>/conquistas/', views.gerenciar_conquistas_da_trilha, name='gerenciar_conquistas_da_trilha'),
+    path('gamificacao/trilhas/<int:trilha_id>/conquistas/nova/', views.criar_ou_editar_conquista, name='criar_conquista'),
+    path('gamificacao/trilhas/<int:trilha_id>/conquistas/editar/<int:conquista_id>/', views.criar_ou_editar_conquista, name='editar_conquista'),
     path('gamificacao/conquistas/deletar/<int:conquista_id>/', views.deletar_conquista, name='deletar_conquista'),
-
-    # Rotas de Recompensas (Avatares, Bordas, Banners)
+    
+    # --- URLs de Variáveis do Jogo (antigos Tipos de Condição) ---
+    path('gamificacao/variaveis/', views.listar_variaveis_do_jogo, name='listar_variaveis_do_jogo'),
+    path('gamificacao/variaveis/nova/', views.criar_ou_editar_variavel, name='criar_variavel_do_jogo'),
+    path('gamificacao/variaveis/editar/<int:variavel_id>/', views.criar_ou_editar_variavel, name='editar_variavel_do_jogo'),
+    # path('gamificacao/variaveis/deletar/<int:variavel_id>/', views.deletar_variavel, name='deletar_variavel_do_jogo'), # Adicionar se necessário
+    
+    # --- Rotas de Recompensas Genéricas (Avatares, Bordas, Banners) ---
+    # Esta rota deve vir DEPOIS das outras para não causar conflito.
     path('gamificacao/<str:tipo>/', views.listar_recompensas, name='listar_recompensas'),
     path('gamificacao/<str:tipo>/nova/', views.criar_recompensa, name='criar_recompensa'),
     path('gamificacao/<str:tipo>/editar/<int:recompensa_id>/', views.editar_recompensa, name='editar_recompensa'),

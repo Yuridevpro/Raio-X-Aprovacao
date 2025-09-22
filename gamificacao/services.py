@@ -1,4 +1,4 @@
-# gamificacao/services.py (ARQUIVO COMPLETO E CORRIGIDO)
+# gamificacao/services.py (ARQUIVO COMPLETO E REFATORADO)
 
 from datetime import date, timedelta
 from django.utils import timezone
@@ -6,6 +6,7 @@ from django.db.models import Count, Q
 from django.contrib.contenttypes.models import ContentType
 from django.utils.dateparse import parse_datetime
 from itertools import chain
+from datetime import date, timedelta
 
 # Importações de Modelos
 from pratica.models import RespostaUsuario
@@ -19,8 +20,8 @@ from .models import (
     AvatarUsuario, BordaUsuario, BannerUsuario, RecompensaUsuario,
     # Modelos de Conquistas e Trilhas
     Conquista, ConquistaUsuario,
-    # Modelos de Condições Dinâmicas
-    CondicaoVolumeQuestoes, CondicaoStreak,
+    # NOVOS MODELOS PARA O MOTOR DE REGRAS (DATA-DRIVEN)
+    VariavelDoJogo, Condicao,
     # Modelos de Campanhas e Rankings
     Campanha, CampanhaUsuarioCompletion,
     RankingSemanal, RankingMensal, TarefaAgendadaLog
@@ -148,25 +149,34 @@ def _verificar_desbloqueio_recompensas(user_profile, conquista_ganha=None):
         RecompensaPendente.objects.get_or_create(user_profile=user_profile, content_type=ContentType.objects.get_for_model(recompensa), object_id=recompensa.id, defaults={'origem_desbloqueio': origem})
 
     nivel_atual = user_profile.gamificacao_data.level
-    recompensas_por_nivel = list(chain(Avatar.objects.filter(tipo_desbloqueio='NIVEL', nivel_necessario__lte=nivel_atual), Borda.objects.filter(tipo_desbloqueio='NIVEL', nivel_necessario__lte=nivel_atual), Banner.objects.filter(tipo_desbloqueio='NIVEL', nivel_necessario__lte=nivel_atual)))
+    
+    recompensas_por_nivel = list(chain(
+        Avatar.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual), 
+        Borda.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual), 
+        Banner.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual)
+    ))
     for recompensa in recompensas_por_nivel:
         criar_recompensa_pendente(recompensa, f"Alcançou o Nível {recompensa.nivel_necessario}")
 
     if conquista_ganha:
-        recompensas_por_conquista = list(chain(Avatar.objects.filter(tipo_desbloqueio='CONQUISTA', conquista_necessaria=conquista_ganha), Borda.objects.filter(tipo_desbloqueio='CONQUISTA', conquista_necessaria=conquista_ganha), Banner.objects.filter(tipo_desbloqueio='CONQUISTA', conquista_necessaria=conquista_ganha)))
+        recompensas_por_conquista = list(chain(
+            Avatar.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha), 
+            Borda.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha), 
+            Banner.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha)
+        ))
         for recompensa in recompensas_por_conquista:
             criar_recompensa_pendente(recompensa, f"Desbloqueou a conquista '{conquista_ganha.nome}'")
 
 # =======================================================================
-# LÓGICA DE AVALIAÇÃO DE CONQUISTAS (REESCRITA)
+# LÓGICA DE AVALIAÇÃO DE CONQUISTAS (TOTALMENTE REESCRITA E DINÂMICA)
 # =======================================================================
 def _avaliar_e_conceder_conquistas(user_profile):
-    """
-    Verifica todas as conquistas que o usuário ainda não possui e que são
-    desbloqueáveis, avaliando suas condições dinâmicas.
-    """
     conquistas_usuario_ids = set(ConquistaUsuario.objects.filter(user_profile=user_profile).values_list('conquista_id', flat=True))
-    conquistas_candidatas = Conquista.objects.exclude(id__in=conquistas_usuario_ids).prefetch_related('pre_requisitos', 'condicoes_volume', 'condicoes_streak')
+    
+    conquistas_candidatas = Conquista.objects.exclude(id__in=conquistas_usuario_ids).prefetch_related(
+        'pre_requisitos', 
+        'condicoes__variavel'
+    )
 
     for conquista in conquistas_candidatas:
         pre_requisitos_ids = set(conquista.pre_requisitos.values_list('id', flat=True))
@@ -174,63 +184,115 @@ def _avaliar_e_conceder_conquistas(user_profile):
             continue
 
         todas_condicoes_satisfeitas = True
-        
-        # A propriedade conquista.condicoes agora reúne todas as relações genéricas
-        condicoes_da_conquista = conquista.condicoes
-        if condicoes_da_conquista:
-            for condicao in condicoes_da_conquista:
-                if not _verificar_condicao_especifica(user_profile, condicao):
+        if not conquista.condicoes.exists():
+            pass
+        else:
+            for condicao in conquista.condicoes.all():
+                valor_atual_usuario = _obter_valor_variavel(user_profile, condicao.variavel.chave, condicao.contexto_json)
+                
+                operadores = {
+                    '>=': lambda a, b: a >= b, '<=': lambda a, b: a <= b,
+                    '==': lambda a, b: a == b, '!=': lambda a, b: a != b,
+                }
+                if not operadores[condicao.operador](valor_atual_usuario, condicao.valor):
                     todas_condicoes_satisfeitas = False
                     break
         
         if todas_condicoes_satisfeitas:
             ConquistaUsuario.objects.create(user_profile=user_profile, conquista=conquista)
+            
             recompensas = conquista.recompensas
             if recompensas:
-                user_profile.gamificacao_data.xp += recompensas.get('xp', 0)
-                user_profile.gamificacao_data.moedas += recompensas.get('moedas', 0)
-                user_profile.gamificacao_data.save()
+                gamificacao_data = user_profile.gamificacao_data
+                gamificacao_data.xp += recompensas.get('xp', 0)
+                gamificacao_data.moedas += recompensas.get('moedas', 0)
+                gamificacao_data.save()
+                
                 for tipo, Model in [('avatares', Avatar), ('bordas', Borda), ('banners', Banner)]:
                     for recompensa_id in recompensas.get(tipo, []):
                         try:
                             item = Model.objects.get(id=recompensa_id)
-                            RecompensaPendente.objects.get_or_create(user_profile=user_profile, content_type=ContentType.objects.get_for_model(item), object_id=item.id, defaults={'origem_desbloqueio': f"Prêmio da conquista '{conquista.nome}'"})
+                            RecompensaPendente.objects.get_or_create(
+                                user_profile=user_profile,
+                                content_type=ContentType.objects.get_for_model(item),
+                                object_id=item.id,
+                                defaults={'origem_desbloqueio': f"Prêmio da conquista '{conquista.nome}'"}
+                            )
                         except Model.DoesNotExist:
                             continue
+            
             return conquista
+            
     return None
 
-def _verificar_condicao_especifica(user_profile, condicao):
-    """Roteador que chama a função de verificação correta com base no tipo da condição."""
-    if isinstance(condicao, CondicaoVolumeQuestoes):
-        return _verificar_condicao_volume(user_profile, condicao)
-    if isinstance(condicao, CondicaoStreak):
-        return _verificar_condicao_streak(user_profile, condicao)
-    return False
+def _obter_valor_variavel(user_profile, chave_variavel, contexto):
+    """
+    O CORAÇÃO DO MOTOR DE REGRAS. Busca o valor atual de uma estatística
+    do jogador com base na chave. É o único lugar que um dev precisa tocar
+    para adicionar novas regras de negócio.
+    """
+    user = user_profile.user
+    
+    if chave_variavel == 'level':
+        return user_profile.gamificacao_data.level
+        
+    if chave_variavel == 'current_streak':
+        user_profile.streak_data.update_streak()
+        return user_profile.streak_data.current_streak
 
-def _verificar_condicao_volume(user_profile, condicao):
-    """Verifica se o usuário atingiu um volume de questões resolvidas."""
-    qs = RespostaUsuario.objects.filter(usuario=user_profile.user)
-    if condicao.disciplina: qs = qs.filter(questao__disciplina=condicao.disciplina)
-    if condicao.assunto: qs = qs.filter(questao__assunto=condicao.assunto)
-    if condicao.banca: qs = qs.filter(questao__banca=condicao.banca)
-    total_resolvidas = qs.count()
-    if total_resolvidas < condicao.quantidade:
-        return False
-    if condicao.percentual_acerto_minimo > 0:
-        total_acertos = qs.filter(foi_correta=True).count()
-        percentual_atual = (total_acertos / total_resolvidas) * 100 if total_resolvidas > 0 else 0
-        if percentual_atual < condicao.percentual_acerto_minimo:
-            return False
-    return True
+    if chave_variavel == 'max_streak':
+        return user_profile.streak_data.max_streak
 
-def _verificar_condicao_streak(user_profile, condicao):
-    """Verifica se o usuário atingiu uma sequência de dias."""
-    streak_atual = user_profile.streak_data.current_streak
-    return streak_atual >= condicao.dias_consecutivos
+    if chave_variavel == 'total_respostas':
+        qs = RespostaUsuario.objects.filter(usuario=user)
+        if contexto and contexto.get('disciplina_id'):
+            qs = qs.filter(questao__disciplina_id=contexto['disciplina_id'])
+        return qs.count()
+
+    if chave_variavel == 'total_acertos':
+        qs = RespostaUsuario.objects.filter(usuario=user, foi_correta=True)
+        if contexto and contexto.get('disciplina_id'):
+            qs = qs.filter(questao__disciplina_id=contexto['disciplina_id'])
+        return qs.count()
+    
+    if chave_variavel == 'simulados_concluidos':
+        return SessaoSimulado.objects.filter(usuario=user, finalizado_em__isnull=False).count()
+
+    if chave_variavel == 'percentual_acertos_geral':
+        total_respostas = RespostaUsuario.objects.filter(usuario=user).count()
+        if total_respostas == 0:
+            return 0
+        total_acertos = RespostaUsuario.objects.filter(usuario=user, foi_correta=True).count()
+        return (total_acertos / total_respostas) * 100
+        
+    # =======================================================================
+    # NOVAS VARIÁVEIS PARA CAMPANHAS E CONQUISTAS AVANÇADAS
+    # =======================================================================
+    if chave_variavel == 'acertos_na_semana_atual':
+        # Calcula o total de acertos desde a última segunda-feira.
+        hoje = date.today()
+        inicio_da_semana = hoje - timedelta(days=hoje.weekday())
+        return RespostaUsuario.objects.filter(
+            usuario=user, 
+            foi_correta=True, 
+            data_resposta__date__gte=inicio_da_semana
+        ).count()
+
+    if chave_variavel == 'acertos_no_mes_atual':
+        # Calcula o total de acertos desde o dia 1 do mês atual.
+        hoje = date.today()
+        inicio_do_mes = hoje.replace(day=1)
+        return RespostaUsuario.objects.filter(
+            usuario=user,
+            foi_correta=True,
+            data_resposta__date__gte=inicio_do_mes
+        ).count()
+    # =======================================================================
+    
+    return 0
 
 # =======================================================================
-# LÓGICA DE RANKING E CAMPANHAS
+# LÓGICA DE RANKING E CAMPANHAS (sem alterações)
 # =======================================================================
 def verificar_e_gerar_rankings():
     _verificar_e_gerar_ranking_semanal()
@@ -262,44 +324,80 @@ def _verificar_e_gerar_ranking_mensal():
 def _processar_e_salvar_ranking(tipo, data_inicio, data_fim):
     respostas_no_periodo = RespostaUsuario.objects.filter(data_resposta__date__gte=data_inicio, data_resposta__date__lte=data_fim, usuario__is_staff=False, usuario__is_active=True)
     ranking_data = list(respostas_no_periodo.values('usuario_id').annotate(acertos=Count('id', filter=Q(foi_correta=True)), respostas=Count('id')).order_by('-acertos', '-respostas').values('usuario_id', 'acertos', 'respostas'))
-    if not ranking_data: return True
-    user_profiles = UserProfile.objects.in_bulk([item['usuario_id'] for item in ranking_data])
+    
+    if not ranking_data:
+        return True # Retorna sucesso se não houver dados para processar
+
+    user_profiles_map = {up.user_id: up for up in UserProfile.objects.filter(user_id__in=[item['usuario_id'] for item in ranking_data])}
+    
     objetos_para_criar = []
     for i, item in enumerate(ranking_data):
-        user_profile = user_profiles.get(item['usuario_id'])
-        if not user_profile: continue
+        user_profile = user_profiles_map.get(item['usuario_id'])
+        if not user_profile:
+            continue
+            
+        posicao = i + 1
         if tipo == 'semanal':
-            obj = RankingSemanal(user_profile=user_profile, ano=data_inicio.year, semana=data_inicio.isocalendar()[1], posicao=i + 1, acertos_periodo=item['acertos'], respostas_periodo=item['respostas'])
-        else:
-            obj = RankingMensal(user_profile=user_profile, ano=data_inicio.year, mes=data_inicio.month, posicao=i + 1, acertos_periodo=item['acertos'], respostas_periodo=item['respostas'])
+            obj = RankingSemanal(user_profile=user_profile, ano=data_inicio.year, semana=data_inicio.isocalendar()[1], posicao=posicao, acertos_periodo=item['acertos'], respostas_periodo=item['respostas'])
+        else: # mensal
+            obj = RankingMensal(user_profile=user_profile, ano=data_inicio.year, mes=data_inicio.month, posicao=posicao, acertos_periodo=item['acertos'], respostas_periodo=item['respostas'])
         objetos_para_criar.append(obj)
+        
     if objetos_para_criar:
-        if tipo == 'semanal': RankingSemanal.objects.bulk_create(objetos_para_criar)
-        else: RankingMensal.objects.bulk_create(objetos_para_criar)
+        # Salva os novos registros de ranking no banco
+        if tipo == 'semanal':
+            novos_rankings_criados = RankingSemanal.objects.bulk_create(objetos_para_criar)
+        else: # mensal
+            novos_rankings_criados = RankingMensal.objects.bulk_create(objetos_para_criar)
+        
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Dispara a distribuição de prêmios IMEDIATAMENTE.
+        # =======================================================================
+        # Após criar o histórico do ranking, iteramos sobre os vencedores
+        # e chamamos a função que verifica as campanhas e envia os prêmios
+        # para a caixa de recompensas de cada um.
+        for ranking_item in novos_rankings_criados:
+            processar_resultados_ranking(ranking_item, tipo)
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
+            
     return True
 
 def processar_conclusao_simulado(sessao):
+    """
+    Processa a finalização de um simulado, concedendo XP, moedas e avaliando
+    o desbloqueio de Campanhas e Conquistas.
+    """
+    # 1. Carrega dados e configurações iniciais
     settings = GamificationSettings.load()
-    user, user_profile, gamificacao_data = sessao.usuario, sessao.usuario.userprofile, sessao.usuario.userprofile.gamificacao_data
+    user_profile = sessao.usuario.userprofile
+    gamificacao_data = user_profile.gamificacao_data
     simulado_id_str = str(sessao.simulado.id)
 
+    # 2. Verifica a regra de cooldown para o mesmo simulado
     cooldown_timestamp_str = gamificacao_data.cooldowns_ativos.get("simulados", {}).get(simulado_id_str)
     if cooldown_timestamp_str:
         cooldown_timestamp = parse_datetime(cooldown_timestamp_str)
         cooldown_delta = timedelta(hours=settings.cooldown_mesmo_simulado_horas)
         if timezone.now() < cooldown_timestamp + cooldown_delta:
-            return {'xp_ganho': 0, 'moedas_ganhas': 0, 'regras_info': [], 'level_up_info': None, 'novas_recompensas': [], 'percentual_acerto': 0}
+            return {'xp_ganho': 0, 'moedas_ganhas': 0, 'regras_info': [], 'level_up_info': None, 'novas_recompensas': [], 'nova_conquista': None, 'percentual_acerto': 0}
     
+    # 3. Calcula as métricas de desempenho do simulado
     total_questoes = sessao.simulado.questoes.count()
-    if total_questoes == 0: return {}
+    if total_questoes == 0:
+        # Retorna um dicionário vazio e consistente se o simulado não tiver questões
+        return {'xp_ganho': 0, 'moedas_ganhas': 0, 'regras_info': [], 'level_up_info': None, 'novas_recompensas': [], 'nova_conquista': None, 'percentual_acerto': 0}
 
     total_acertos = sessao.respostas.filter(foi_correta=True).count()
     percentual_acerto = (total_acertos / total_questoes) * 100 if total_questoes > 0 else 0
     
+    # 4. Calcula o ganho base de XP e Moedas
     xp_ganho = 0
     if settings.usar_xp_dinamico_simulado:
         xp_bruto = total_acertos * settings.xp_por_acerto
-        if settings.xp_dinamico_considera_erros: xp_bruto += (total_questoes - total_acertos) * settings.xp_por_erro
+        if settings.xp_dinamico_considera_erros:
+            xp_bruto += (total_questoes - total_acertos) * settings.xp_por_erro
         xp_ganho = int(xp_bruto * settings.multiplicador_xp_simulado)
     else:
         xp_ganho = settings.xp_base_simulado_concluido
@@ -309,24 +407,63 @@ def processar_conclusao_simulado(sessao):
         xp_ganho = int(xp_ganho * dificuldade_multiplicadores.get(sessao.simulado.dificuldade, 1.0))
         
     moedas_ganhas = settings.moedas_por_conclusao_simulado
-    recompensas_ganhas, regras_info = _avaliar_e_conceder_recompensas(user_profile, Campanha.Gatilho.COMPLETAR_SIMULADO, contexto={'percentual_acerto': percentual_acerto})
     
-    gamificacao_data.xp += xp_ganho + sum(info['xp_extra'] for info in regras_info)
-    gamificacao_data.moedas += moedas_ganhas + sum(info['moedas_extras'] for info in regras_info)
+    # 5. Avalia as Campanhas ativas para este gatilho
+    recompensas_ganhas, campanhas_info = _avaliar_e_conceder_recompensas(
+        user_profile, 
+        Campanha.Gatilho.COMPLETAR_SIMULADO, 
+        contexto={'percentual_acerto': percentual_acerto}
+    )
+    
+    # 6. Soma os bônus das campanhas aos ganhos totais
+    xp_extra_campanhas = sum(info.get('xp_extra', 0) for info in campanhas_info)
+    moedas_extras_campanhas = sum(info.get('moedas_extras', 0) for info in campanhas_info)
+    
+    gamificacao_data.xp += xp_ganho + xp_extra_campanhas
+    gamificacao_data.moedas += moedas_ganhas + moedas_extras_campanhas
+    
+    # 7. Avalia se a finalização do simulado desbloqueou alguma Conquista
+    # A função retorna o objeto Conquista completo ou None
+    nova_conquista_obj = _avaliar_e_conceder_conquistas(user_profile)
+    
+    # 8. Verifica se houve Level Up
     level_up_info = _verificar_level_up(gamificacao_data)
     
-    if "simulados" not in gamificacao_data.cooldowns_ativos: gamificacao_data.cooldowns_ativos["simulados"] = {}
+    # 9. Atualiza o cooldown e salva os dados de gamificação
+    if "simulados" not in gamificacao_data.cooldowns_ativos: 
+        gamificacao_data.cooldowns_ativos["simulados"] = {}
     gamificacao_data.cooldowns_ativos["simulados"][simulado_id_str] = timezone.now().isoformat()
     gamificacao_data.save()
     
+    # 10. Prepara os dados para o frontend, incluindo a serialização da conquista
     recompensas_serializadas = [{'nome': r.nome, 'imagem_url': r.imagem.url if r.imagem else '', 'raridade': r.get_raridade_display(), 'tipo': r.__class__.__name__} for r in recompensas_ganhas]
     
+    # =======================================================================
+    # ADIÇÃO PARA CORRIGIR O ERRO TypeError
+    # Serializa o objeto Conquista em um dicionário simples antes de retornar.
+    # =======================================================================
+    nova_conquista_serializada = None
+    if nova_conquista_obj:
+        nova_conquista_serializada = {
+            'id': nova_conquista_obj.id,
+            'nome': nova_conquista_obj.nome,
+            'descricao': nova_conquista_obj.descricao,
+            'icone': nova_conquista_obj.icone,
+            'cor': nova_conquista_obj.cor
+        }
+    # =======================================================================
+    
     return {
-        'xp_ganho': xp_ganho, 'moedas_ganhas': moedas_ganhas, 'regras_info': regras_info,
-        'level_up_info': level_up_info, 'novas_recompensas': recompensas_serializadas,
+        'xp_ganho': xp_ganho + xp_extra_campanhas,
+        'moedas_ganhas': moedas_ganhas + moedas_extras_campanhas,
+        'regras_info': campanhas_info,
+        'level_up_info': level_up_info,
+        'novas_recompensas': recompensas_serializadas,
+        'nova_conquista': nova_conquista_serializada, # <-- Retorna a versão serializada
         'percentual_acerto': round(percentual_acerto, 2)
     }
 
+    
 def processar_resultados_ranking(ranking_data, tipo_ranking):
     gatilho = Campanha.Gatilho.RANKING_SEMANAL_CONCLUIDO if tipo_ranking == 'semanal' else Campanha.Gatilho.RANKING_MENSAL_CONCLUIDO
     for item in ranking_data:
@@ -334,47 +471,98 @@ def processar_resultados_ranking(ranking_data, tipo_ranking):
 
 def _avaliar_e_conceder_recompensas(user_profile, gatilho, contexto):
     agora = timezone.now()
-    regras = Campanha.objects.filter(ativo=True, gatilho=gatilho, data_inicio__lte=agora).filter(Q(data_fim__gte=agora) | Q(data_fim__isnull=True))
-    recompensas_concedidas = []; regras_info = []
+    regras = Campanha.objects.filter(
+        ativo=True, 
+        gatilho=gatilho, 
+        data_inicio__lte=agora
+    ).filter(Q(data_fim__gte=agora) | Q(data_fim__isnull=True))
+    
+    recompensas_concedidas = []
+    regras_info = []
 
     for regra in regras:
-        ciclo_id = 'geral' # Para unicas por usuário
-        if regra.tipo_recorrencia == Campanha.TipoRecorrencia.SEMANAL: ciclo_id = agora.strftime('%Y-W%U')
-        elif regra.tipo_recorrencia == Campanha.TipoRecorrencia.MENSAL: ciclo_id = agora.strftime('%Y-%m')
-        elif regra.tipo_recorrencia == Campanha.TipoRecorrencia.DIARIA: ciclo_id = agora.strftime('%Y-%m-%d')
+        ciclo_id = 'geral'
+        if regra.tipo_recorrencia == Campanha.TipoRecorrencia.SEMANAL:
+            ciclo_id = agora.strftime('%Y-W%U')
+        elif regra.tipo_recorrencia == Campanha.TipoRecorrencia.MENSAL:
+            ciclo_id = agora.strftime('%Y-%m')
         
-        if regra.tipo_recorrencia != Campanha.TipoRecorrencia.SEMPRE:
-            if CampanhaUsuarioCompletion.objects.filter(user_profile=user_profile, campanha=regra, ciclo_id=ciclo_id).exists():
+        # Apenas UNICA_POR_USUARIO precisa de verificação de recorrência aqui
+        if regra.tipo_recorrencia == Campanha.TipoRecorrencia.UNICA_POR_USUARIO:
+            if CampanhaUsuarioCompletion.objects.filter(user_profile=user_profile, campanha=regra).exists():
                 continue
         
         for grupo in regra.grupos_de_condicoes:
-            if _verificar_condicoes_de_grupo(grupo, contexto):
-                xp_extra = grupo.get('xp_extra', 0); moedas_extras = grupo.get('moedas_extras', 0)
+            # Passamos o user_profile para a verificação de condições
+            if _verificar_condicoes_de_grupo(grupo, contexto, user_profile):
+                xp_extra = grupo.get('xp_extra', 0)
+                moedas_extras = grupo.get('moedas_extras', 0)
                 recompensas_do_grupo = []
+
                 for tipo_recompensa, Model in [('avatares', Avatar), ('bordas', Borda), ('banners', Banner)]:
                     for recompensa_id in grupo.get(tipo_recompensa, []):
                         try:
                             recompensa = Model.objects.get(id=recompensa_id)
+                            # Passa a campanha para a origem do desbloqueio
                             if _conceder_recompensa(user_profile, recompensa, regra):
                                 recompensas_do_grupo.append(recompensa)
-                        except Model.DoesNotExist: continue
+                        except Model.DoesNotExist:
+                            continue
                 
                 if xp_extra > 0 or moedas_extras > 0 or recompensas_do_grupo:
                     regras_info.append({'nome': regra.nome, 'xp_extra': xp_extra, 'moedas_extras': moedas_extras})
                     recompensas_concedidas.extend(recompensas_do_grupo)
-
-                if regra.tipo_recorrencia != Campanha.TipoRecorrencia.SEMPRE:
-                    CampanhaUsuarioCompletion.objects.create(user_profile=user_profile, campanha=regra, ciclo_id=ciclo_id)
-                break
+                
+                # O registro de conclusão agora depende do tipo de recorrência
+                if regra.tipo_recorrencia != Campanha.TipoRecorrencia.UNICA:
+                     CampanhaUsuarioCompletion.objects.get_or_create(
+                         user_profile=user_profile, 
+                         campanha=regra, 
+                         ciclo_id=ciclo_id
+                     )
+                break 
     return recompensas_concedidas, regras_info
-    
-def _verificar_condicoes_de_grupo(grupo, contexto):
-    posicao, percentual_acerto = contexto.get('posicao'), contexto.get('percentual_acerto')
-    if 'condicao_posicao_exata' in grupo and grupo['condicao_posicao_exata'] > 0 and posicao != grupo['condicao_posicao_exata']: return False
-    if 'condicao_posicao_ate' in grupo and grupo['condicao_posicao_ate'] > 0 and not (posicao and posicao <= grupo['condicao_posicao_ate']): return False
-    if 'condicao_min_acertos_percent' in grupo and grupo['condicao_min_acertos_percent'] > 0 and not (percentual_acerto is not None and percentual_acerto >= grupo['condicao_min_acertos_percent']): return False
-    return True
 
-def _conceder_recompensa(user_profile, recompensa, regra):
-    _, created = RecompensaPendente.objects.get_or_create(user_profile=user_profile, content_type=ContentType.objects.get_for_model(recompensa), object_id=recompensa.id, defaults={'origem_desbloqueio': f"Prêmio da campanha '{regra.nome}'"})
-    return created
+def _verificar_condicoes_de_grupo(grupo, contexto, user_profile):
+    """
+    Função refatorada para usar o motor de regras de VariaveisDoJogo,
+    além de manter as condições legadas.
+    """
+    # 1. Verificações legadas (baseadas em contexto)
+    posicao = contexto.get('posicao')
+    percentual_acerto = contexto.get('percentual_acerto')
+
+    if 'condicao_posicao_exata' in grupo and grupo['condicao_posicao_exata'] > 0:
+        if not (posicao and posicao == grupo['condicao_posicao_exata']):
+            return False
+            
+    if 'condicao_posicao_ate' in grupo and grupo['condicao_posicao_ate'] > 0:
+        if not (posicao and posicao <= grupo['condicao_posicao_ate']):
+            return False
+
+    if 'condicao_min_acertos_percent' in grupo and grupo['condicao_min_acertos_percent'] > 0:
+        if not (percentual_acerto is not None and percentual_acerto >= grupo['condicao_min_acertos_percent']):
+            return False
+
+    # 2. NOVA verificação, baseada no motor de regras dinâmico
+    condicoes_dinamicas = grupo.get('condicoes', [])
+    if condicoes_dinamicas:
+        for condicao in condicoes_dinamicas:
+            try:
+                variavel_chave = VariavelDoJogo.objects.get(id=condicao['variavel_id']).chave
+                valor_atual_usuario = _obter_valor_variavel(user_profile, variavel_chave, None)
+                valor_condicao = condicao['valor']
+                operador = condicao['operador']
+                
+                operadores = {
+                    '>=': lambda a, b: a >= b,
+                    '<=': lambda a, b: a <= b,
+                    '==': lambda a, b: a == b,
+                }
+                if not operadores[operador](valor_atual_usuario, valor_condicao):
+                    return False # Se UMA condição falhar, o grupo inteiro falha
+            except (VariavelDoJogo.DoesNotExist, KeyError):
+                # Se a variável não existir ou a condição estiver malformada, falha seguro.
+                return False
+                
+    return True

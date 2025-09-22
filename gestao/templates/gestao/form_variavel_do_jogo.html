@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='variaveis_jogo' %}
+    
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                 <h2 class="h3 mb-0">{{ titulo }}</h2>
+                 <a href="{% url 'gestao:listar_variaveis_do_jogo' %}" class="btn btn-outline-secondary">
+                     <i class="fas fa-arrow-left me-2"></i>Voltar para a Lista
+                 </a>
+            </div>
+            <div class="card shadow-sm">
+                <div class="card-body p-4 p-md-5">
+                    <form method="POST">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.nome_exibicao.id_for_label }}" class="form-label">{{ form.nome_exibicao.label }}</label>
+                            {{ form.nome_exibicao }}
+                            {% if form.nome_exibicao.errors %}<div class="invalid-feedback d-block">{{ form.nome_exibicao.errors.0 }}</div>{% endif %}
+                            <div class="form-text">{{ form.nome_exibicao.help_text }}</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.chave.id_for_label }}" class="form-label">{{ form.chave.label }}</label>
+                            {{ form.chave }}
+                            {% if form.chave.errors %}<div class="invalid-feedback d-block">{{ form.chave.errors.0 }}</div>{% endif %}
+                            <div class="form-text text-warning"><i class="fas fa-exclamation-triangle me-1"></i> {{ form.chave.help_text }}</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                            {{ form.descricao }}
+                            {% if form.descricao.errors %}<div class="invalid-feedback d-block">{{ form.descricao.errors.0 }}</div>{% endif %}
+                            <div class="form-text">{{ form.descricao.help_text }}</div>
+                        </div>
+
+                        <div class="mt-4 d-flex justify-content-center">
+                            <button type="submit" class="btn btn-primary px-5">Salvar Variável</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

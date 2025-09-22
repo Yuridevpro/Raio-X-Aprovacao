@@ -1,48 +1,23 @@
 <!-- gamificacao/templates/gamificacao/loja.html -->
 {% extends 'base.html' %}
 {% load static %}
-{% load gamificacao_extras %} <!-- ADIÇÃO CRUCIAL AQUI -->
+{% load gamificacao_extras %}
 {% block title %}Loja de Recompensas{% endblock %}
 
 {% block head %}
 <style>
-    .loja-header {
-        background: linear-gradient(135deg, var(--cor-primaria), #357ABD);
-        color: white;
-        border-radius: var(--raio-borda);
-    }
-    .saldo-display {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-    .item-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-    }
-    .item-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--sombra-caixa-hover);
-    }
-    .item-card.owned {
-        opacity: 0.6;
-    }
-    .item-image {
-        height: 180px;
-        object-fit: cover;
-        background-color: #f8f9fa;
-    }
-    .preco-tag {
-        font-weight: 600;
-        color: var(--cor-primaria);
-    }
-    .btn-comprar .fa-check {
-        display: none;
-    }
-    .btn-comprar.btn-success .fa-check {
-        display: inline-block;
-    }
-    .btn-comprar.btn-success .fa-coins {
-        display: none;
-    }
+    .loja-header { background: linear-gradient(135deg, var(--cor-primaria), #357ABD); color: white; border-radius: var(--raio-borda); }
+    .saldo-display { font-size: 2rem; font-weight: 700; }
+    .item-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
+    .item-card:hover { transform: translateY(-5px); box-shadow: var(--sombra-caixa-hover); }
+    .item-card.owned { opacity: 0.6; pointer-events: none; }
+    .item-image { height: 180px; object-fit: cover; background-color: #f8f9fa; }
+    .preco-tag { font-weight: 600; color: var(--cor-primaria); }
+    .btn-comprar .fa-check { display: none; }
+    .btn-comprar.btn-success .fa-check { display: inline-block; }
+    .btn-comprar.btn-success .fa-coins { display: none; }
+    .rarity-badge { font-size: 0.7rem; font-weight: 700; padding: 0.2em 0.6em; border-radius: 50px; color: #fff; text-transform: uppercase; }
+    .rarity-COMUM { background-color: #6c757d; } .rarity-RARO { background-color: #0d6efd; } .rarity-EPICO { background-color: #6f42c1; } .rarity-LENDARIO { background-color: #fd7e14; } .rarity-MITICO { background: linear-gradient(45deg, #f7b733, #fc4a1a); }
 </style>
 {% endblock %}
 
@@ -60,21 +35,61 @@
         </div>
     </div>
 
+    <!-- Filtros e Ordenação -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="{% url 'gamificacao:loja' %}" class="row g-3 align-items-center">
+                <div class="col-md-3">
+                    <select name="tipo" class="form-select">
+                        <option value="">Todos os Tipos</option>
+                        {% for value, name in tipo_choices %}
+                            <option value="{{ value }}" {% if active_filters.tipo == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="raridade" class="form-select">
+                        <option value="">Todas as Raridades</option>
+                        {% for value, name in raridade_choices %}
+                            <option value="{{ value }}" {% if active_filters.raridade == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select name="sort_by" class="form-select">
+                        {% for value, name in sort_options.items %}
+                            <option value="{{ value }}" {% if active_filters.sort_by == value %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex">
+                    <button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button>
+                    <a href="{% url 'gamificacao:loja' %}" class="btn btn-outline-secondary">Limpar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Listagem de Itens -->
     <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
         {% for item in itens_loja %}
         <div class="col">
-            <!-- A LÓGICA ABAIXO AGORA FUNCIONA CORRETAMENTE -->
-            <div class="card h-100 item-card {% if item.id in itens_possuidos_ids|get_item:item|class_name %}owned{% endif %}" id="item-card-{{ item.id }}-{{ item|class_name }}">
+            <!-- CORREÇÃO DA LÓGICA DE CLASSE -->
+            <div class="card h-100 item-card {% if item.ja_possui %}owned{% endif %}" id="item-card-{{ item.id }}-{{ item|class_name }}">
                 <img src="{{ item.imagem.url }}" class="card-img-top item-image" alt="{{ item.nome }}">
                 <div class="card-body">
-                    <h5 class="card-title">{{ item.nome }}</h5>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="card-title mb-1">{{ item.nome }}</h5>
+                        <span class="badge rarity-{{ item.raridade }}">{{ item.get_raridade_display }}</span>
+                    </div>
                     <p class="card-text small text-muted">{{ item.descricao }}</p>
                 </div>
                 <div class="card-footer d-flex justify-content-between align-items-center">
                     <span class="preco-tag">
                         <i class="fas fa-coins text-warning me-1"></i>{{ item.preco_moedas }}
                     </span>
-                    {% if item.id in itens_possuidos_ids|get_item:item|class_name %}
+                    <!-- CORREÇÃO DA LÓGICA DO BOTÃO -->
+                    {% if item.ja_possui %}
                         <button class="btn btn-sm btn-success disabled">
                             <i class="fas fa-check me-2"></i>Adquirido
                         </button>
@@ -93,11 +108,16 @@
         <div class="col-12">
             <div class="card card-body text-center py-5">
                  <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
-                <h4 class="h5">Loja Vazia</h4>
-                <p class="text-muted">Nenhum item à venda no momento. Volte em breve!</p>
+                <h4 class="h5">Nenhum item encontrado</h4>
+                <p class="text-muted">Tente ajustar os filtros ou volte mais tarde!</p>
             </div>
         </div>
         {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    <div class="mt-5">
+        {% include 'includes/_paginacao.html' with paginated_object=itens_loja %}
     </div>
 </div>
 {% endblock %}
@@ -132,18 +152,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     .then(response => response.json())
                     .then(result => {
                         if (result.status === 'success') {
-                            // Atualiza o saldo na tela
                             saldoDisplay.innerHTML = `<i class="fas fa-coins text-warning me-2"></i>${result.novo_saldo}`;
-                            
-                            // Atualiza o saldo na navbar
                             updateNavbarCoinBalance(result.novo_saldo);
                             
-                            // Atualiza o botão
                             button.classList.remove('btn-primary');
                             button.classList.add('btn-success', 'disabled');
                             button.innerHTML = '<i class="fas fa-check me-2"></i>Adquirido';
                             
-                            // Adiciona a classe 'owned' ao card
                             const card = document.getElementById(`item-card-${itemId}-${itemTipo}`);
                             if (card) card.classList.add('owned');
 

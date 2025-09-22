@@ -4,18 +4,13 @@
 
 {% block head %}
 <style>
-    /* Estilos apenas para os previews de Avatar e Borda */
-    .preview-container { 
-        border: 2px dashed #e0e0e0; border-radius: 12px; 
-        padding: 1.5rem; background-color: #f8f9fa; min-height: 250px; 
-        display: flex; align-items: center; justify-content: center; 
-        position: relative; 
-    }
+    .preview-container { border: 2px dashed #e0e0e0; border-radius: 12px; padding: 1.5rem; background-color: #f8f9fa; min-height: 250px; display: flex; align-items: center; justify-content: center; position: relative; }
     #avatar-preview-wrapper { width: 150px; height: 150px; }
     #avatar-preview-image { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
     #border-preview-wrapper { width: 180px; height: 180px; position: relative; }
     .border-preview-placeholder { width: 65%; height: 65%; border-radius: 12px; background-color: #ced4da; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 3rem; color: #fff; }
     #border-preview-image { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 2; object-fit: contain; }
+    .checkbox-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.5rem; }
 </style>
 {% endblock %}
 
@@ -27,13 +22,11 @@
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
                  <h2 class="h3 mb-0">{{ titulo }}</h2>
-                 <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-outline-secondary">
-                     <i class="fas fa-arrow-left me-2"></i>Voltar
-                 </a>
+                 <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
             </div>
             <div class="card shadow-sm">
                 <div class="card-body p-4 p-md-5">
-                    <form method="POST" enctype="multipart/form-data" id="recompensa-form" data-tipo-item="{{ tipo }}">
+                    <form method="POST" enctype="multipart/form-data" id="recompensa-form">
                         {% csrf_token %}
 
                         {% if form.non_field_errors %}
@@ -59,44 +52,53 @@
                         <div class="mb-3">
                             <label for="{{ form.imagem.id_for_label }}" class="form-label">Imagem</label>
                             {{ form.imagem }}
-                            {% if form.instance.imagem %}
-                                <small class="form-text text-muted d-block mt-1">Imagem atual: <a href="{{ form.instance.imagem.url }}" target="_blank">{{ form.instance.imagem.name|truncatechars:30 }}</a></small>
-                            {% endif %}
+                            {% if form.instance.imagem %}<small class="form-text text-muted d-block mt-1">Imagem atual: <a href="{{ form.instance.imagem.url }}" target="_blank">{{ form.instance.imagem.name|truncatechars:30 }}</a></small>{% endif %}
                         </div>
 
                         {% if tipo == 'avatares' or tipo == 'bordas' %}
                         <div class="preview-container mb-4">
-                            {% if tipo == 'avatares' %}
-                                <div id="avatar-preview-wrapper"><img id="avatar-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
-                            {% elif tipo == 'bordas' %}
-                                <div id="border-preview-wrapper"><div class="border-preview-placeholder"><i class="fas fa-user"></i></div><img id="border-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
-                            {% endif %}
+                            {% if tipo == 'avatares' %}<div id="avatar-preview-wrapper"><img id="avatar-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>
+                            {% elif tipo == 'bordas' %}<div id="border-preview-wrapper"><div class="border-preview-placeholder"><i class="fas fa-user"></i></div><img id="border-preview-image" src="{% if form.instance.imagem %}{{ form.instance.imagem.url }}{% endif %}" style="{% if not form.instance.imagem %}display:none;{% endif %}"></div>{% endif %}
                             <p id="preview-text" class="text-muted" style="{% if form.instance.imagem %}display:none;{% endif %}">A pré-visualização aparecerá aqui.</p>
                         </div>
                         {% endif %}
 
                         <hr class="my-4">
-                        <h5 class="h6 mb-3 border-bottom pb-2">Condição de Desbloqueio</h5>
-                        <div class="mb-3">
-                            <label for="{{ form.tipo_desbloqueio.id_for_label }}" class="form-label">{{ form.tipo_desbloqueio.label }}</label>
-                            {{ form.tipo_desbloqueio }}
-                        </div>
+                        <h5 class="h6 mb-3 border-bottom pb-2">Formas de Desbloqueio</h5>
                         
-                        <!-- Campos Condicionais -->
+                        <div class="mb-3 checkbox-grid" id="tipos-desbloqueio-container">
+                            {% for checkbox in form.tipos_desbloqueio %}
+                            <div class="form-check">
+                                {{ checkbox.tag }}
+                                <label class="form-check-label" for="{{ checkbox.id_for_label }}">{{ checkbox.choice_label }}</label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.tipos_desbloqueio.errors %}
+                            <div class="alert alert-danger p-2 small">{{ form.tipos_desbloqueio.errors.0 }}</div>
+                        {% endif %}
+
+                        <!-- Campos Condicionais com Exibição de Erros -->
                         <div id="requisito-nivel" class="mb-3" style="display: none;">
                             <label for="{{ form.nivel_necessario.id_for_label }}" class="form-label">{{ form.nivel_necessario.label }}</label>
                             {{ form.nivel_necessario }}
-                            {% if form.nivel_necessario.errors %}<div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>{% endif %}
+                            {% if form.nivel_necessario.errors %}
+                                <div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div id="requisito-conquista" class="mb-3" style="display: none;">
                             <label for="{{ form.conquista_necessaria.id_for_label }}" class="form-label">{{ form.conquista_necessaria.label }}</label>
                             {{ form.conquista_necessaria }}
-                            {% if form.conquista_necessaria.errors %}<div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>{% endif %}
+                            {% if form.conquista_necessaria.errors %}
+                                <div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>
+                            {% endif %}
                         </div>
                         <div id="requisito-preco" class="mb-3" style="display: none;">
                             <label for="{{ form.preco_moedas.id_for_label }}" class="form-label">{{ form.preco_moedas.label }}</label>
                             {{ form.preco_moedas }}
-                            {% if form.preco_moedas.errors %}<div class="invalid-feedback d-block">{{ form.preco_moedas.errors.0 }}</div>{% endif %}
+                            {% if form.preco_moedas.errors %}
+                                <div class="invalid-feedback d-block">{{ form.preco_moedas.errors.0 }}</div>
+                            {% endif %}
                         </div>
 
                         <div class="mt-4 d-flex justify-content-center gap-2">
@@ -112,5 +114,57 @@
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'gestao/js/recompensa-form.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mapeamento EXATO do texto da label (em maiúsculas) para o ID da div a ser controlada.
+    const labelMap = {
+        'POR NÍVEL': 'requisito-nivel',
+        'POR CONQUISTA': 'requisito-conquista',
+        'COMPRÁVEL NA LOJA': 'requisito-preco'
+    };
+
+    // Pega todos os checkboxes de tipo de desbloqueio
+    const checkboxes = document.querySelectorAll('#tipos-desbloqueio-container input[type="checkbox"]');
+
+    function toggleConditionalFields() {
+        checkboxes.forEach(checkbox => {
+            const labelText = checkbox.labels[0].textContent.trim().toUpperCase();
+            const targetDivId = labelMap[labelText];
+            
+            if (targetDivId) {
+                const targetDiv = document.getElementById(targetDivId);
+                if (targetDiv) {
+                    targetDiv.style.display = checkbox.checked ? 'block' : 'none';
+                }
+            }
+        });
+    }
+
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', toggleConditionalFields);
+    });
+
+    toggleConditionalFields();
+
+    // Lógica do preview de imagem (sem alterações)
+    const imageInput = document.getElementById('{{ form.imagem.id_for_label }}');
+    if (imageInput) {
+        imageInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                const previewText = document.getElementById('preview-text');
+                const avatarPreview = document.getElementById('avatar-preview-image');
+                const borderPreview = document.getElementById('border-preview-image');
+                reader.onload = function(e) {
+                    if (avatarPreview) { avatarPreview.src = e.target.result; avatarPreview.style.display = 'block'; }
+                    if (borderPreview) { borderPreview.src = e.target.result; borderPreview.style.display = 'block'; }
+                    if(previewText) previewText.style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

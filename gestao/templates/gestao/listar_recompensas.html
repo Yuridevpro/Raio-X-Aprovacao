@@ -1,3 +1,5 @@
+<!-- gestao/templates/gestao/listar_recompensas.html -->
+
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -25,7 +27,14 @@
         {% for recompensa in recompensas %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <div class="card shadow-sm h-100 recompensa-card">
-                <img src="{{ recompensa.imagem.url }}" class="card-img-top bg-light" alt="{{ recompensa.nome }}">
+                {% if recompensa.imagem %}
+                        <img src="{{ recompensa.imagem.url }}" class="card-img-top bg-light" alt="{{ recompensa.nome }}">
+                    {% else %}
+                        <!-- Isso mostra um placeholder se não houver imagem, em vez de quebrar a página -->
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                            <i class="fas fa-image fa-2x text-muted"></i>
+                        </div>
+                    {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ recompensa.nome }}</h5>
                     <p class="card-text small text-muted">{{ recompensa.descricao }}</p>

@@ -1,4 +1,4 @@
-<!-- gestao/templates/gestao/includes/_submenu_gamificacao.html -->
+<!-- gestao/templates/gestao/includes/_submenu_gamificacao.html (ARQUIVO COMPLETO E CORRIGIDO) -->
 <div class="mb-4">
     <ul class="nav nav-pills nav-fill">
         <li class="nav-item">
@@ -13,42 +13,27 @@
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'trilhas' %}active{% endif %}" href="{% url 'gestao:listar_trilhas' %}">
-                <i class="fas fa-road me-1"></i> Trilhas
+                <i class="fas fa-road me-1"></i> Trilhas & Conquistas
             </a>
         </li>
-
-
-
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'tipos_condicao' %}active{% endif %}" href="{% url 'gestao:listar_tipos_condicao' %}">
-                <i class="fas fa-tasks me-1"></i> Tipos de Condição
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if active_tab in 'avatares,bordas,banners' %}active{% endif %}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+                <i class="fas fa-star me-1"></i> Recompensas
             </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item {% if active_tab == 'avatares' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='avatares' %}"><i class="fas fa-user-circle fa-fw me-2"></i>Avatares</a></li>
+                <li><a class="dropdown-item {% if active_tab == 'bordas' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='bordas' %}"><i class="fas fa-id-badge fa-fw me-2"></i>Bordas</a></li>
+                <li><a class="dropdown-item {% if active_tab == 'banners' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='banners' %}"><i class="fas fa-image fa-fw me-2"></i>Banners</a></li>
+            </ul>
         </li>
-
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'conquistas' %}active{% endif %}" href="{% url 'gestao:listar_conquistas' %}">
-                <i class="fas fa-trophy me-1"></i> Conquistas
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle {% if active_tab in 'configuracoes,variaveis_jogo' %}active{% endif %}" data-bs-toggle="dropdown" href="#" role="button" aria-expanded="false">
+                <i class="fas fa-cogs me-1"></i> Configurações
             </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'avatares' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='avatares' %}">
-                <i class="fas fa-user-circle me-1"></i> Avatares
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'bordas' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='bordas' %}">
-                <i class="fas fa-id-badge me-1"></i> Bordas
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'banners' %}active{% endif %}" href="{% url 'gestao:listar_recompensas' tipo='banners' %}">
-                <i class="fas fa-image me-1"></i> Banners
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link {% if active_tab == 'configuracoes' %}active{% endif %}" href="{% url 'gestao:gerenciar_gamificacao_settings' %}">
-                <i class="fas fa-cogs me-2"></i>Configurações
-            </a>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item {% if active_tab == 'configuracoes' %}active{% endif %}" href="{% url 'gestao:gerenciar_gamificacao_settings' %}"><i class="fas fa-coins fa-fw me-2"></i>Economia (XP e Moedas)</a></li>
+                <li><a class="dropdown-item {% if active_tab == 'variaveis_jogo' %}active{% endif %}" href="{% url 'gestao:listar_variaveis_do_jogo' %}"><i class="fas fa-tasks fa-fw me-2"></i>Variáveis de Jogo</a></li>
+            </ul>
         </li>
         <li class="nav-item">
             <a class="nav-link {% if active_tab == 'concessao_manual' %}active{% endif %}" href="{% url 'gestao:conceder_recompensa_manual' %}">

@@ -25,7 +25,7 @@
                             <th>Nome da Trilha</th>
                             <th>Descrição</th>
                             <th>Nº de Conquistas</th>
-                            <th style="width: 120px;">Ações</th>
+                            <th class="text-end" style="width: 200px;">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -35,8 +35,10 @@
                             <td class="fw-bold">{{ trilha.nome }}</td>
                             <td>{{ trilha.descricao|truncatechars:80 }}</td>
                             <td><span class="badge bg-secondary">{{ trilha.num_conquistas }}</span></td>
-                            <td>
-                                <a href="{% url 'gestao:editar_trilha' trilha.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                            <td class="text-end">
+                                <!-- CORREÇÃO: Botão para ir ao "Estúdio de Conquistas" -->
+                                <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha.id %}" class="btn btn-sm btn-primary" title="Gerenciar Conquistas"><i class="fas fa-trophy me-1"></i> Gerenciar</a>
+                                <a href="{% url 'gestao:editar_trilha' trilha.id %}" class="btn btn-sm btn-outline-info" title="Editar Trilha"><i class="fas fa-edit"></i></a>
                                 <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_trilha' trilha.id %}" data-item-name="{{ trilha.nome }}">
                                     <i class="fas fa-trash"></i>
                                 </button>

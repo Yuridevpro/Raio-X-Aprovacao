@@ -1,15 +1,26 @@
-# gestao/admin.py (VERSÃO COM PERMISSÕES DE DESENVOLVEDOR)
+# gestao/admin.py (ARQUIVO COMPLETO E CORRIGIDO)
 
 from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
+
+# =======================================================================
+# 1. IMPORTAÇÕES CORRIGIDAS
+# Importamos APENAS os modelos que existem em `gestao.models`.
+# =======================================================================
 from .models import (
     SolicitacaoExclusao, 
     PromocaoSuperuser, 
     DespromocaoSuperuser, 
     ExclusaoSuperuser, 
-    LogAtividade
+    LogAtividade,
+    ExclusaoLogPermanente # <-- Adicionado o import que estava faltando
 )
+
+# =======================================================================
+# 2. INTERFACES DE ADMIN PARA OS MODELOS DE GESTÃO
+# (Este código já estava correto, mas foi organizado)
+# =======================================================================
 
 @admin.register(SolicitacaoExclusao)
 class SolicitacaoExclusaoAdmin(admin.ModelAdmin):
@@ -50,6 +61,18 @@ class ExclusaoSuperuserAdmin(admin.ModelAdmin):
     search_fields = ('usuario_alvo__username', 'solicitado_por__username')
     filter_horizontal = ('aprovado_por',)
 
+@admin.register(ExclusaoLogPermanente)
+class ExclusaoLogPermanenteAdmin(admin.ModelAdmin):
+    """ Interface Admin para gerenciar solicitações de exclusão de logs. """
+    list_display = ('solicitado_por', 'status', 'data_solicitacao', 'log_ids_count')
+    list_filter = ('status',)
+    search_fields = ('solicitado_por__username', 'justificativa')
+    filter_horizontal = ('aprovado_por',)
+    
+    @admin.display(description='Qtd. de Logs')
+    def log_ids_count(self, obj):
+        return len(obj.get_log_ids_as_list())
+
 @admin.register(LogAtividade)
 class LogAtividadeAdmin(admin.ModelAdmin):
     """ Interface Admin para auditoria e gerenciamento dos registros de atividade. """
@@ -57,21 +80,24 @@ class LogAtividadeAdmin(admin.ModelAdmin):
     list_filter = ('acao', 'is_deleted', 'data_criacao')
     search_fields = ('ator__username', 'detalhes')
     
-    # Apenas campos gerenciados pelo sistema são readonly
     readonly_fields = ('data_criacao', 'hash_log')
     raw_id_fields = ('ator', 'deleted_by')
     
     def get_queryset(self, request):
+        # Mostra todos os logs (incluindo os da lixeira) por padrão
         return LogAtividade.all_logs.get_queryset()
 
     @admin.display(description='Alvo da Ação')
     def link_para_alvo(self, obj):
         if obj.alvo:
-            url = reverse(
-                f'admin:{obj.alvo._meta.app_label}_{obj.alvo._meta.model_name}_change', 
-                args=[obj.alvo.pk]
-            )
-            return format_html('<a href="{}">{}</a>', url, obj.alvo)
+            try:
+                url = reverse(
+                    f'admin:{obj.alvo._meta.app_label}_{obj.alvo._meta.model_name}_change', 
+                    args=[obj.alvo.pk]
+                )
+                return format_html('<a href="{}">{}</a>', url, obj.alvo)
+            except Exception:
+                return f"{obj.alvo} (Link indisponível)"
         return "N/A"
         
     @admin.display(description='Hash (Início)')

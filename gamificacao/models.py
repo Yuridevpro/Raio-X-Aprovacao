@@ -1,4 +1,4 @@
-# gamificacao/models.py (ARQUIVO COMPLETO E FINALIZADO)
+# gamificacao/models.py (ARQUIVO COMPLETO E REFATORADO)
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -8,8 +8,9 @@ from datetime import date
 from storages.backends.s3boto3 import S3Boto3Storage
 from django.db.models import JSONField
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
-from questoes.models import Disciplina, Assunto, Banca # Importações necessárias para Condições
+from django.contrib.contenttypes.fields import GenericForeignKey
+from questoes.models import Disciplina, Assunto, Banca # Usado no contexto_json
+from django.core.exceptions import ValidationError
 
 
 # =======================================================================
@@ -206,35 +207,130 @@ class RankingMensal(BaseRankingPeriodico):
 # =======================================================================
 # MODELOS DE RECOMPENSAS (ITENS COSMÉTICOS)
 # =======================================================================
+class TipoDesbloqueio(models.Model):
+    CHAVE_CHOICES = [
+        ('NIVEL', 'Por Nível'),
+        ('CONQUISTA', 'Por Conquista'),
+        ('EVENTO', 'Evento / Manual'),
+        ('CAMPANHA', 'Campanha'),
+        ('LOJA', 'Comprável na Loja'),
+    ]
+    nome = models.CharField(max_length=50, choices=CHAVE_CHOICES, unique=True)
+
+    def __str__(self):
+        return self.get_nome_display()
+
 class Recompensa(models.Model):
-    class TipoDesbloqueio(models.TextChoices):
-        NIVEL = 'NIVEL', 'Por Nível'
-        CONQUISTA = 'CONQUISTA', 'Por Conquista'
-        EVENTO = 'EVENTO', 'Concedido por Administrador (Evento)'
-        CAMPANHA = 'CAMPANHA', 'Recompensa de Campanha'
-        LOJA = 'LOJA', 'Comprável na Loja'
-    
     class Raridade(models.TextChoices):
         COMUM = 'COMUM', 'Comum'; RARO = 'RARO', 'Raro'; EPICO = 'EPICO', 'Épico'; LENDARIO = 'LENDARIO', 'Lendário'; MITICO = 'MITICO', 'Mítico'
     
-    nome = models.CharField(max_length=100)
-    descricao = models.CharField(max_length=255, help_text="Como desbloquear este item.")
-    imagem = models.ImageField(upload_to='gamificacao_recompensas/', storage=S3Boto3Storage(), null=True, blank=True)
-    tipo_desbloqueio = models.CharField(max_length=20, choices=TipoDesbloqueio.choices)
-    raridade = models.CharField(max_length=20, choices=Raridade.choices, default=Raridade.COMUM)
-    nivel_necessario = models.PositiveIntegerField(null=True, blank=True)
-    conquista_necessaria = models.ForeignKey('Conquista', on_delete=models.SET_NULL, null=True, blank=True)
-    preco_moedas = models.PositiveIntegerField(default=0, verbose_name="Preço em Moedas", help_text="Custo do item na loja. Defina 0 se não for comprável.")
+    nome = models.CharField(max_length=100, verbose_name="Nome")
+    descricao = models.CharField(max_length=255, help_text="Como desbloquear este item.", verbose_name="Descrição")
+    imagem = models.ImageField(upload_to='gamificacao_recompensas/', storage=S3Boto3Storage(), null=True, blank=True, verbose_name="Imagem")
     
-    class Meta: abstract = True; ordering = ['nome']
-    def __str__(self): return self.nome
+    tipos_desbloqueio = models.ManyToManyField(TipoDesbloqueio, blank=True, verbose_name="Formas de Desbloqueio")
+    
+    raridade = models.CharField(max_length=20, choices=Raridade.choices, default=Raridade.COMUM, verbose_name="Raridade")
+    nivel_necessario = models.PositiveIntegerField(null=True, blank=True, verbose_name="Nível Necessário", help_text="Preencha se for desbloqueável por nível.")
+    conquista_necessaria = models.ForeignKey('Conquista', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Conquista Necessária", help_text="Preencha se for desbloqueável por conquista.")
+    preco_moedas = models.PositiveIntegerField(null=True, blank=True, default=0, verbose_name="Preço em Moedas", help_text="Preencha se for comprável na loja.")
+    
+    class Meta: 
+        abstract = True
+        ordering = ['nome']
+        
+    def __str__(self): 
+        return self.nome
+
+    def clean(self):
+        super().clean()
+        if self.pk and not self.tipos_desbloqueio.exists():
+            raise ValidationError({'tipos_desbloqueio': 'A recompensa deve ter pelo menos uma forma de desbloqueio.'})
+        if self.pk:
+            tipos_chaves = self.tipos_desbloqueio.values_list('nome', flat=True)
+            if 'NIVEL' in tipos_chaves and not self.nivel_necessario:
+                raise ValidationError({'nivel_necessario': 'Este campo é obrigatório para desbloqueio por nível.'})
+            if 'LOJA' in tipos_chaves and (not self.preco_moedas or self.preco_moedas <= 0):
+                raise ValidationError({'preco_moedas': 'O preço deve ser maior que zero para itens da loja.'})
+            if 'CONQUISTA' in tipos_chaves and not self.conquista_necessaria:
+                raise ValidationError({'conquista_necessaria': 'Este campo é obrigatório para desbloqueio por conquista.'})
+    
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+        if not is_new:
+             self.full_clean()
 
 class Avatar(Recompensa): pass
 class Borda(Recompensa): pass
 class Banner(Recompensa): pass
 
 # =======================================================================
-# MODELOS DE TRILHAS E CONQUISTAS
+# NOVA ARQUITETURA DE CONDIÇÕES (DATA-DRIVEN)
+# =======================================================================
+
+class VariavelDoJogo(models.Model):
+    """
+    Define as estatísticas do jogador que podem ser usadas para criar condições.
+    Ex: "Total de Acertos", "Recorde de Streak", "Nível Atual".
+    """
+    nome_exibicao = models.CharField(max_length=100, verbose_name="Nome para o Admin", help_text="Ex: Total de Acertos, Recorde de Streak")
+    chave = models.CharField(max_length=50, unique=True, help_text="Chave interna usada pelo sistema. Ex: 'total_acertos'")
+    descricao = models.TextField(help_text="Explicação de como esta variável é calculada.")
+
+    class Meta:
+        verbose_name = "Variável do Jogo"
+        verbose_name_plural = "Variáveis do Jogo"
+        ordering = ['nome_exibicao']
+
+    def __str__(self):
+        return self.nome_exibicao
+
+class Condicao(models.Model):
+    """
+    Modelo genérico que representa UMA condição para uma conquista.
+    Ex: (Variável: 'total_acertos') (Operador: '>=') (Valor: 100)
+    """
+    class Operador(models.TextChoices):
+        MAIOR_IGUAL = '>=', 'Maior ou igual a'
+        MENOR_IGUAL = '<=', 'Menor ou igual a'
+        IGUAL = '==', 'Igual a'
+        DIFERENTE = '!=', 'Diferente de'
+
+    conquista = models.ForeignKey('Conquista', on_delete=models.CASCADE, related_name="condicoes")
+    
+    # =======================================================================
+    # CORREÇÃO AQUI: Adicionar `null=True` e mudar para `on_delete=models.SET_NULL`
+    # Isso permite que a migração seja criada sem problemas.
+    # on_delete=SET_NULL é mais seguro que PROTECT em muitos casos. Se você deletar
+    # uma VariavelDoJogo, a Condicao não será deletada, mas ficará com a variável nula.
+    # =======================================================================
+    variavel = models.ForeignKey(
+        VariavelDoJogo, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        verbose_name="Variável a ser verificada"
+    )
+    # =======================================================================
+
+    operador = models.CharField(max_length=4, choices=Operador.choices, default=Operador.MAIOR_IGUAL)
+    valor = models.IntegerField(verbose_name="Valor para comparar", default=0)
+    
+    contexto_json = models.JSONField(default=dict, blank=True, verbose_name="Filtros Adicionais (JSON)", help_text="Opcional. Use para filtrar variáveis. Ex: {'disciplina_id': 5}")
+
+    class Meta:
+        verbose_name = "Condição"
+        verbose_name_plural = "Condições"
+
+    def __str__(self):
+        # Adiciona uma checagem para evitar erro se a variável for nula
+        if self.variavel:
+            return f"Se '{self.variavel.nome_exibicao}' for '{self.get_operador_display()}' '{self.valor}'"
+        return "Condição Inválida (sem variável)"
+
+
+# =======================================================================
+# MODELOS DE TRILHAS E CONQUISTAS (AJUSTADOS)
 # =======================================================================
 class TrilhaDeConquistas(models.Model):
     nome = models.CharField(max_length=100, unique=True)
@@ -242,39 +338,23 @@ class TrilhaDeConquistas(models.Model):
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-graduation-cap' (classe do Font Awesome)")
     ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem de exibição das trilhas (menor primeiro).")
 
-    class Meta: ordering = ['ordem', 'nome']; verbose_name = "Trilha de Conquistas"; verbose_name_plural = "Trilhas de Conquistas"
-    def __str__(self): return self.nome
+    class Meta: 
+        ordering = ['ordem', 'nome']
+        verbose_name = "Trilha de Conquistas"
+        verbose_name_plural = "Trilhas de Conquistas"
+    def __str__(self): 
+        return self.nome
 
 class Conquista(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(help_text="Explique o que o usuário precisa fazer para ganhar esta conquista.")
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-fire' (classes do Font Awesome)")
     cor = models.CharField(max_length=20, default='gold', help_text="Cor do ícone (ex: 'gold', '#FFD700')")
-    trilha = models.ForeignKey(TrilhaDeConquistas, on_delete=models.SET_NULL, null=True, blank=True, related_name='conquistas')
+    trilha = models.ForeignKey(TrilhaDeConquistas, on_delete=models.CASCADE, related_name='conquistas', null=True, blank=True)
     is_secreta = models.BooleanField(default=False, verbose_name="É uma Conquista Secreta?", help_text="Se marcado, não aparecerá na trilha até ser desbloqueada.")
     pre_requisitos = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='desbloqueia', verbose_name="Pré-requisitos")
     recompensas = JSONField(default=dict, blank=True, verbose_name="Recompensas Diretas", help_text="JSON com as recompensas concedidas. Ex: {\"xp\": 100, \"moedas\": 50, \"avatares\": [1, 2]}")
     
-    # =======================================================================
-    # CORREÇÃO DA GENERIC RELATION
-    # =======================================================================
-    # Em vez de uma relação genérica, temos uma para cada tipo de condição.
-    # Isso permite que o Django encontre os modelos corretamente.
-    condicoes_volume = GenericRelation('CondicaoVolumeQuestoes')
-    condicoes_streak = GenericRelation('CondicaoStreak')
-    
-    @property
-    def condicoes(self):
-        """
-        Um método de conveniência para acessar todas as condições de uma vez,
-        imitando o comportamento da GenericRelation única.
-        """
-        import itertools
-        return list(itertools.chain(self.condicoes_volume.all(), self.condicoes_streak.all()))
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
-
     class Meta: 
         ordering = ['trilha__ordem', 'nome']
         
@@ -282,59 +362,15 @@ class Conquista(models.Model):
         return self.nome
 
 class ConquistaUsuario(models.Model):
-    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='conquistas')
+    user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='conquistas_usuario')
     conquista = models.ForeignKey(Conquista, on_delete=models.CASCADE)
     data_conquista = models.DateTimeField(auto_now_add=True)
-    class Meta: unique_together = ('user_profile', 'conquista'); ordering = ['-data_conquista']
-    def __str__(self): return f"{self.user_profile.user.username} desbloqueou {self.conquista.nome}"
+    class Meta: 
+        unique_together = ('user_profile', 'conquista')
+        ordering = ['-data_conquista']
+    def __str__(self): 
+        return f"{self.user_profile.user.username} desbloqueou {self.conquista.nome}"
 
-# =======================================================================
-# MODELOS DE CONDIÇÕES EXTENSÍVEIS PARA CONQUISTAS
-# =======================================================================
-class TipoCondicao(models.Model):
-    """
-    Permite que o administrador crie e defina os tipos de condições que podem ser usados
-    nas conquistas. O código irá procurar por uma função de avaliação baseada na 'chave'.
-    """
-    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome da Condição")
-    chave = models.CharField(
-        max_length=50, unique=True, 
-        help_text="Identificador único usado pelo sistema (ex: 'volume_questoes', 'streak_dias'). Deve corresponder a uma função no avaliador."
-    )
-    descricao = models.TextField(help_text="Explicação para o admin sobre como esta condição funciona.")
-    # JSONField para definir os parâmetros que o admin pode configurar
-    # Ex: {"quantidade": "number", "percentual": "number", "disciplina": "select"}
-    parametros_configuraveis = JSONField(default=dict, help_text="Define os campos que o admin pode preencher para esta condição.")
-
-    def __str__(self):
-        return self.nome
-
-# =======================================================================
-# MODELO DE CONDIÇÃO SIMPLIFICADO E CONECTADO AO TIPO
-# =======================================================================
-class Condicao(models.Model):
-    """
-    Uma instância de uma condição aplicada a uma Conquista.
-    Este modelo agora é CONCRETO.
-    """
-    conquista = models.ForeignKey(Conquista, on_delete=models.CASCADE, related_name="condicoes")
-    tipo = models.ForeignKey(TipoCondicao, on_delete=models.PROTECT)
-    parametros_valores = JSONField(default=dict)
-
-    def __str__(self):
-        return f"Condição '{self.tipo.nome}' para a conquista '{self.conquista.nome}'"
-
-class CondicaoVolumeQuestoes(Condicao):
-    quantidade = models.PositiveIntegerField(default=10, help_text="Número total de questões a serem resolvidas.")
-    disciplina = models.ForeignKey(Disciplina, on_delete=models.SET_NULL, null=True, blank=True)
-    assunto = models.ForeignKey(Assunto, on_delete=models.SET_NULL, null=True, blank=True)
-    banca = models.ForeignKey(Banca, on_delete=models.SET_NULL, null=True, blank=True)
-    percentual_acerto_minimo = models.PositiveIntegerField(default=0, help_text="De 0 a 100. Deixe 0 para ignorar.")
-    def __str__(self): return f"Resolver {self.quantidade} questões"
-
-class CondicaoStreak(Condicao):
-    dias_consecutivos = models.PositiveIntegerField(default=3, help_text="Número de dias consecutivos de prática necessários.")
-    def __str__(self): return f"Atingir um streak de {self.dias_consecutivos} dias"
 
 # =======================================================================
 # MODELOS DE CAMPANHAS E EVENTOS

@@ -1,0 +1,60 @@
+<!-- gestao/templates/gestao/gerenciar_conquistas_da_trilha.html -->
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='trilhas' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <a href="{% url 'gestao:listar_trilhas' %}" class="btn btn-sm btn-outline-secondary mb-2"><i class="fas fa-arrow-left me-2"></i>Voltar para Trilhas</a>
+            <h2 class="h3 mb-0">{{ titulo }}</h2>
+        </div>
+        <a href="{% url 'gestao:criar_conquista' trilha_id=trilha.id %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Conquista</a>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;" class="text-center">Ícone</th>
+                            <th>Nome da Conquista</th>
+                            <th>Descrição</th>
+                            <th class="text-center">Secreta?</th>
+                            <th class="text-end" style="width: 120px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for conquista in conquistas %}
+                        <tr>
+                            <td class="text-center fs-4" style="color: {{ conquista.cor }};"><i class="{{ conquista.icone }}"></i></td>
+                            <td class="fw-bold">{{ conquista.nome }}</td>
+                            <td>{{ conquista.descricao|truncatechars:80 }}</td>
+                            <td class="text-center">
+                                {% if conquista.is_secreta %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-muted"></i>{% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'gestao:editar_conquista' trilha_id=trilha.id conquista_id=conquista.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_conquista' conquista.id %}" data-item-name="{{ conquista.nome }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="5" class="text-center p-5"><h5 class="text-muted">Nenhuma conquista nesta trilha ainda.</h5></td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% endblock %}

@@ -1,41 +1,80 @@
-<!-- gestao/templates/gestao/form_conquista.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+    /* Estilos para o construtor de condições aprimorado */
+    .formset-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr auto;
+        gap: 0.75rem;
+        align-items: center;
+        padding: 0.75rem;
+        border-radius: .5rem;
+        margin-bottom: 0.5rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+    }
+    .formset-row label { display: none; }
+    .delete-checkbox-wrapper { 
+        text-align: center;
+        /* Para o ícone de lixeira */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+    .formset-row .form-select, .formset-row .form-control { font-size: 0.875rem; }
+    /* Esconde o checkbox de deletar, pois usaremos apenas o botão de lixeira */
+    .formset-row input[type="checkbox"] { display: none; }
+
+    /* Estilos para o Seletor de Ícones */
+    #iconPickerModal .modal-body { max-height: 60vh; overflow-y: auto; }
+    #iconGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.5rem; }
+    .icon-item { display: flex; align-items: center; justify-content: center; height: 60px; border: 1px solid #dee2e6; border-radius: 0.25rem; font-size: 1.5rem; cursor: pointer; transition: all 0.2s ease; }
+    .icon-item:hover { background-color: #0d6efd; color: white; transform: scale(1.1); }
+    #iconPreview { font-size: 1.5rem; min-width: 40px; text-align: center; }
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='conquistas' %}
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='trilhas' %}
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0">{{ titulo }}</h2>
-        <a href="{% url 'gestao:listar_conquistas' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
+        <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha_id=trilha.id %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar para a Trilha</a>
     </div>
 
     <form method="POST">
         {% csrf_token %}
-        <div class="row">
-            <!-- Coluna Principal -->
-            <div class="col-lg-8">
-                <!-- Card de Dados Gerais -->
+        <div class="row g-4">
+            <!-- Coluna Principal (Dados Gerais e Recompensas) -->
+            <div class="col-lg-7">
                 <div class="card shadow-sm mb-4">
-                    <div class="card-header"><h5 class="mb-0">Dados Gerais da Conquista</h5></div>
+                    <div class="card-header"><h5 class="mb-0">Dados Gerais</h5></div>
                     <div class="card-body p-4">
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.nome.label }}</label>{{ form_conquista.nome }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}</div>
-                        <div class="row">
-                            <div class="col-md-8 mb-3"><label class="form-label">{{ form_conquista.icone.label }}</label>{{ form_conquista.icone }}</div>
+                        {{ form_conquista.non_field_errors }}
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.nome.label }}</label>{{ form_conquista.nome }}{{ form_conquista.nome.errors }}</div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}{{ form_conquista.descricao.errors }}</div>
+                        
+                        <div class="row align-items-center">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form_conquista.icone.id_for_label }}" class="form-label">{{ form_conquista.icone.label }}</label>
+                                <div class="input-group">
+                                    <span class="input-group-text" id="iconPreview"><i class="{{ form_conquista.icone.value|default:'' }}"></i></span>
+                                    {{ form_conquista.icone }}
+                                    <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#iconPickerModal"><i class="fas fa-search"></i></button>
+                                </div>
+                            </div>
                             <div class="col-md-4 mb-3"><label class="form-label">{{ form_conquista.cor.label }}</label>{{ form_conquista.cor }}</div>
                         </div>
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}</div>
+
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}<small class="form-text text-muted">Apenas conquistas desta mesma trilha podem ser pré-requisitos.</small></div>
                         <div class="form-check form-switch mt-3">{{ form_conquista.is_secreta }}<label class="form-check-label" for="{{ form_conquista.is_secreta.id_for_label }}">{{ form_conquista.is_secreta.label }}</label></div>
                     </div>
                 </div>
 
-                <!-- Card de Recompensas -->
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><h5 class="mb-0">Recompensas ao Desbloquear</h5></div>
                     <div class="card-body p-4">
@@ -43,61 +82,197 @@
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_xp.label }}</label>{{ form_conquista.recompensa_xp }}</div>
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_moedas.label }}</label>{{ form_conquista.recompensa_moedas }}</div>
                         </div>
-                        <div class="mb-3"><label class="form-label">Avatares</label>{{ form_conquista.recompensa_avatares }}</div>
-                        <div class="mb-3"><label class="form-label">Bordas</label>{{ form_conquista.recompensa_bordas }}</div>
-                        <div class="mb-3"><label class="form-label">Banners</label>{{ form_conquista.recompensa_banners }}</div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_avatares.label }}</label>{{ form_conquista.recompensa_avatares }}</div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_bordas.label }}</label>{{ form_conquista.recompensa_bordas }}</div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_banners.label }}</label>{{ form_conquista.recompensa_banners }}</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna de Condições -->
-            <div class="col-lg-4">
+            <!-- Coluna Lateral (Condições) -->
+            <div class="col-lg-5">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><h5 class="mb-0">Condições de Desbloqueio</h5></div>
                     <div class="card-body p-4">
-                        <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS para ganhar a conquista.</p>
+                        <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS para desbloquear.</p>
                         
-                        <div class="accordion" id="accordionCondicoes">
-                            <!-- Condição de Volume -->
-                            <div class="accordion-item">
-                                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseVolume">Volume de Questões</button></h2>
-                                <div id="collapseVolume" class="accordion-collapse collapse" data-bs-parent="#accordionCondicoes">
-                                    <div class="accordion-body">
-                                        {{ form_cond_volume.as_p }}
-                                        <button type="submit" name="salvar_cond_volume" class="btn btn-sm btn-secondary">Ativar/Salvar esta condição</button>
-                                    </div>
-                                </div>
+                        <div id="condicao-formset-container">
+                            <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;">
+                                <label class="form-label small text-muted">Variável</label>
+                                <label class="form-label small text-muted">Operador</label>
+                                <label class="form-label small text-muted">Valor</label>
+                                <label class="form-label small text-muted"></label>
                             </div>
-                            <!-- Condição de Streak -->
-                            <div class="accordion-item">
-                                <h2 class="accordion-header"><button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStreak">Sequência de Prática (Streak)</button></h2>
-                                <div id="collapseStreak" class="accordion-collapse collapse" data-bs-parent="#accordionCondicoes">
-                                    <div class="accordion-body">
-                                        {{ form_cond_streak.as_p }}
-                                        <button type="submit" name="salvar_cond_streak" class="btn btn-sm btn-secondary">Ativar/Salvar esta condição</button>
+                            {{ formset_condicao.management_form }}
+                            
+                            <!-- Container para os formulários do formset -->
+                            <div id="formset-forms">
+                                {% for form in formset_condicao.forms %}
+                                    <div class="formset-row">
+                                        {{ form.id }}
+                                        {{ form.variavel }}
+                                        {{ form.operador }}
+                                        {{ form.valor }}
+                                        <div class="delete-checkbox-wrapper">
+                                            {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                            <a href="javascript:void(0)" class="delete-row"><i class="fas fa-trash text-danger"></i></a>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+
+                            <!-- Template para novos formulários -->
+                            <div style="display:none;" id="empty-form-template">
+                                <div class="formset-row">
+                                    {{ formset_condicao.empty_form.id }}
+                                    {{ formset_condicao.empty_form.variavel }}
+                                    {{ formset_condicao.empty_form.operador }}
+                                    {{ formset_condicao.empty_form.valor }}
+                                    <div class="delete-checkbox-wrapper">
+                                        {{ formset_condicao.empty_form.DELETE }}
+                                        <a href="javascript:void(0)" class="delete-row"><i class="fas fa-trash text-danger"></i></a>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        <button type="button" class="btn btn-outline-success btn-sm mt-2 w-100 add-row"><i class="fas fa-plus me-2"></i>Adicionar Condição</button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="mt-4 d-flex justify-content-center">
-            <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Conquista e Recompensas</button>
+            <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Conquista</button>
         </div>
     </form>
+</div>
+
+<!-- Modal do Seletor de Ícones (sem alterações) -->
+<div class="modal fade" id="iconPickerModal" tabindex="-1" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title" id="iconPickerModalLabel">Selecione um Ícone</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">
+        <div class="mb-3"><input type="text" id="iconSearchInput" class="form-control" placeholder="Buscar ícone pelo nome..."></div>
+        <div id="iconGrid"><div class="text-center w-100 p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div></div>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="{% static 'js/jquery.formset.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.tom-select').forEach((el) => {
-        new TomSelect(el, { plugins: ['remove_button'], create: false, placeholder: 'Selecione um ou mais itens...' });
+$(function() {
+    // =======================================================================
+    // INICIALIZAÇÃO DO FORMSET CORRIGIDA E SIMPLIFICADA
+    // =======================================================================
+    $('#formset-forms').formset({
+        prefix: '{{ formset_condicao.prefix }}',
+        formCssClass: 'formset-row',
+        addSelector: '.add-row',
+        deleteSelector: '.delete-row',
+        formTemplate: '#empty-form-template',
+        added: function(row) {
+            // Callback opcional quando uma linha é adicionada
+            console.log('Nova condição adicionada');
+        },
+        removed: function(row) {
+            // Esconde a linha e marca o checkbox DELETE
+            row.hide();
+            row.find('input[type="checkbox"][id$="-DELETE"]').prop('checked', true);
+        }
     });
+
+    // =======================================================================
+    // INICIALIZAÇÃO DO TOMSELECT (JÁ ESTAVA CORRETA)
+    // Agora vai funcionar para os campos de recompensa também.
+    // =======================================================================
+    document.querySelectorAll('.tom-select').forEach((el) => {
+        new TomSelect(el, {
+            plugins: { remove_button: { title: 'Remover este item' } },
+            placeholder: 'Selecione um ou mais itens...',
+            create: false // Impede a criação de novas opções
+        });
+    });
+});
+
+// =======================================================================
+// LÓGICA DO SELETOR DE ÍCONES (sem alterações, já funcional)
+// =======================================================================
+document.addEventListener('DOMContentLoaded', function() {
+    const iconPickerModal = document.getElementById('iconPickerModal');
+    if (!iconPickerModal) return;
+
+    const iconGrid = document.getElementById('iconGrid');
+    const searchInput = document.getElementById('iconSearchInput');
+    const targetInput = document.getElementById('{{ form_conquista.icone.id_for_label }}');
+    const iconPreview = document.getElementById('iconPreview').querySelector('i');
+    
+    let allIcons = [];
+    const modal = new bootstrap.Modal(iconPickerModal);
+
+    function updatePreview() {
+        iconPreview.className = targetInput.value || '';
+    }
+
+    iconPickerModal.addEventListener('show.bs.modal', async function () {
+        if (allIcons.length > 0) return;
+        try {
+            const response = await fetch("{% static 'vendor/fontawesome/icons.json' %}");
+            if (!response.ok) throw new Error('Network response was not ok');
+            const iconsData = await response.json();
+            allIcons = Object.keys(iconsData).filter(key => iconsData[key].styles.includes('solid'));
+            renderIcons(allIcons.slice(0, 200));
+        } catch (error) {
+            console.error("Erro ao carregar o arquivo de ícones:", error);
+            iconGrid.innerHTML = '<p class="text-danger text-center">Não foi possível carregar os ícones.</p>';
+        }
+    });
+
+    function renderIcons(icons) {
+        iconGrid.innerHTML = '';
+        if (icons.length === 0) {
+            iconGrid.innerHTML = '<p class="text-muted text-center w-100">Nenhum ícone encontrado.</p>';
+            return;
+        }
+        icons.forEach(iconName => {
+            const iconClass = `fas fa-${iconName}`;
+            const iconItem = document.createElement('div');
+            iconItem.className = 'icon-item';
+            iconItem.dataset.class = iconClass;
+            iconItem.title = iconName;
+            const i = document.createElement('i');
+            i.className = iconClass;
+            iconItem.appendChild(i);
+            iconGrid.appendChild(iconItem);
+        });
+    }
+
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase().trim();
+        if (!searchTerm) {
+            renderIcons(allIcons.slice(0, 200));
+            return;
+        }
+        const filteredIcons = allIcons.filter(iconName => iconName.includes(searchTerm));
+        renderIcons(filteredIcons);
+    });
+
+    iconGrid.addEventListener('click', function(e) {
+        const iconItem = e.target.closest('.icon-item');
+        if (iconItem) {
+            targetInput.value = iconItem.dataset.class;
+            updatePreview();
+            modal.hide();
+        }
+    });
+    
+    targetInput.addEventListener('input', updatePreview);
+    updatePreview();
 });
 </script>
 {% endblock %}

@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='variaveis_jogo' %}
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="h3 mb-0">{{ titulo }}</h2>
+            <p class="text-muted mb-0">Estas são as estatísticas do jogador que podem ser usadas para criar regras de conquistas.</p>
+        </div>
+        <a href="{% url 'gestao:criar_variavel_do_jogo' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Variável</a>
+    </div>
+
+    {% include 'gestao/includes/_messages.html' %}
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Nome para o Admin</th>
+                            <th>Chave do Sistema</th>
+                            <th>Descrição</th>
+                            <th class="text-end" style="width: 120px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for var in variaveis %}
+                        <tr>
+                            <td class="fw-bold">{{ var.nome_exibicao }}</td>
+                            <td><code>{{ var.chave }}</code></td>
+                            <td>{{ var.descricao }}</td>
+                            <td class="text-end">
+                                <a href="{% url 'gestao:editar_variavel_do_jogo' var.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                                <!-- Opcional: Adicionar botão de deletar se criar a view/url para isso -->
+                                <!--
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="..." data-item-name="{{ var.nome_exibicao }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                                -->
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center p-5">
+                            <h5 class="text-muted">Nenhuma variável de jogo cadastrada.</h5>
+                            <p>Clique em "Nova Variável" para definir as estatísticas que o sistema pode rastrear.</p>
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% endblock %}
