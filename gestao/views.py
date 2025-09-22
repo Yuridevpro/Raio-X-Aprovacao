@@ -2583,6 +2583,8 @@ def listar_campanhas(request): # <- NOME CORRIGIDO
 
 # gestao/views.py
 
+# gestao/views.py
+
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
@@ -2604,11 +2606,7 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                 if posicao_exata: posicao_ate = ''
 
                 grupo_data = {
-                    # =======================================================================
-                    # ADIÇÃO: Captura o nome do grupo do formulário.
-                    # =======================================================================
                     'nome_grupo': request.POST.get(f'grupo-{index}-nome_grupo', f'Grupo #{int(index) + 1}'),
-                    # =======================================================================
                     'condicao_posicao_exata': posicao_exata,
                     'condicao_posicao_ate': posicao_ate,
                     'condicao_min_acertos_percent': request.POST.get(f'grupo-{index}-min_acertos_percent'),
@@ -2628,11 +2626,21 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                     val = request.POST.get(f'grupo-{index}-cond-val-{c_index}')
                     
                     if var_id and op and val:
-                        condicoes_dinamicas.append({
+                        condicao_data = {
                             'variavel_id': int(var_id),
                             'operador': op,
                             'valor': int(val)
-                        })
+                        }
+                        
+                        # =======================================================================
+                        # ADIÇÃO: Captura e adiciona o contexto da condição, se existir.
+                        # =======================================================================
+                        ctx_disciplina_id = request.POST.get(f'grupo-{index}-cond-ctx-disciplina-{c_index}')
+                        if ctx_disciplina_id:
+                            condicao_data['contexto'] = {'disciplina_id': int(ctx_disciplina_id)}
+                        # =======================================================================
+                        
+                        condicoes_dinamicas.append(condicao_data)
                 
                 if condicoes_dinamicas:
                     grupo_data['condicoes'] = condicoes_dinamicas
@@ -2642,7 +2650,6 @@ def criar_ou_editar_campanha(request, campanha_id=None):
                     if isinstance(value, list):
                         if value: grupo_limpo[key] = value
                     elif value:
-                        # Permite que o nome do grupo (string) seja salvo
                         grupo_limpo[key] = int(value) if str(value).isdigit() else value
                 
                 if grupo_limpo:
@@ -2662,17 +2669,23 @@ def criar_ou_editar_campanha(request, campanha_id=None):
     bordas_disponiveis = list(Borda.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
     banners_disponiveis = list(Banner.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
     variaveis_disponiveis = list(VariavelDoJogo.objects.values('id', 'nome_exibicao'))
+    disciplinas_disponiveis = list(Disciplina.objects.values('id', 'nome').order_by('nome'))
     grupos_de_condicoes = instancia.grupos_de_condicoes if instancia and isinstance(instancia.grupos_de_condicoes, list) else []
         
     context = {
-        'form': form, 'titulo': titulo, 'campanha': instancia, 'active_tab': 'campanhas',
+        'form': form,
+        'titulo': titulo,
+        'campanha': instancia,
+        'active_tab': 'campanhas',
         'avatares_disponiveis': avatares_disponiveis,
         'bordas_disponiveis': bordas_disponiveis,
         'banners_disponiveis': banners_disponiveis,
         'variaveis_disponiveis': variaveis_disponiveis,
+        'disciplinas_disponiveis': disciplinas_disponiveis,
         'grupos_de_condicoes': grupos_de_condicoes,
     }
     return render(request, 'gestao/form_regra_recompensa.html', context)
+
 
 @user_passes_test(is_staff_member)
 @require_POST

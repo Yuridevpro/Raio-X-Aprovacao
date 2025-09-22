@@ -8,7 +8,8 @@ from django.utils.dateparse import parse_datetime
 from itertools import chain
 from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required
-
+from django.db import IntegrityError
+from .models import ConquistaDiariaGlobalLog # Adicione esta importação
 # Importações de Modelos
 from pratica.models import RespostaUsuario
 from usuarios.models import UserProfile
@@ -37,8 +38,7 @@ def calcular_xp_para_nivel(level):
 
 # gamificacao/services.py
 
-from django.db import IntegrityError
-from .models import ConquistaDiariaGlobalLog # Adicione esta importação no topo do arquivo
+
 
 def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     """
@@ -149,49 +149,34 @@ def _processar_meta_diaria(user_profile, gamificacao_data, meta_hoje, xp_atual, 
     meta_hoje.questoes_resolvidas += 1
     meta_completa_info = None
 
-    # Verifica se a meta foi atingida NESTA AÇÃO
     if not meta_hoje.meta_atingida and meta_hoje.questoes_resolvidas >= settings.meta_diaria_questoes:
         meta_hoje.meta_atingida = True
         gamificacao_data.xp += settings.xp_bonus_meta_diaria
         gamificacao_data.moedas += settings.moedas_por_meta_diaria
         meta_completa_info = {"xp_bonus": settings.xp_bonus_meta_diaria, "moedas_bonus": settings.moedas_por_meta_diaria}
 
-        # =======================================================================
         # LÓGICA DO GATILHO "META DIÁRIA CONCLUÍDA" E "PRIMEIRO DO DIA"
-        # =======================================================================
-        # 1. Dispara campanhas normais para TODOS que concluem a meta diária
-        _avaliar_e_conceder_recompensas(
-            user_profile,
-            Campanha.Gatilho.META_DIARIA_CONCLUIDA,
-            contexto={}
-        )
+        # 1. Dispara campanhas para TODOS que concluem a meta
+        _avaliar_e_conceder_recompensas(user_profile, Campanha.Gatilho.META_DIARIA_CONCLUIDA, {})
 
-        # 2. Tenta registrar o usuário como o primeiro do dia a concluir a meta
+        # 2. Tenta registrar o usuário como o primeiro do dia
         try:
             ConquistaDiariaGlobalLog.objects.create(
-                user=user_profile.user,
-                data=date.today(),
-                tipo='META_DIARIA'
+                user=user_profile.user, data=date.today(), tipo='META_DIARIA'
             )
-            # Se a linha acima não deu erro, significa que ele foi o primeiro!
-            # Concede o bônus especial de "Primeiro do Dia".
-            # (Idealmente, estes valores viriam de GamificationSettings)
-            bonus_xp_primeiro_do_dia = 200
-            bonus_moedas_primeiro_do_dia = 100
+            # Se conseguiu criar, ele é o primeiro! Concede o bônus especial.
+            bonus_xp_primeiro = 200  # Pode vir de GamificationSettings no futuro
+            bonus_moedas_primeiro = 100
+            gamificacao_data.xp += bonus_xp_primeiro
+            gamificacao_data.moedas += bonus_moedas_primeiro
             
-            gamificacao_data.xp += bonus_xp_primeiro_do_dia
-            gamificacao_data.moedas += bonus_moedas_primeiro_do_dia
-            
-            # Adiciona a informação ao retorno para o frontend (opcional, mas recomendado)
+            # Adiciona info ao retorno para o frontend (para exibir um toast especial)
             meta_completa_info['primeiro_do_dia'] = True
-            meta_completa_info['xp_bonus_primeiro'] = bonus_xp_primeiro_do_dia
-            meta_completa_info['moedas_bonus_primeiro'] = bonus_moedas_primeiro_do_dia
-
+            meta_completa_info['xp_bonus_primeiro'] = bonus_xp_primeiro
+            meta_completa_info['moedas_bonus_primeiro'] = bonus_moedas_primeiro
         except IntegrityError:
-            # unique_together=('data', 'tipo') falhou. Alguém já conquistou hoje.
-            # Silenciosamente não faz nada, pois o usuário não foi o primeiro.
+            # Alguém já ganhou hoje. Não faz nada.
             pass
-        # =======================================================================
 
     meta_hoje.save()
     return meta_completa_info
@@ -618,46 +603,51 @@ def processar_resultados_ranking(ranking_data, tipo_ranking):
 
 
 
+
 def _verificar_condicoes_de_grupo(grupo, contexto, user_profile):
     """
     Função refatorada para usar o motor de regras de VariaveisDoJogo,
-    além de manter as condições legadas.
+    agora com suporte a contexto de disciplina também para campanhas.
     """
-    # 1. Verificações legadas (baseadas em contexto)
+    # 1. Verificações legadas (baseadas em contexto do evento)
     posicao = contexto.get('posicao')
     percentual_acerto = contexto.get('percentual_acerto')
 
-    if 'condicao_posicao_exata' in grupo and grupo['condicao_posicao_exata'] > 0:
-        if not (posicao and posicao == grupo['condicao_posicao_exata']):
-            return False
+    if grupo.get('condicao_posicao_exata'):
+        if not (posicao and posicao == grupo['condicao_posicao_exata']): return False
             
-    if 'condicao_posicao_ate' in grupo and grupo['condicao_posicao_ate'] > 0:
-        if not (posicao and posicao <= grupo['condicao_posicao_ate']):
-            return False
+    if grupo.get('condicao_posicao_ate'):
+        if not (posicao and posicao <= grupo['condicao_posicao_ate']): return False
 
-    if 'condicao_min_acertos_percent' in grupo and grupo['condicao_min_acertos_percent'] > 0:
-        if not (percentual_acerto is not None and percentual_acerto >= grupo['condicao_min_acertos_percent']):
-            return False
+    if grupo.get('condicao_min_acertos_percent'):
+        if not (percentual_acerto is not None and percentual_acerto >= grupo['condicao_min_acertos_percent']): return False
 
-    # 2. NOVA verificação, baseada no motor de regras dinâmico
+    # 2. Verificação dinâmica baseada em VariaveisDoJogo
     condicoes_dinamicas = grupo.get('condicoes', [])
     if condicoes_dinamicas:
+        variaveis_map = {v.id: v.chave for v in VariavelDoJogo.objects.all()}
+
         for condicao in condicoes_dinamicas:
             try:
-                variavel_chave = VariavelDoJogo.objects.get(id=condicao['variavel_id']).chave
-                valor_atual_usuario = _obter_valor_variavel(user_profile, variavel_chave, None)
+                variavel_id = condicao['variavel_id']
+                variavel_chave = variaveis_map.get(variavel_id)
+                if not variavel_chave: return False
+
+                # =======================================================================
+                # ALTERAÇÃO PRINCIPAL AQUI: Passa o contexto da condição para o motor.
+                # =======================================================================
+                contexto_condicao = condicao.get('contexto', {})
+                valor_atual_usuario = _obter_valor_variavel(user_profile, variavel_chave, contexto_condicao)
+                # =======================================================================
+                
                 valor_condicao = condicao['valor']
                 operador = condicao['operador']
                 
-                operadores = {
-                    '>=': lambda a, b: a >= b,
-                    '<=': lambda a, b: a <= b,
-                    '==': lambda a, b: a == b,
-                }
+                operadores = { '>=': lambda a, b: a >= b, '<=': lambda a, b: a <= b, '==': lambda a, b: a == b }
+                
                 if not operadores[operador](valor_atual_usuario, valor_condicao):
-                    return False # Se UMA condição falhar, o grupo inteiro falha
-            except (VariavelDoJogo.DoesNotExist, KeyError):
-                # Se a variável não existir ou a condição estiver malformada, falha seguro.
+                    return False
+            except (KeyError, TypeError):
                 return False
                 
     return True

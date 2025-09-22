@@ -375,9 +375,11 @@ class Campanha(models.Model):
         COMPLETAR_SIMULADO = 'COMPLETAR_SIMULADO', 'Ao Completar um Simulado'
         RANKING_SEMANAL_CONCLUIDO = 'RANKING_SEMANAL_CONCLUIDO', 'Ao Fechar o Ranking Semanal'
         RANKING_MENSAL_CONCLUIDO = 'RANKING_MENSAL_CONCLUIDO', 'Ao Fechar o Ranking Mensal'
+        # =======================================================================
+        # NOVOS GATILHOS ADICIONADOS
+        # =======================================================================
         PRIMEIRA_ACAO_DO_DIA = 'PRIMEIRA_ACAO_DO_DIA', 'Na Primeira Ação do Dia'
         META_DIARIA_CONCLUIDA = 'META_DIARIA_CONCLUIDA', 'Ao Concluir a Meta Diária'
-
 
     class TipoRecorrencia(models.TextChoices):
         UNICA = 'UNICA', 'Apenas Uma Vez (Geral)'
@@ -392,6 +394,7 @@ class Campanha(models.Model):
     data_fim = models.DateTimeField(null=True, blank=True, verbose_name="Fim da Vigência (opcional)")
     tipo_recorrencia = models.CharField(max_length=20, choices=TipoRecorrencia.choices, default=TipoRecorrencia.SEMANAL)
     gatilho = models.CharField(max_length=50, choices=Gatilho.choices, verbose_name="Gatilho de Ativação")
+    
     simulado_especifico = models.ForeignKey(
         Simulado, 
         on_delete=models.SET_NULL, 
@@ -401,8 +404,12 @@ class Campanha(models.Model):
         help_text="Se um simulado for selecionado, esta campanha só será ativada pela conclusão dele."
     )
     grupos_de_condicoes = JSONField(default=list, blank=True, verbose_name="Grupos de Condições e Recompensas")
-    def __str__(self): return self.nome
     
+    def __str__(self): return self.nome
+
+# =======================================================================
+# NOVO MODELO PARA O GAP "O PRIMEIRO DO DIA"
+# =======================================================================
 class ConquistaDiariaGlobalLog(models.Model):
     TIPO_CHOICES = [
         ('META_DIARIA', 'Primeiro a Concluir a Meta Diária'),
