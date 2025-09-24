@@ -1,0 +1,524 @@
+/* ========================================================================= */
+/* ESTILOS GLOBAIS PARA O COMPONENTE DE QUESTÃO
+/* ========================================================================= */
+body {
+    background-color: #f4f7fa; 
+    font-family: 'Inter', sans-serif;
+}
+
+.enunciado-imagem {
+    max-width: 100%;
+    max-height: 450px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: var(--raio-borda);
+    box-shadow: var(--sombra-caixa);
+}
+
+/* ========================================================================= */
+/* CARD DE FILTROS
+/* ========================================================================= */
+.filtros-card {
+    background-color: var(--cor-fundo-claro);
+    border: none;
+    border-radius: var(--raio-borda);
+    box-shadow: var(--sombra-caixa);
+}
+
+.btn-status-filter {
+    border-radius: 20px !important;
+    font-weight: 500;
+    padding: 0.5rem 1.25rem;
+    margin: 0.25rem;
+    border: 1px solid var(--cor-borda);
+    color: var(--cor-secundaria);
+    transition: var(--transicao-padrao);
+}
+
+.btn-status-filter:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+.btn-status-filter.active {
+    background-color: var(--cor-primaria);
+    color: var(--cor-texto-claro);
+    border-color: var(--cor-primaria);
+    box-shadow: 0 2px 4px rgba(74, 144, 226, 0.4);
+}
+
+/* ========================================================================= */
+/* CARD DA QUESTÃO
+/* ========================================================================= */
+.card-questao {
+    background-color: var(--cor-fundo-claro);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-borda);
+    box-shadow: var(--sombra-caixa);
+    margin-bottom: 2.5rem;
+    overflow: hidden;
+}
+
+.card-questao:hover {
+    box-shadow: var(--sombra-caixa);
+    transform: none;
+}
+
+.card-questao .card-header {
+    background-color: transparent;
+    border-bottom: 1px solid var(--cor-borda);
+    padding: 1rem 1.5rem;
+    font-weight: 500;
+    color: var(--cor-secundaria);
+}
+
+.card-questao .card-header strong {
+    color: var(--cor-texto-escuro);
+}
+
+.card-questao .card-header .q-code {
+    background-color: #e9ecef;
+    color: var(--cor-secundaria);
+    padding: 0.2rem 0.6rem;
+    border-radius: 5px;
+    font-size: 0.8em;
+    font-weight: 600;
+}
+
+.card-questao .fa-star {
+    font-size: 1.25rem; 
+    cursor: pointer; 
+    color: #ced4da;
+}
+
+.card-questao .fa-star.fas {
+    color: var(--cor-aviso) !important;
+}
+
+.card-body {
+    padding: 2rem;
+}
+
+/* ========================================================================= */
+/* ESTILIZAÇÃO PARA CONTEÚDO RICO (MARKDOWN)
+/* Estas regras garantem que o HTML gerado seja bem formatado.
+/* ========================================================================= */
+.card-questao .enunciado-formatado,
+.card-questao .explicacao-conteudo {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: var(--cor-texto-escuro);
+}
+.card-questao .enunciado-formatado > *:first-child,
+.card-questao .explicacao-conteudo > *:first-child {
+    margin-top: 0;
+}
+.card-questao .enunciado-formatado > *:last-child,
+.card-questao .explicacao-conteudo > *:last-child {
+    margin-bottom: 0;
+}
+.card-questao .enunciado-formatado p,
+.card-questao .explicacao-conteudo p {
+    margin-bottom: 1rem;
+}
+.card-questao .enunciado-formatado ul,
+.card-questao .enunciado-formatado ol,
+.card-questao .explicacao-conteudo ul,
+.card-questao .explicacao-conteudo ol {
+    padding-left: 2rem;
+    margin-bottom: 1rem;
+}
+.card-questao .enunciado-formatado li,
+.card-questao .explicacao-conteudo li {
+    margin-bottom: 0.5rem;
+}
+.card-questao .enunciado-formatado blockquote,
+.card-questao .explicacao-conteudo blockquote {
+    margin: 1.5em 0;
+    padding: 0.5em 1.5em;
+    border-left: 5px solid var(--cor-borda);
+    background-color: #f8f9fa;
+    color: var(--cor-secundaria);
+}
+
+.card-footer {
+    background-color: #f8f9fa;
+    border-top: 1px solid var(--cor-borda);
+}
+
+/* ========================================================================= */
+/* ALTERNATIVAS DA QUESTÃO
+/* ========================================================================= */
+.alternativas {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.alternativa-item .form-check-input {
+    display: none;
+}
+
+.alternativa-item .form-check-label {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-borda);
+    cursor: pointer;
+    transition: var(--transicao-padrao);
+    width: 100%;
+}
+
+.alternativa-item .form-check-label:hover {
+    border-color: var(--cor-primaria);
+    background-color: #f8f9fa;
+}
+
+.alternativa-letra {
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--cor-borda);
+    display: grid;
+    place-items: center;
+    font-weight: 600;
+    margin-right: 1rem;
+    transition: var(--transicao-padrao);
+}
+
+.alternativa-texto {
+    line-height: 1.6;
+}
+
+.alternativa-item .form-check-input:checked + .form-check-label {
+    border-color: var(--cor-primaria);
+    background-color: #eef5ff;
+}
+
+.alternativa-item .form-check-input:checked + .form-check-label .alternativa-letra {
+    background-color: var(--cor-primaria);
+    border-color: var(--cor-primaria);
+    color: var(--cor-texto-claro);
+}
+
+.alternativas.respondido .form-check-label {
+    cursor: default;
+    background-color: transparent !important;
+}
+
+ .alternativas.respondido .form-check-label:hover {
+    border-color: var(--cor-borda);
+ }
+
+.alternativas.respondido .label-correta {
+    border-color: var(--cor-sucesso) !important;
+}
+
+.alternativas.respondido .label-correta .alternativa-letra {
+    background-color: var(--cor-sucesso) !important;
+    border-color: var(--cor-sucesso) !important;
+    color: var(--cor-texto-claro) !important;
+}
+
+.alternativas.respondido .label-errada {
+    border-color: var(--cor-erro) !important;
+}
+
+ .alternativas.respondido .label-errada .alternativa-letra {
+    background-color: var(--cor-erro) !important;
+    border-color: var(--cor-erro) !important;
+    color: var(--cor-texto-claro) !important;
+}
+
+.explicacao {
+    background-color: #f8f9fa;
+    border-radius: var(--raio-borda);
+    border: 1px solid var(--cor-borda);
+    padding: 1.5rem;
+}
+
+
+/* ========================================================================= */
+/* SEÇÃO DE COMENTÁRIOS (Reorganizado e Otimizado)
+/* ========================================================================= */
+.comentarios-section {
+    background-color: #f8f9fa;
+    border-radius: 0 0 var(--raio-borda) var(--raio-borda);
+}
+
+.comment-wrapper {
+    position: relative;
+    padding-left: 115px;
+    margin-bottom: 1.25rem;
+}
+
+.comment-avatar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.comment-avatar.with-frame .comment-avatar-image {
+    width: 65%;
+    height: 65%;
+    border-radius: 8px;
+    border: none;
+}
+
+.comment-avatar-image {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    position: relative;
+    z-index: 1;
+}
+
+.comment-avatar-image.with-default-border {
+    border: 2px solid #dee2e6;
+}
+
+.comment-border-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.comment-default-avatar {
+    width: 50px;
+    height: 50px;
+    background-image: linear-gradient(135deg, #4A90E2 0%, #357ABD 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 1.4rem;
+}
+
+.comment-card {
+    background-color: var(--cor-fundo-claro);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-borda);
+    position: relative;
+    box-shadow: none;
+    padding: 0.75rem 1.25rem;
+}
+
+.comment-user {
+    font-weight: 600;
+    color: var(--cor-texto-escuro);
+}
+
+.comment-date {
+    font-size: 0.8rem;
+    color: var(--cor-secundaria);
+}
+
+.comment-body {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    color: var(--cor-texto-escuro);
+    margin-top: 0.5rem;
+}
+
+.comment-footer {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 0.75rem;
+}
+
+.comment-footer a {
+    text-decoration: none;
+    color: var(--cor-secundaria);
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.comment-footer a:hover {
+    color: var(--cor-primaria);
+}
+
+.btn-like.liked {
+    color: var(--cor-primaria);
+    font-weight: bold;
+}
+
+.comment-replies {
+    border-left: 2px solid var(--cor-borda);
+    padding-left: 1.25rem;
+    margin-top: 1rem;
+    margin-left: 40px; 
+}
+
+/* ========================================================================= */
+/* EDITOR DE TEXTO TIPTAP
+/* ========================================================================= */
+.tiptap-toolbar {
+    border: 1px solid var(--cor-borda);
+    border-bottom: none;
+    padding: .5rem;
+    border-top-left-radius: var(--raio-borda);
+    border-top-right-radius: var(--raio-borda);
+    background-color: #f8f9fa;
+}
+
+.tiptap-toolbar button {
+    border: none;
+    background-color: transparent;
+    border-radius: 4px;
+    transition: var(--transicao-padrao);
+}
+
+.tiptap-toolbar button:hover {
+    background-color: var(--cor-texto-escuro);
+    color: var(--cor-texto-claro);
+}
+
+.tiptap-toolbar button.active {
+    background-color: var(--cor-primaria);
+    color: var(--cor-texto-claro);
+}
+
+.tiptap {
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-borda);
+    padding: .75rem 1rem;
+    min-height: 150px;
+    background-color: var(--cor-fundo-claro);
+}
+
+.tiptap:focus-within {
+    border-color: var(--cor-primaria);
+    outline: 0;
+    box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, .25);
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #adb5bd;
+  pointer-events: none;
+  height: 0;
+}
+
+.comment-edit-form .tiptap {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+/* ========================================================================= */
+/* AJUSTES PARA MOBILE (ATÉ 768px)
+/* ========================================================================= */
+@media (max-width: 768px) {
+    .container {
+        padding-left: 0;
+        padding-right: 0;
+    }
+    
+    .card-body, .card-header, .card-footer, .comentarios-section { 
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .filtros-card, .card-questao {
+        width: 100%;
+        border-radius: 0;
+        margin-bottom: 0.5rem;
+        box-shadow: none;
+        border-left: none;
+        border-right: none;
+        border-top: 1px solid var(--cor-borda);
+    }
+
+    .comment-wrapper {
+        padding-left: 55px; 
+    }
+    
+    .comment-avatar {
+        width: 40px;
+        height: 40px;
+    }
+    .comment-avatar.with-frame {
+        width: 48px;
+        height: 48px;
+    }
+    .comment-default-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 1rem;
+    }
+
+    .comment-replies {
+        margin-left: 1.25rem; 
+        padding-left: 0.75rem;
+    }
+}
+
+/* 
+  CSS DE TESTE - VERSÃO 2 (FORÇANDO ESTILOS NOS FILHOS)
+  Este código afeta o card E todo o conteúdo de texto dentro dele.
+*/
+
+/* Animação (sem mudanças aqui) */
+@keyframes teste-gabarito-piscar {
+    0%, 100% { 
+      border-color: #ff006a; 
+      box-shadow: 0 0 25px #ff006a; 
+    }
+    50% { 
+      border-color: #00ffc8; 
+      box-shadow: 0 0 15px #00ffc8; 
+    }
+  }
+  
+  /* === PARTE 1: ESTILO DO CONTÊINER (O CARD) === */
+  /* Este seletor já funcionou para você */
+  #gabarito-comentado,
+  .gabarito-comentado,
+  .Explanation,
+  .card-explanation,
+  .question-explanation {
+    border: 5px dotted #ff006a !important;
+    padding: 20px !important;
+    margin-top: 20px !important;
+    background-color: rgba(30, 30, 30, 0.1) !important; /* Fundo cinza claro para o card */
+    animation: teste-gabarito-piscar 2s infinite !important;
+  }
+  
+  /* === PARTE 2: FORÇAR ESTILO NO TEXTO INTERNO === */
+  /* AQUI ESTÁ A MUDANÇA PRINCIPAL! */
+  /* Usamos o seletor do card seguido de '*' para afetar TUDO dentro dele. */
+  #gabarito-comentado *,
+  .gabarito-comentado *,
+  .Explanation *,
+  .card-explanation *,
+  .question-explanation * {
+    
+    /* Estilos para realmente afetar o texto */
+    font-family: "Courier New", monospace !important; /* Muda a fonte para algo óbvio */
+    font-size: 200px !important;
+    color: #ff006a !important; /* Cor rosa choque para o texto */
+    line-height: 1.6 !important; /* Aumenta o espaçamento entre linhas */
+    
+    /* Reset de estilos que podem atrapalhar */
+    background: none !important; /* Remove qualquer fundo dos elementos internos */
+    border: none !important; /* Remove qualquer borda dos elementos internos */
+    text-shadow: 1px 1px 2px black !important; /* Sombra para destacar */
+  }
