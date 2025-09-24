@@ -1,5 +1,4 @@
 <!-- base.html -->
-
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
@@ -19,10 +18,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
 
-    <!-- ======================================================================= -->
-    <!-- NOVA ADIÇÃO 1: SCRIPT DO CONFETTI -->
-    <!-- Adiciona a biblioteca que cria o efeito de confete. -->
-    <!-- ======================================================================= -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -79,8 +74,6 @@
     {% block head %}{% endblock %}
 </head>
 <body>
-
-    <!-- NAVBAR (sem alterações) -->
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{% url 'home' %}">
@@ -106,23 +99,42 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'dashboard' %}">Meu Desempenho</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'gamificacao:ranking' %}">Ranking</a>
-                    </li>
-
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'gamificacao:loja' %}">
-                            <i class="fas fa-store me-1"></i> Loja
+                    
+                    <!-- ======================================================================= -->
+                    <!-- INÍCIO DA ALTERAÇÃO: Dropdown "Meu Progresso" -->
+                    <!-- ======================================================================= -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Meu Progresso
                         </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fas fa-chart-pie me-2"></i>Meu Desempenho</a></li>
+                            <li><a class="dropdown-item" href="{% url 'gamificacao:ranking' %}"><i class="fas fa-trophy me-2"></i>Ranking</a></li>
+                        </ul>
                     </li>
+                    <!-- ======================================================================= -->
+                    <!-- FIM DA ALTERAÇÃO -->
+                    <!-- ======================================================================= -->
+
+                    <!-- ======================================================================= -->
+                    <!-- INÍCIO DA ALTERAÇÃO: Dropdown "Gamificação" -->
+                    <!-- ======================================================================= -->
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Gamificação
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'gamificacao:loja' %}"><i class="fas fa-store me-2"></i>Loja</a></li>
+                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
+                        </ul>
+                    </li>
+                    <!-- ======================================================================= -->
+                    <!-- FIM DA ALTERAÇÃO -->
+                    <!-- ======================================================================= -->
+
                     <li class="nav-item">
                         <a class="nav-link" href="#">
                             <i class="fas fa-coins text-warning me-1"></i>
-                            <!-- ID ADICIONADO AQUI -->
                             <span id="navbar-coin-balance">{{ saldo_moedas_usuario }}</span>
                         </a>
                     </li>
@@ -130,21 +142,15 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
-                                {% if borda_equipada_url %}
-                                    <img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">
-                                {% endif %}
-                                
-                                {% if avatar_equipado_url %}
-                                    <img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
-                                {% else %}
-                                    <i class="fas fa-user-circle fs-5" style="position: absolute; inset: 0; width: 100%; height: 100%;"></i>
-                                {% endif %}
+                                {% if borda_equipada_url %}<img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">{% endif %}
+                                {% if avatar_equipado_url %}<img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
+                                {% else %}<i class="fas fa-user-circle fs-5" style="position: absolute; inset: 0; width: 100%; height: 100%;"></i>{% endif %}
                             </div>
                             Olá, {{ user.userprofile.nome }}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                             <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user me-2"></i>Meu Perfil</a></li>
-                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
+                            <!-- O link "Minha Coleção" foi movido para o dropdown "Gamificação" -->
                             <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog me-2"></i>Editar Conta</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
@@ -164,11 +170,9 @@
     </nav>
 
     <main class="container my-5">
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
 
-    <!-- RODAPÉ (sem alterações) -->
     <footer class="footer-custom mt-auto">
         <div class="container py-5">
             <div class="row">
@@ -206,39 +210,25 @@
         </div>
     </footer>
 
-    <!-- Container Único para Toasts e Modais Genéricos (sem alterações) -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
         <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto" id="gamificationToastTitle"></strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
+            <div class="toast-header"><strong class="me-auto" id="gamificationToastTitle"></strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div>
             <div class="toast-body d-flex align-items-center" id="gamificationToastBody"></div>
         </div>
     </div>
     
+    {% include 'gestao/includes/_modais_notificacoes.html' %}
 
-        {% include 'gestao/includes/_modais_notificacoes.html' %}
-
-
-    <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{% static 'js/notificacoes.js' %}"></script>
-
-    <!-- ======================================================================= -->
-    <!-- NOVA ADIÇÃO 2: SCRIPT DE EFEITOS DE GAMIFICAÇÃO -->
-    <!-- Carrega nosso script customizado que controla os modais e o confete. -->
-    <!-- ======================================================================= -->
     <script src="{% static 'js/gamification-effects.js' %}"></script>
 
-    <!-- SCRIPT PARA MENSAGENS AUTO-DISMISS (sem alterações) -->
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const alerts = document.querySelectorAll('.alert[role="alert"]');
-            
             alerts.forEach(function(alert) {
                 setTimeout(function() {
                     const bsAlert = new bootstrap.Alert(alert);
@@ -248,8 +238,6 @@
         });
     </script>
     
-    {% block scripts %}
-    {% endblock %}
-
+    {% block scripts %}{% endblock %}
 </body>
 </html>

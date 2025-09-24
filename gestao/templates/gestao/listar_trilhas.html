@@ -2,7 +2,32 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<style>
+    .trilha-card {
+        transition: all 0.2s ease-in-out;
+        border-left: 4px solid var(--bs-secondary-bg-subtle);
+    }
+    .trilha-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+        border-left-color: var(--cor-primaria);
+    }
+    .trilha-icon-wrapper {
+        font-size: 2rem;
+        color: var(--cor-primaria);
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: var(--bs-primary-bg-subtle);
+        border-radius: 0.5rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -15,42 +40,47 @@
 
     {% include 'gestao/includes/_messages.html' %}
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 50px;">Ícone</th>
-                            <th>Nome da Trilha</th>
-                            <th>Descrição</th>
-                            <th>Nº de Conquistas</th>
-                            <th class="text-end" style="width: 200px;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for trilha in trilhas %}
-                        <tr>
-                            <td class="text-center fs-4"><i class="{{ trilha.icone }}"></i></td>
-                            <td class="fw-bold">{{ trilha.nome }}</td>
-                            <td>{{ trilha.descricao|truncatechars:80 }}</td>
-                            <td><span class="badge bg-secondary">{{ trilha.num_conquistas }}</span></td>
-                            <td class="text-end">
-                                <!-- CORREÇÃO: Botão para ir ao "Estúdio de Conquistas" -->
-                                <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha.id %}" class="btn btn-sm btn-primary" title="Gerenciar Conquistas"><i class="fas fa-trophy me-1"></i> Gerenciar</a>
-                                <a href="{% url 'gestao:editar_trilha' trilha.id %}" class="btn btn-sm btn-outline-info" title="Editar Trilha"><i class="fas fa-edit"></i></a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_trilha' trilha.id %}" data-item-name="{{ trilha.nome }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="text-center p-5"><h5 class="text-muted">Nenhuma trilha cadastrada.</h5></td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="row g-4">
+        {% for trilha in paginated_object %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm h-100 trilha-card">
+                <div class="card-body d-flex flex-column">
+                    <div class="d-flex align-items-start mb-3">
+                        <div class="trilha-icon-wrapper me-3">
+                            <i class="{{ trilha.icone|default:'fas fa-road' }}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h5 class="card-title mb-1">{{ trilha.nome }}</h5>
+                            <span class="badge bg-primary-soft text-primary">{{ trilha.num_conquistas }} Conquista(s)</span>
+                        </div>
+                    </div>
+                    <p class="card-text small text-muted flex-grow-1">{{ trilha.descricao|truncatewords:25 }}</p>
+                    <div class="mt-auto d-flex justify-content-end gap-2 border-top pt-3">
+                         <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha.id %}" class="btn btn-sm btn-primary" title="Gerenciar Conquistas"><i class="fas fa-trophy me-1"></i> Gerenciar</a>
+                         <a href="{% url 'gestao:editar_trilha' trilha.id %}" class="btn btn-sm btn-outline-info" title="Editar Trilha"><i class="fas fa-edit"></i></a>
+                         <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_trilha' trilha.id %}" data-item-name="{{ trilha.nome }}" title="Excluir Trilha">
+                             <i class="fas fa-trash"></i>
+                         </button>
+                    </div>
+                </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center p-5">
+                <h5 class="text-muted">Nenhuma trilha cadastrada.</h5>
+                <p class="text-muted">Comece criando uma nova trilha para organizar suas conquistas.</p>
+                <div class="mt-3">
+                    <a href="{% url 'gestao:criar_trilha' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Criar Primeira Trilha</a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- ADIÇÃO: Componente de paginação -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
     </div>
 </div>
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}

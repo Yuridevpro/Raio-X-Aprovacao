@@ -12,9 +12,6 @@ class UserProfile(models.Model):
     nome = models.CharField(max_length=100)
     sobrenome = models.CharField(max_length=100)
     questoes_favoritas = models.ManyToManyField(Questao, blank=True)
-
-    # O campo foto_perfil (upload) foi comentado/removido, como solicitado.
-    # foto_perfil = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     
     avatar_equipado = models.ForeignKey(
         'gamificacao.Avatar', 
@@ -38,6 +35,24 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.nome} {self.sobrenome}"
+
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO: Propriedade para contagem correta
+    # =======================================================================
+    @property
+    def pending_rewards_count(self):
+        """
+        Retorna a contagem APENAS de recompensas pendentes (não resgatadas).
+        Usa uma importação local para evitar importação circular.
+        """
+        from gamificacao.models import RecompensaPendente
+        return RecompensaPendente.objects.filter(
+            user_profile=self, 
+            resgatado_em__isnull=True
+        ).count()
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
 
 # --- Modelos de Ativação e Reset (sem alterações) ---
 class Ativacao(models.Model):

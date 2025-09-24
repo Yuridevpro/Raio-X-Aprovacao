@@ -375,11 +375,19 @@ class Campanha(models.Model):
         COMPLETAR_SIMULADO = 'COMPLETAR_SIMULADO', 'Ao Completar um Simulado'
         RANKING_SEMANAL_CONCLUIDO = 'RANKING_SEMANAL_CONCLUIDO', 'Ao Fechar o Ranking Semanal'
         RANKING_MENSAL_CONCLUIDO = 'RANKING_MENSAL_CONCLUIDO', 'Ao Fechar o Ranking Mensal'
-        # =======================================================================
-        # NOVOS GATILHOS ADICIONADOS
-        # =======================================================================
         PRIMEIRA_ACAO_DO_DIA = 'PRIMEIRA_ACAO_DO_DIA', 'Na Primeira Ação do Dia'
         META_DIARIA_CONCLUIDA = 'META_DIARIA_CONCLUIDA', 'Ao Concluir a Meta Diária'
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO
+        # =======================================================================
+        CONQUISTA_DESBLOQUEADA = 'CONQUISTA_DESBLOQUEADA', 'Ao Desbloquear uma Conquista'
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
+
+        COMENTARIO_PUBLICADO = 'COMENTARIO_PUBLICADO', 'Ao Publicar um Comentário'
+        LIKE_EM_COMENTARIO_CONCEDIDO = 'LIKE_EM_COMENTARIO_CONCEDIDO', 'Ao Curtir um Comentário'
+
 
     class TipoRecorrencia(models.TextChoices):
         UNICA = 'UNICA', 'Apenas Uma Vez (Geral)'

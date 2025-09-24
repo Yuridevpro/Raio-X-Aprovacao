@@ -1,3 +1,4 @@
+<!-- gestao/templates/gestao/form_regra_recompensa.html (ARQUIVO CORRIGIDO E COMPLETO) -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -5,57 +6,81 @@
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <style>
+    /* Estilos do Wizard */
+    #campaignWizard { position: relative; }
+    .tab { display: none; animation: fadeIn 0.5s; }
+    @keyframes fadeIn { from {opacity: 0;} to {opacity: 1;} }
+    .stepper-wrapper { display: flex; align-items: flex-start; justify-content: center; }
+    .step-item { flex: 1; text-align: center; position: relative; }
+    .step { height: 40px; width: 40px; margin: 0 auto; background-color: #e9ecef; border: none; border-radius: 50%; display: inline-flex; justify-content: center; align-items: center; color: #6c757d; font-weight: bold; transition: all 0.3s ease; }
+    .step-label { font-size: 0.8rem; font-weight: 500; margin-top: 8px; color: #6c757d; display: block; }
+    .stepper-line { position: absolute; top: 20px; left: 50%; right: -50%; height: 2px; background-color: #e9ecef; z-index: -1; }
+    .step-item:last-child .stepper-line { display: none; }
+    .step-item.active .step { background-color: var(--cor-primaria); color: white; transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+    .step-item.active .step-label { color: var(--cor-primaria); font-weight: 600; }
+    .step-item.finish .step { background-color: var(--cor-sucesso); color: white; }
+    .step-item.finish .stepper-line { background-color: var(--cor-sucesso); }
+
+    /* Estilos dos Grupos */
     .grupo-condicao { border: 1px solid #dee2e6; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1.5rem; background-color: #f8f9fa; }
     .grupo-condicao .grupo-header { border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
     .condicao-field { display: none; }
     .condicao-field input:disabled { background-color: #e9ecef; cursor: not-allowed; }
     .dynamic-condition { gap: 0.5rem; }
     .context-field { display: none; margin-top: 0.5rem; }
+
+    /* Estilos para o Seletor Visual de Recompensas */
+    .reward-picker-preview { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 48px; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem; margin-top: 0.25rem; }
+    .reward-preview-item { position: relative; }
+    .reward-preview-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .reward-picker-modal .modal-body { max-height: 70vh; overflow-y: auto; }
+    .reward-item-card { cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; }
+    .reward-item-card:hover { border-color: #a0c4ff; }
+    .reward-item-card.selected { border-color: var(--cor-primaria); background-color: #eef5ff; box-shadow: 0 0 10px rgba(74, 144, 226, 0.5); }
+    .reward-item-card img { height: 100px; object-fit: cover; }
+
+    @media (max-width: 768px) {
+        .card-wizard-body { padding: 1.5rem 1rem !important; }
+        .container { padding-left: 0; padding-right: 0; }
+        .card-wizard { border-radius: 0; border-left: none; border-right: none; box-shadow: none !important; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
     {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='campanhas' %}
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 px-3 px-md-0">
         <h2 class="h3 mb-0">{{ titulo }}</h2>
         <a href="{% url 'gestao:listar_campanhas' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar</a>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-body p-4 p-md-5">
-            <form method="POST">
+    <div class="card shadow-sm card-wizard">
+        <div class="card-body p-4 p-md-5 card-wizard-body">
+            <form id="campaignWizard" method="POST">
                 {% csrf_token %}
-                <h5 class="h6 mb-3 border-bottom pb-2">Dados Gerais da Campanha</h5>
-                <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ form.nome.label }}</label>{{ form.nome }}</div>
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ form.gatilho.label }}</label>{{ form.gatilho }}</div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-md-6 mb-3" id="simulado-especifico-wrapper" style="display: none;">
-                        <label for="{{ form.simulado_especifico.id_for_label }}" class="form-label">{{ form.simulado_especifico.label }}</label>
-                        {{ form.simulado_especifico }}
-                        <div class="form-text">{{ form.simulado_especifico.help_text }}</div>
-                    </div>
+                <div class="stepper-wrapper mb-5">
+                    <div class="step-item"><span class="step">1</span><div class="step-label">Dados Gerais</div><div class="stepper-line"></div></div>
+                    <div class="step-item"><span class="step">2</span><div class="step-label">Regras & Prêmios</div><div class="stepper-line"></div></div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ form.data_inicio.label }}</label>{{ form.data_inicio }}</div>
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ form.data_fim.label }}</label>{{ form.data_fim }}</div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6 mb-3"><label class="form-label">{{ form.tipo_recorrencia.label }}</label>{{ form.tipo_recorrencia }}</div>
-                    <div class="col-md-6 mb-3 align-self-center"><div class="form-check form-switch">{{ form.ativo }}<label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label></div></div>
+                <div class="tab">
+                    <h5 class="h6 mb-3 border-bottom pb-2">Etapa 1: Dados Gerais da Campanha</h5>
+                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">{{ form.nome.label }}</label>{{ form.nome }}</div><div class="col-md-6 mb-3"><label class="form-label d-flex justify-content-between">{{ form.gatilho.label }}<i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.gatilho.help_text }}"></i></label>{{ form.gatilho }}</div></div>
+                    <div class="row"><div class="col-md-6 mb-3" id="simulado-especifico-wrapper" style="display: none;"><label class="form-label d-flex justify-content-between">{{ form.simulado_especifico.label }}<i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.simulado_especifico.help_text }}"></i></label>{{ form.simulado_especifico }}</div></div>
+                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label">{{ form.data_inicio.label }}</label>{{ form.data_inicio }}</div><div class="col-md-6 mb-3"><label class="form-label d-flex justify-content-between">{{ form.data_fim.label }}<i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.data_fim.help_text }}"></i></label>{{ form.data_fim }}</div></div>
+                    <div class="row"><div class="col-md-6 mb-3"><label class="form-label d-flex justify-content-between">{{ form.tipo_recorrencia.label }}<i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.tipo_recorrencia.help_text }}"></i></label>{{ form.tipo_recorrencia }}</div><div class="col-md-6 mb-3 align-self-center"><div class="form-check form-switch">{{ form.ativo }}<label class="form-check-label" for="{{ form.ativo.id_for_label }}">{{ form.ativo.label }}</label></div></div></div>
                 </div>
 
-                <hr class="my-4">
-                <h5 class="h6 mb-3 border-bottom pb-2">Grupos de Condições e Recompensas</h5>
-                <div id="grupos-container"></div>
-                <button type="button" id="add-grupo-btn" class="btn btn-outline-success mt-2"><i class="fas fa-plus me-2"></i>Adicionar Grupo de Recompensa</button>
-            
-                <div class="mt-5 d-flex justify-content-center">
-                    <button type="submit" class="btn btn-primary btn-lg px-5">Salvar Campanha</button>
+                <div class="tab">
+                    <h5 class="h6 mb-3 border-bottom pb-2 d-flex justify-content-between">Etapa 2: Grupos de Condições e Recompensas<i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="Crie um ou mais grupos. O sistema verificará as condições de cada grupo em ordem. O PRIMEIRO grupo cujas condições forem satisfeitas pelo usuário concederá as recompensas e a verificação para."></i></h5>
+                    <div id="grupos-container"></div>
+                    <button type="button" id="add-grupo-btn" class="btn btn-outline-success mt-2"><i class="fas fa-plus me-2"></i>Adicionar Grupo de Recompensa</button>
+                </div>
+
+                <div class="mt-5 d-flex justify-content-end">
+                    <button type="button" id="prevBtn" class="btn btn-secondary me-2">Anterior</button>
+                    <button type="button" id="nextBtn" class="btn btn-primary px-4">Próximo</button>
                 </div>
             </form>
         </div>
@@ -64,46 +89,39 @@
 
 <template id="grupo-template">
     <div class="grupo-condicao">
-        <div class="d-flex justify-content-between align-items-center grupo-header">
-            <h6 class="mb-0 group-title">Grupo de Recompensa</h6>
-            <button type="button" class="btn-close remove-grupo-btn" aria-label="Close"></button>
-        </div>
-        <div class="mb-3">
-            <label class="form-label small text-muted">Nome do Grupo (opcional)</label>
-            <input type="text" name="grupo-__INDEX__-nome_grupo" class="form-control form-control-sm" placeholder="Ex: Prêmios Top 3, Maratonista de Bronze">
-        </div>
+        <div class="d-flex justify-content-between align-items-center grupo-header"><h6 class="mb-0 group-title">Grupo de Recompensa</h6><button type="button" class="btn-close remove-grupo-btn" aria-label="Close"></button></div>
+        <div class="mb-3"><label class="form-label small text-muted">Nome do Grupo (opcional)</label><input type="text" name="grupo-__INDEX__-nome_grupo" class="form-control form-control-sm" placeholder="Ex: Prêmios Top 3, Maratonista de Bronze"></div>
         <div class="row">
             <div class="col-md-6">
-                <label class="form-label fw-bold small text-muted">Condições Específicas do Gatilho</label>
-                <div class="condicao-field p-2 border rounded bg-light" data-gatilho="RANKING">
-                    <p class="small text-muted mb-2">Use apenas um dos campos abaixo.</p>
-                    <input type="number" name="grupo-__INDEX__-posicao_exata" class="form-control mb-2 form-control-sm" placeholder="Posição Exata (Ex: 1)" data-input-type="posicao_exata">
-                    <input type="number" name="grupo-__INDEX__-posicao_ate" class="form-control form-control-sm" placeholder="Até a Posição (Ex: 3)" data-input-type="posicao_ate">
-                </div>
-                <div class="condicao-field p-2 border rounded bg-light" data-gatilho="SIMULADO">
-                    <input type="number" name="grupo-__INDEX__-min_acertos_percent" class="form-control form-control-sm" placeholder="Mínimo de Acertos (%)">
-                </div>
-                <div class="mt-3">
-                    <label class="form-label fw-bold small text-muted">Condições Gerais (opcional)</label>
-                    <div class="dynamic-conditions-container"></div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2 add-dynamic-condition-btn"><i class="fas fa-plus"></i> Adicionar Condição Geral</button>
-                </div>
+                 <label class="form-label fw-bold small text-muted d-flex justify-content-between">Condições Específicas do Gatilho<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Estas condições só são verificadas para o gatilho selecionado (Ex: Posição no Ranking, % de acerto no Simulado)."></i></label>
+                <div class="condicao-field p-2 border rounded bg-light" data-gatilho="RANKING"><p class="small text-muted mb-2">Use apenas um dos campos abaixo.</p><input type="number" name="grupo-__INDEX__-posicao_exata" class="form-control mb-2 form-control-sm" placeholder="Posição Exata (Ex: 1)" data-input-type="posicao_exata"><input type="number" name="grupo-__INDEX__-posicao_ate" class="form-control form-control-sm" placeholder="Até a Posição (Ex: 3)" data-input-type="posicao_ate"></div>
+                <div class="condicao-field p-2 border rounded bg-light" data-gatilho="SIMULADO"><input type="number" name="grupo-__INDEX__-min_acertos_percent" class="form-control form-control-sm" placeholder="Mínimo de Acertos (%)"></div>
+                <div class="mt-3"><label class="form-label fw-bold small text-muted d-flex justify-content-between">Condições Gerais (opcional)<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Condições adicionais que o usuário deve cumprir. Ex: 'Total de Acertos' >= 100. TODAS devem ser verdadeiras."></i></label><div class="dynamic-conditions-container"></div><button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2 add-dynamic-condition-btn"><i class="fas fa-plus"></i> Adicionar Condição Geral</button></div>
             </div>
             <div class="col-md-6">
                 <label class="form-label fw-bold small text-muted">Recompensas</label>
                 <div class="p-2 border rounded bg-light">
-                    <label class="form-label">XP Extra</label>
-                    <input type="number" name="grupo-__INDEX__-xp_extra" class="form-control form-control-sm mb-2" value="0">
-                    <label class="form-label">Moedas Extras</label>
-                    <input type="number" name="grupo-__INDEX__-moedas_extras" class="form-control form-control-sm mb-2" value="0">
-                    <label class="form-label mt-2">Avatares</label><select name="grupo-__INDEX__-avatares" multiple></select>
-                    <label class="form-label mt-2">Bordas</label><select name="grupo-__INDEX__-bordas" multiple></select>
-                    <label class="form-label mt-2">Banners</label><select name="grupo-__INDEX__-banners" multiple></select>
+                    <label class="form-label">XP Extra</label><input type="number" name="grupo-__INDEX__-xp_extra" class="form-control form-control-sm mb-2" value="0">
+                    <label class="form-label">Moedas Extras</label><input type="number" name="grupo-__INDEX__-moedas_extras" class="form-control form-control-sm mb-2" value="0">
+                    <div class="mt-3"><label class="form-label">Avatares</label><select name="grupo-__INDEX__-avatares" class="d-none" multiple></select><div class="reward-picker-preview" id="preview-avatares-__INDEX__"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="avatares" data-target-group-index="__INDEX__">Selecionar Avatares</button></div>
+                    <div class="mt-3"><label class="form-label">Bordas</label><select name="grupo-__INDEX__-bordas" class="d-none" multiple></select><div class="reward-picker-preview" id="preview-bordas-__INDEX__"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="bordas" data-target-group-index="__INDEX__">Selecionar Bordas</button></div>
+                    <div class="mt-3"><label class="form-label">Banners</label><select name="grupo-__INDEX__-banners" class="d-none" multiple></select><div class="reward-picker-preview" id="preview-banners-__INDEX__"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="banners" data-target-group-index="__INDEX__">Selecionar Banners</button></div>
                 </div>
             </div>
         </div>
     </div>
 </template>
+
+<div class="modal fade" id="rewardPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="rewardPickerModalLabel">Selecionar Recompensas</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-header py-2"><input type="text" id="rewardSearchInput" class="form-control" placeholder="Buscar recompensa por nome..."></div>
+            <div class="modal-body" id="rewardPickerModalBody"></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="confirmRewardSelectionBtn">Confirmar Seleção</button></div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
@@ -113,19 +131,88 @@
 {{ grupos_de_condicoes|json_script:"grupos-existentes-data" }}
 {{ variaveis_disponiveis|json_script:"variaveis-data" }}
 {{ disciplinas_disponiveis|json_script:"disciplinas-data" }}
+{{ bancas_disponiveis|json_script:"bancas-data" }}
+{{ assuntos_disponiveis|json_script:"assuntos-data" }}
 
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregamento de dados
-    const avataresData = JSON.parse(document.getElementById('avatares-data').textContent);
-    const bordasData = JSON.parse(document.getElementById('bordas-data').textContent);
-    const bannersData = JSON.parse(document.getElementById('banners-data').textContent);
-    const gruposExistentes = JSON.parse(document.getElementById('grupos-existentes-data').textContent);
-    const variaveisData = JSON.parse(document.getElementById('variaveis-data').textContent);
-    const disciplinasData = JSON.parse(document.getElementById('disciplinas-data').textContent);
+    // =======================================================================
+    // SEÇÃO 1: LÓGICA DO ASSISTENTE (WIZARD)
+    // =======================================================================
+    let currentTab = 0;
+    const tabs = document.getElementsByClassName("tab");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const form = document.getElementById("campaignWizard");
 
-    // Seletores de elementos do DOM
+    function showTab(n) {
+        if (!tabs[n]) return;
+        tabs[n].style.display = "block";
+        if (prevBtn) { prevBtn.style.display = n === 0 ? "none" : "inline-block"; }
+        if (nextBtn) {
+            if (n === (tabs.length - 1)) {
+                nextBtn.innerHTML = '<i class="fas fa-save me-2"></i>Salvar Campanha';
+                nextBtn.classList.replace('btn-primary', 'btn-success');
+            } else {
+                nextBtn.innerHTML = 'Próximo <i class="fas fa-arrow-right ms-2"></i>';
+                nextBtn.classList.replace('btn-success', 'btn-primary');
+            }
+        }
+        fixStepIndicator(n);
+    }
+
+    function nextPrev(n) {
+        if (n === 1 && !validateForm()) return false;
+        if (tabs[currentTab]) { tabs[currentTab].style.display = "none"; }
+        currentTab = currentTab + n;
+        if (currentTab >= tabs.length) {
+            form.submit();
+            return false;
+        }
+        showTab(currentTab);
+    }
+
+    function validateForm() {
+        let valid = true;
+        const currentTabInputs = tabs[currentTab].querySelectorAll("input, select");
+        currentTabInputs.forEach(input => {
+            if (input.hasAttribute('required') && !input.value) {
+                input.classList.add("is-invalid");
+                valid = false;
+            } else {
+                input.classList.remove("is-invalid");
+            }
+        });
+        if (valid) { document.getElementsByClassName("step-item")[currentTab].classList.add("finish"); }
+        return valid;
+    }
+
+    function fixStepIndicator(n) {
+        const stepItems = document.getElementsByClassName("step-item");
+        for (let i = 0; i < stepItems.length; i++) { stepItems[i].classList.remove("active", "finish"); }
+        if (stepItems[n]) {
+            stepItems[n].classList.add("active");
+            for (let i = 0; i < n; i++) { stepItems[i].classList.add("finish"); }
+        }
+    }
+
+    if (prevBtn) prevBtn.addEventListener('click', () => nextPrev(-1));
+    if (nextBtn) nextBtn.addEventListener('click', () => nextPrev(1));
+
+    // =======================================================================
+    // SEÇÃO 2: INICIALIZAÇÃO E FUNÇÕES AUXILIARES
+    // =======================================================================
+    const rewardData = { 
+        avatares: JSON.parse(document.getElementById('avatares-data').textContent || '[]'), 
+        bordas: JSON.parse(document.getElementById('bordas-data').textContent || '[]'), 
+        banners: JSON.parse(document.getElementById('banners-data').textContent || '[]') 
+    };
+    const gruposExistentes = JSON.parse(document.getElementById('grupos-existentes-data').textContent || '[]');
+    const variaveisData = JSON.parse(document.getElementById('variaveis-data').textContent || '[]');
+    const disciplinasData = JSON.parse(document.getElementById('disciplinas-data').textContent || '[]');
+    const bancasData = JSON.parse(document.getElementById('bancas-data').textContent || '[]');
+    const assuntosData = JSON.parse(document.getElementById('assuntos-data').textContent || '[]');
     const gatilhoSelect = document.getElementById('id_gatilho_select');
     const container = document.getElementById('grupos-container');
     const addBtn = document.getElementById('add-grupo-btn');
@@ -133,12 +220,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const simuladoWrapper = document.getElementById('simulado-especifico-wrapper');
     let groupIndex = 0;
 
-    function createTomSelect(element, options) {
-        if (!element || (element.tomselect && !element.tomselect.recreate)) { return; }
-        new TomSelect(element, { options: options, valueField: 'id', labelField: 'nome', searchField: 'nome', plugins: ['remove_button'], create: false, placeholder: 'Selecione um ou mais itens...' });
+    // =======================================================================
+    // INÍCIO DA CORREÇÃO 1: Reintrodução da Lógica do TomSelect
+    // =======================================================================
+    let tomSelectInstances = [];
+    
+    function initializeTomSelectIn(container) {
+        container.querySelectorAll('.tom-select-single').forEach((el) => {
+            if (!el.tomselect) {
+                const instance = new TomSelect(el, { placeholder: 'Selecione um item...' });
+                tomSelectInstances.push(instance);
+            }
+        });
     }
+    // =======================================================================
+    // FIM DA CORREÇÃO 1
+    // =======================================================================
 
-    function handleExclusiveInputs(groupElement) { /* ... (código existente, sem alterações) ... */ }
+    function initTooltips(element) { [...element.querySelectorAll('[data-bs-toggle="tooltip"]')].map(el => new bootstrap.Tooltip(el)); }
+
+    // =======================================================================
+    // SEÇÃO 3: LÓGICA DE GRUPOS E CONDIÇÕES
+    // =======================================================================
+    function handleExclusiveInputs(groupElement) {
+        const exataInput = groupElement.querySelector('[data-input-type="posicao_exata"]');
+        const ateInput = groupElement.querySelector('[data-input-type="posicao_ate"]');
+        if (exataInput && ateInput) {
+            exataInput.addEventListener('input', () => { if(exataInput.value) ateInput.value = ''; });
+            ateInput.addEventListener('input', () => { if(ateInput.value) exataInput.value = ''; });
+        }
+    }
 
     function updateGroupTitles() {
         container.querySelectorAll('.grupo-condicao').forEach((group, index) => {
@@ -150,48 +261,43 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleContextVisibility(variavelSelect) {
         const wrapper = variavelSelect.closest('.dynamic-condition-wrapper');
         const contextField = wrapper.querySelector('.context-field');
-        
         function toggle() {
-            const selectedOptionText = variavelSelect.options[variavelSelect.selectedIndex]?.dataset.text || '';
+            if (!variavelSelect.options[variavelSelect.selectedIndex]) return;
+            const selectedOptionText = variavelSelect.options[variavelSelect.selectedIndex].dataset.text || '';
             if (selectedOptionText.includes('acertos') || selectedOptionText.includes('respostas')) {
                 contextField.style.display = 'block';
             } else {
                 contextField.style.display = 'none';
-                contextField.querySelector('select').value = '';
+                contextField.querySelectorAll('select').forEach(s => s.tomselect?.clear());
             }
         }
         variavelSelect.addEventListener('change', toggle);
         toggle();
     }
-
-    function addDynamicCondition(condContainer, currentGroupIndex, data = {}) {
+    
+    function addDynamicCondition(condContainer, gIndex, data = {}) {
         const condIndex = condContainer.children.length;
         const varOptions = variaveisData.map(v => `<option value="${v.id}" data-text="${v.nome_exibicao.toLowerCase()}" ${data.variavel_id == v.id ? 'selected' : ''}>${v.nome_exibicao}</option>`).join('');
         const opOptions = `<option value=">=" ${data.operador == '>=' ? 'selected' : ''}>&ge;</option><option value="==" ${data.operador == '==' ? 'selected' : ''}>==</option><option value="<=" ${data.operador == '<=' ? 'selected' : ''}>&le;</option>`;
+        const contexto = data.contexto || {};
+        const disciplinaOptions = disciplinasData.map(d => `<option value="${d.id}" ${contexto.disciplina_id == d.id ? 'selected' : ''}>${d.nome}</option>`).join('');
+        const bancaOptions = bancasData.map(b => `<option value="${b.id}" ${contexto.banca_id == b.id ? 'selected' : ''}>${b.nome}</option>`).join('');
+        const assuntoOptions = assuntosData.map(a => `<option value="${a.id}" ${contexto.assunto_id == a.id ? 'selected' : ''}>${a.nome}</option>`).join('');
         
-        const conditionWrapper = document.createElement('div');
-        conditionWrapper.className = 'dynamic-condition-wrapper mb-2';
+        const wrapper = document.createElement('div');
+        wrapper.className = 'dynamic-condition-wrapper mb-2';
         
-        const disciplinaContexto = data.contexto ? data.contexto.disciplina_id : '';
-        const disciplinaOptions = disciplinasData.map(d => `<option value="${d.id}" ${disciplinaContexto == d.id ? 'selected' : ''}>${d.nome}</option>`).join('');
-
-        let html = `
-            <div class="input-group input-group-sm dynamic-condition">
-                <select class="form-select" name="grupo-${currentGroupIndex}-cond-var-${condIndex}"><option value="">Variável...</option>${varOptions}</select>
-                <select class="form-select" name="grupo-${currentGroupIndex}-cond-op-${condIndex}">${opOptions}</select>
-                <input type="number" class="form-control" name="grupo-${currentGroupIndex}-cond-val-${condIndex}" value="${data.valor || ''}" placeholder="Valor">
-                <button class="btn btn-outline-danger remove-dynamic-condition-btn" type="button"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="context-field">
-                <select class="form-select form-select-sm" name="grupo-${currentGroupIndex}-cond-ctx-disciplina-${condIndex}">
-                    <option value="">Qualquer Disciplina</option>${disciplinaOptions}
-                </select>
-            </div>`;
+        // =======================================================================
+        // INÍCIO DA CORREÇÃO 2: Adição das classes 'tom-select-single'
+        // =======================================================================
+        wrapper.innerHTML = `<div class="input-group input-group-sm dynamic-condition"><select class="form-select tom-select-single" name="grupo-${gIndex}-cond-var-${condIndex}"><option value="">Variável...</option>${varOptions}</select><select class="form-select tom-select-single" name="grupo-${gIndex}-cond-op-${condIndex}">${opOptions}</select><input type="number" class="form-control" name="grupo-${gIndex}-cond-val-${condIndex}" value="${data.valor ?? ''}" placeholder="Valor"><button class="btn btn-outline-danger remove-dynamic-condition-btn" type="button"><i class="fas fa-times"></i></button></div><div class="context-field p-2 border rounded bg-light-subtle mt-2"><select class="form-select form-select-sm mb-2 tom-select-single" name="grupo-${gIndex}-cond-ctx-disciplina-${condIndex}"><option value="">Qualquer Disciplina</option>${disciplinaOptions}</select><select class="form-select form-select-sm mb-2 tom-select-single" name="grupo-${gIndex}-cond-ctx-banca-${condIndex}"><option value="">Qualquer Banca</option>${bancaOptions}</select><select class="form-select form-select-sm tom-select-single" name="grupo-${gIndex}-cond-ctx-assunto-${condIndex}"><option value="">Qualquer Assunto</option>${assuntoOptions}</select></div>`;
+        condContainer.appendChild(wrapper);
         
-        conditionWrapper.innerHTML = html;
-        condContainer.appendChild(conditionWrapper);
-        
-        handleContextVisibility(conditionWrapper.querySelector('select[name$="-var-' + condIndex + '"]'));
+        initializeTomSelectIn(wrapper); // Inicializa o TomSelect nos novos campos
+        // =======================================================================
+        // FIM DA CORREÇÃO 2
+        // =======================================================================
+        handleContextVisibility(wrapper.querySelector('select[name$="-var-' + condIndex + '"]'));
     }
 
     function addGrupo(data = {}) {
@@ -200,60 +306,159 @@ document.addEventListener('DOMContentLoaded', function() {
         grupoDiv.innerHTML = grupoDiv.innerHTML.replace(/__INDEX__/g, groupIndex);
         container.appendChild(grupoDiv);
         const addedGroupElement = container.lastElementChild;
-        
-        createTomSelect(addedGroupElement.querySelector('select[name$="-avatares"]'), avataresData);
-        createTomSelect(addedGroupElement.querySelector('select[name$="-bordas"]'), bordasData);
-        createTomSelect(addedGroupElement.querySelector('select[name$="-banners"]'), bannersData);
-        
+        initTooltips(addedGroupElement);
+
         if (Object.keys(data).length > 0) {
             addedGroupElement.querySelector('[name$="-nome_grupo"]').value = data.nome_grupo || '';
             addedGroupElement.querySelector('[name$="-posicao_exata"]').value = data.condicao_posicao_exata || '';
             addedGroupElement.querySelector('[name$="-posicao_ate"]').value = data.condicao_posicao_ate || '';
             addedGroupElement.querySelector('[name$="-min_acertos_percent"]').value = data.condicao_min_acertos_percent || '';
-            addedGroupElement.querySelector('[name$="-xp_extra"]').value = data.xp_extra || 0;
-            addedGroupElement.querySelector('[name$="-moedas_extras"]').value = data.moedas_extras || 0;
-            
+            addedGroupElement.querySelector('[name$="-xp_extra"]').value = data.xp_extra ?? 0;
+            addedGroupElement.querySelector('[name$="-moedas_extras"]').value = data.moedas_extras ?? 0;
             ['avatares', 'bordas', 'banners'].forEach(key => {
                 const select = addedGroupElement.querySelector(`select[name$="-${key}"]`);
-                if (select && select.tomselect && data[key]) { select.tomselect.setValue(data[key]); }
+                if(data[key]) { data[key].forEach(id => select.options[select.options.length] = new Option('', id, false, true)); }
             });
-
             if (data.condicoes) {
                 const dynamicContainer = addedGroupElement.querySelector('.dynamic-conditions-container');
                 data.condicoes.forEach(cond => addDynamicCondition(dynamicContainer, groupIndex, cond));
             }
         }
         
-        const currentGroupIndex = groupIndex;
+        const gIndex = groupIndex;
         addedGroupElement.querySelector('.add-dynamic-condition-btn').addEventListener('click', function() {
-            addDynamicCondition(addedGroupElement.querySelector('.dynamic-conditions-container'), currentGroupIndex);
+            addDynamicCondition(addedGroupElement.querySelector('.dynamic-conditions-container'), gIndex);
         });
 
         handleExclusiveInputs(addedGroupElement);
         groupIndex++;
         toggleCondicaoFields();
         updateGroupTitles();
+        
+        // =======================================================================
+        // INÍCIO DA CORREÇÃO 3: Uso do índice correto para o preview
+        // =======================================================================
+        ['avatares', 'bordas', 'banners'].forEach(type => {
+            const selectedIds = data[type] || [];
+            updateRewardPreview(type, selectedIds, gIndex);
+        });
+        // =======================================================================
+        // FIM DA CORREÇÃO 3
+        // =======================================================================
+    }
+
+    function toggleCondicaoFields() {
+        // =======================================================================
+        // INÍCIO DA CORREÇÃO 4: Usar a API do TomSelect para obter o valor
+        // =======================================================================
+        const selectedGatilho = gatilhoSelect.tomselect?.getValue() || gatilhoSelect.value;
+        document.querySelectorAll('.condicao-field').forEach(field => field.style.display = 'none');
+        if (selectedGatilho.includes('RANKING')) {
+            document.querySelectorAll('[data-gatilho="RANKING"]').forEach(el => el.style.display = 'block');
+        } else if (selectedGatilho.includes('SIMULADO')) {
+            document.querySelectorAll('[data-gatilho="SIMULADO"]').forEach(el => el.style.display = 'block');
+        }
+    }
+
+    function toggleSimuladoField() {
+        const selectedGatilho = gatilhoSelect.tomselect?.getValue() || gatilhoSelect.value;
+        simuladoWrapper.style.display = (selectedGatilho === 'COMPLETAR_SIMULADO') ? 'block' : 'none';
+        // =======================================================================
+        // FIM DA CORREÇÃO 4
+        // =======================================================================
+    }
+
+    // =======================================================================
+    // SEÇÃO 4: LÓGICA DO MODAL DE RECOMPENSAS
+    // =======================================================================
+    const rewardModal = new bootstrap.Modal(document.getElementById('rewardPickerModal'));
+    const modalBody = document.getElementById('rewardPickerModalBody');
+    const confirmBtn = document.getElementById('confirmRewardSelectionBtn');
+    const rewardSearchInput = document.getElementById('rewardSearchInput');
+    let currentGroupIndex, currentType;
+
+    function populateRewardModal(type, gIndex, searchTerm = '') {
+        const data = rewardData[type];
+        const targetSelect = document.querySelector(`select[name="grupo-${gIndex}-${type}"]`);
+        const selectedIds = Array.from(targetSelect.options).filter(o => o.selected).map(o => parseInt(o.value, 10));
+        const filteredData = searchTerm ? data.filter(item => item.nome.toLowerCase().includes(searchTerm.toLowerCase())) : data;
+        
+        const groupedByRarity = filteredData.reduce((acc, item) => {
+            (acc[item.raridade] = acc[item.raridade] || []).push(item);
+            return acc;
+        }, {});
+        
+        let html = '';
+        const rarityOrder = ['COMUM', 'RARO', 'EPICO', 'LENDARIO', 'MITICO'];
+        for (const rarity of rarityOrder) {
+            if (groupedByRarity[rarity] && groupedByRarity[rarity].length > 0) {
+                html += `<h6 class="mb-3 text-muted text-uppercase small">${rarity}</h6><div class="row row-cols-2 row-cols-md-4 g-3 mb-4">`;
+                groupedByRarity[rarity].forEach(item => {
+                    const isSelected = selectedIds.includes(item.id);
+                    const imageUrl = item.imagem_url || '{% static "img/placeholder.png" %}';
+                    html += `<div class="col"><div class="card h-100 reward-item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}"><img src="${imageUrl}" class="card-img-top" alt="${item.nome}"><div class="card-body p-2 text-center"><small class="card-title fw-bold">${item.nome}</small></div></div></div>`;
+                });
+                html += `</div>`;
+            }
+        }
+        modalBody.innerHTML = html || '<p class="text-center text-muted">Nenhuma recompensa encontrada.</p>';
+    }
+
+    function updateRewardPreview(type, selectedIds, gIndex) {
+        const previewContainer = document.getElementById(`preview-${type}-${gIndex}`);
+        if (!previewContainer) return;
+        previewContainer.innerHTML = '';
+        selectedIds.forEach(id => {
+            const item = rewardData[type].find(r => r.id == id);
+            if (item) {
+                const imageUrl = item.imagem_url || '{% static "img/placeholder.png" %}';
+                previewContainer.innerHTML += `<div class="reward-preview-item" title="${item.nome}"><img src="${imageUrl}" class="reward-preview-img"></div>`;
+            }
+        });
     }
     
-    function toggleCondicaoFields() { /* ... (código existente, sem alterações) ... */ }
-    function toggleSimuladoField() { /* ... (código existente, sem alterações) ... */ }
-
+    // =======================================================================
+    // SEÇÃO 5: EVENT LISTENERS E EXECUÇÃO INICIAL
+    // =======================================================================
     container.addEventListener('click', function(e) {
-        if (e.target.closest('.remove-grupo-btn')) { e.target.closest('.grupo-condicao').remove(); updateGroupTitles(); }
-        if (e.target.closest('.remove-dynamic-condition-btn')) { e.target.closest('.dynamic-condition-wrapper').remove(); }
+        const removeGroupBtn = e.target.closest('.remove-grupo-btn');
+        const removeCondBtn = e.target.closest('.remove-dynamic-condition-btn');
+        const pickerBtn = e.target.closest('.btn-reward-picker');
+        if (removeGroupBtn) { removeGroupBtn.closest('.grupo-condicao').remove(); updateGroupTitles(); }
+        if (removeCondBtn) { removeCondBtn.closest('.dynamic-condition-wrapper').remove(); }
+        if (pickerBtn) {
+            currentGroupIndex = pickerBtn.dataset.targetGroupIndex;
+            currentType = pickerBtn.dataset.targetModalType;
+            rewardSearchInput.value = '';
+            populateRewardModal(currentType, currentGroupIndex);
+            rewardModal.show();
+        }
     });
-    
+
     addBtn.addEventListener('click', () => addGrupo({}));
     gatilhoSelect.addEventListener('change', () => { toggleCondicaoFields(); toggleSimuladoField(); });
 
+    modalBody.addEventListener('click', (e) => { const card = e.target.closest('.reward-item-card'); if (card) { card.classList.toggle('selected'); } });
+    confirmBtn.addEventListener('click', () => { const selectedIds = Array.from(modalBody.querySelectorAll('.reward-item-card.selected')).map(c => c.dataset.id); const targetSelect = document.querySelector(`select[name="grupo-${currentGroupIndex}-${currentType}"]`); targetSelect.innerHTML = ''; selectedIds.forEach(id => { targetSelect.options[targetSelect.options.length] = new Option('', id, false, true); }); updateRewardPreview(currentType, selectedIds, currentGroupIndex); rewardModal.hide(); });
+    rewardSearchInput.addEventListener('input', () => { populateRewardModal(currentType, currentGroupIndex, rewardSearchInput.value); });
+
+    // --- Execução Inicial ---
+    // =======================================================================
+    // INÍCIO DA CORREÇÃO 5: Inicializar TomSelect em toda a página
+    // =======================================================================
+    initializeTomSelectIn(document);
+    // =======================================================================
+    // FIM DA CORREÇÃO 5
+    // =======================================================================
     if (gruposExistentes && gruposExistentes.length > 0) {
         gruposExistentes.forEach(grupo => addGrupo(grupo));
     } else {
         addGrupo({});
     }
-    
+    initTooltips(document.body);
     toggleCondicaoFields();
     toggleSimuladoField();
+    showTab(currentTab);
 });
 </script>
 {% endblock %}

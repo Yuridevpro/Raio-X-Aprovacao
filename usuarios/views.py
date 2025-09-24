@@ -227,6 +227,8 @@ def visualizar_perfil(request, username):
     context = _get_profile_context(user_profile)
     return render(request, 'usuarios/perfil.html', context)
 
+from gamificacao.services import _obter_valor_variavel
+
 def _get_profile_context(user_profile):
     """
     Função auxiliar que busca TODOS os dados de gamificação e perfil.
@@ -252,10 +254,15 @@ def _get_profile_context(user_profile):
     xp_no_nivel_atual = gamificacao_data.xp - xp_nivel_anterior
     progresso_percentual_xp = (xp_no_nivel_atual / total_xp_do_nivel * 100) if total_xp_do_nivel > 0 else 0
 
-    todas_as_conquistas = Conquista.objects.all().order_by('nome')
-    conquistas_desbloqueadas_ids = list(ConquistaUsuario.objects.filter(
-        user_profile=user_profile
-    ).values_list('conquista_id', flat=True))
+    # =======================================================================
+    # INÍCIO DA ALTERAÇÃO: Passando os objetos de conquista desbloqueados
+    # =======================================================================
+    conquistas_desbloqueadas = Conquista.objects.filter(
+        conquistausuario__user_profile=user_profile
+    ).order_by('nome')
+    # =======================================================================
+    # FIM DA ALTERAÇÃO
+    # =======================================================================
 
     trofeus_semanais = RankingSemanal.objects.filter(user_profile=user_profile, posicao__lte=3).order_by('-ano', '-semana')
     trofeus_mensais = RankingMensal.objects.filter(user_profile=user_profile, posicao__lte=3).order_by('-ano', '-mes')
@@ -266,8 +273,7 @@ def _get_profile_context(user_profile):
         'gamificacao_data': gamificacao_data,
         'xp_proximo_nivel': xp_proximo_nivel,
         'progresso_percentual': progresso_percentual_xp,
-        'todas_as_conquistas': todas_as_conquistas,
-        'conquistas_desbloqueadas_ids': conquistas_desbloqueadas_ids,
+        'conquistas_desbloqueadas': conquistas_desbloqueadas, # Nome da variável alterado para clareza
         'meta_hoje': meta_hoje,
         'meta_diaria_total': settings.meta_diaria_questoes, 
         'progresso_meta_diaria_percentual': progresso_meta_diaria_percentual,
@@ -572,22 +578,23 @@ def caixa_de_recompensas(request):
 
 from gamificacao.models import TrilhaDeConquistas, ConquistaUsuario
 
+# usuarios/views.py
+
+# usuarios/views.py
+
 @login_required
 def trilhas_de_conquistas(request):
     """
-    Exibe as trilhas de conquistas, agora pré-processando também as recompensas
-    associadas a cada conquista para uma exibição mais rica.
+    Exibe as trilhas de conquistas com uma lógica de agrupamento de sequências
+    corrigida e definitiva, evitando qualquer duplicidade.
     """
     user_profile = request.user.userprofile
     trilhas = TrilhaDeConquistas.objects.prefetch_related(
-        'conquistas__pre_requisitos'
+        'conquistas__pre_requisitos',
+        'conquistas__condicoes__variavel'
     ).order_by('ordem', 'nome')
     conquistas_usuario_ids = set(user_profile.conquistas_usuario.values_list('conquista_id', flat=True))
 
-    # =======================================================================
-    # NOVA LÓGICA OTIMIZADA PARA BUSCAR TODAS AS RECOMPENSAS
-    # =======================================================================
-    # 1. Coletar todos os IDs de recompensas de todas as conquistas
     reward_ids = {'avatares': set(), 'bordas': set(), 'banners': set()}
     for trilha in trilhas:
         for conquista in trilha.conquistas.all():
@@ -596,37 +603,77 @@ def trilhas_de_conquistas(request):
                 reward_ids['bordas'].update(conquista.recompensas.get('bordas', []))
                 reward_ids['banners'].update(conquista.recompensas.get('banners', []))
 
-    # 2. Buscar os objetos de recompensa em apenas 3 queries
     avatars_map = {a.id: a for a in Avatar.objects.filter(id__in=reward_ids['avatares'])}
     bordas_map = {b.id: b for b in Borda.objects.filter(id__in=reward_ids['bordas'])}
     banners_map = {b.id: b for b in Banner.objects.filter(id__in=reward_ids['banners'])}
 
-    # 3. Anexar status e recompensas detalhadas a cada conquista
     for trilha in trilhas:
-        for conquista in trilha.conquistas.all():
-            # Lógica de status (existente)
+        todas_as_conquistas = list(trilha.conquistas.all())
+        conquistas_por_id = {c.id: c for c in todas_as_conquistas}
+        
+        # Mapeia quem desbloqueia quem
+        desbloqueia_map = {}
+        for conquista in todas_as_conquistas:
+            for pre_req in conquista.pre_requisitos.all():
+                if pre_req.id in desbloqueia_map:
+                    desbloqueia_map[pre_req.id].append(conquista)
+                else:
+                    desbloqueia_map[pre_req.id] = [conquista]
+
+        processadas_ids = set()
+        sequencias = []
+        
+        # Encontra as "cabeças" da sequência (conquistas sem pré-requisitos na trilha)
+        cabecas_sequencia = [c for c in todas_as_conquistas if not c.pre_requisitos.exists()]
+
+        for cabeca in cabecas_sequencia:
+            if cabeca.id in processadas_ids: continue
+            
+            sequencia_atual = [cabeca]
+            atual = cabeca
+            processadas_ids.add(atual.id)
+
+            # Monta a cadeia para frente
+            while atual.id in desbloqueia_map and len(desbloqueia_map[atual.id]) == 1:
+                proxima = desbloqueia_map[atual.id][0]
+                if proxima.pre_requisitos.count() == 1: # Garante que é uma sequência linear
+                    sequencia_atual.append(proxima)
+                    processadas_ids.add(proxima.id)
+                    atual = proxima
+                else:
+                    break
+            
+            if len(sequencia_atual) > 1:
+                sequencias.append(sequencia_atual)
+        
+        trilha.sequencias = sequencias
+        trilha.conquistas_individuais = [c for c in todas_as_conquistas if c.id not in processadas_ids]
+
+        # Processa status e progresso para TODAS as conquistas da trilha
+        for conquista in todas_as_conquistas:
             if conquista.is_secreta and conquista.id not in conquistas_usuario_ids:
                 conquista.status = 'hidden'
             elif conquista.id in conquistas_usuario_ids:
                 conquista.status = 'unlocked'
             else:
                 pre_req_ids = set(p.id for p in conquista.pre_requisitos.all())
-                conquista.status = 'available' if pre_req_ids.issubset(conquistas_usuario_ids) else 'locked'
+                if pre_req_ids.issubset(conquistas_usuario_ids):
+                    conquista.status = 'available'
+                    condicao_principal = conquista.condicoes.first()
+                    if condicao_principal:
+                        valor_atual = _obter_valor_variavel(user_profile, condicao_principal.variavel.chave, condicao_principal.contexto_json)
+                        valor_meta = condicao_principal.valor
+                        if valor_meta > 0:
+                            progresso = min((valor_atual / valor_meta) * 100, 100)
+                            conquista.progresso = {'atual': int(valor_atual), 'meta': valor_meta, 'percentual': int(progresso)}
+                else:
+                    conquista.status = 'locked'
             
-            # Nova lógica para anexar objetos de recompensa
             conquista.recompensas_detalhadas = []
             if conquista.recompensas:
-                for avatar_id in conquista.recompensas.get('avatares', []):
-                    if avatar_id in avatars_map: conquista.recompensas_detalhadas.append(avatars_map[avatar_id])
-                for borda_id in conquista.recompensas.get('bordas', []):
-                    if borda_id in bordas_map: conquista.recompensas_detalhadas.append(bordas_map[borda_id])
-                for banner_id in conquista.recompensas.get('banners', []):
-                    if banner_id in banners_map: conquista.recompensas_detalhadas.append(banners_map[banner_id])
-    # =======================================================================
+                for r_type, r_map in [('avatares', avatars_map), ('bordas', bordas_map), ('banners', banners_map)]:
+                    for r_id in conquista.recompensas.get(r_type, []):
+                        if r_id in r_map: conquista.recompensas_detalhadas.append(r_map[r_id])
 
-    context = {
-        'trilhas': trilhas,
-        'conquistas_usuario_ids': conquistas_usuario_ids,
-        'active_tab': 'trilhas_de_conquistas'
-    }
+    context = { 'trilhas': trilhas, 'active_tab': 'trilhas_de_conquistas' }
     return render(request, 'usuarios/trilhas_de_conquistas.html', context)

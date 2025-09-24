@@ -10,6 +10,9 @@ from datetime import date, timedelta
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
 from .models import ConquistaDiariaGlobalLog # Adicione esta importação
+from django.db.models import Count, Sum
+
+
 # Importações de Modelos
 from pratica.models import RespostaUsuario
 from usuarios.models import UserProfile
@@ -42,11 +45,8 @@ def calcular_xp_para_nivel(level):
 
 def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     """
-    Motor de regras de gamificação. Avalia uma resposta de questão, aplica regras de
-    cooldown e anti-farming, concede XP e moedas, e verifica o desbloqueio de
-    conquistas e recompensas.
+    Motor de regras de gamificação, agora com feedback claro sobre bloqueios de XP.
     """
-    # 1. Carrega as configurações e os perfis de gamificação do usuário
     settings = GamificationSettings.load()
     user_profile, _ = UserProfile.objects.get_or_create(user=user)
     gamificacao_data, _ = ProfileGamificacao.objects.get_or_create(user_profile=user_profile)
@@ -54,13 +54,19 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     meta_hoje, _ = MetaDiariaUsuario.objects.get_or_create(user_profile=user_profile, data=hoje)
 
     correta = (alternativa_selecionada == questao.gabarito)
+    
+    bloqueio_retorno = {
+        "xp_ganho": 0, "moedas_ganhas": 0, "bonus_ativo": False, 
+        "level_up_info": None, "nova_conquista": None, "meta_completa_info": None, 
+        "correta": correta, "gabarito": questao.gabarito
+    }
 
-    # 2. Verifica as regras de anti-farming (cooldowns e limites)
     try:
         ultima_resposta_geral = RespostaUsuario.objects.filter(usuario=user).latest('data_resposta')
         min_tempo = timedelta(seconds=settings.tempo_minimo_entre_respostas_segundos)
         if timezone.now() - ultima_resposta_geral.data_resposta < min_tempo:
-            return {"xp_ganho": 0, "moedas_ganhas": 0, "bonus_ativo": False, "level_up_info": None, "nova_conquista": None, "meta_completa_info": None, "correta": correta, "gabarito": questao.gabarito}
+            bloqueio_retorno['motivo_bloqueio'] = 'RESPOSTA_RAPIDA'
+            return bloqueio_retorno
     except RespostaUsuario.DoesNotExist:
         pass
 
@@ -68,18 +74,18 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     if resposta_anterior:
         cooldown = timedelta(hours=settings.cooldown_mesma_questao_horas)
         if timezone.now() - resposta_anterior.data_resposta < cooldown:
-            return {"xp_ganho": 0, "moedas_ganhas": 0, "bonus_ativo": False, "level_up_info": None, "nova_conquista": None, "meta_completa_info": None, "correta": correta, "gabarito": questao.gabarito}
+            bloqueio_retorno['motivo_bloqueio'] = 'COOLDOWN_QUESTAO'
+            return bloqueio_retorno
 
     if settings.habilitar_teto_xp_diario and meta_hoje.xp_ganho_dia >= settings.teto_xp_diario:
-        return {"xp_ganho": 0, "moedas_ganhas": 0, "bonus_ativo": False, "level_up_info": None, "nova_conquista": None, "meta_completa_info": None, "correta": correta, "gabarito": questao.gabarito}
+        bloqueio_retorno['motivo_bloqueio'] = 'TETO_XP_DIARIO'
+        return bloqueio_retorno
 
-    # 3. Se todas as verificações passaram, salva a resposta do usuário
     RespostaUsuario.objects.update_or_create(
         usuario=user, questao=questao,
         defaults={'alternativa_selecionada': alternativa_selecionada, 'foi_correta': correta}
     )
     
-    # 4. Calcula o XP base com base no cenário da resposta
     xp_base = 0
     if correta:
         if not resposta_anterior: xp_base = settings.xp_acerto_primeira_vez
@@ -88,7 +94,6 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     else:
         xp_base = settings.xp_por_erro
 
-    # 5. Gerencia o bônus de acertos consecutivos
     if correta:
         gamificacao_data.acertos_consecutivos += 1
         if gamificacao_data.acertos_consecutivos >= settings.acertos_consecutivos_para_bonus:
@@ -103,45 +108,26 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
         xp_ganho = int(xp_base * settings.bonus_multiplicador_acertos_consecutivos)
         bonus_aplicado = True
     
-    # 6. Calcula as moedas ganhas
     moedas_ganhas = settings.moedas_por_acerto if correta else 0
 
-    # 7. Atualiza os dados do perfil de gamificação
     gamificacao_data.xp += xp_ganho
     gamificacao_data.moedas += moedas_ganhas
     
-    # =======================================================================
-    # Lógica do gatilho "Primeira Ação do Dia"
-    # A verificação acontece ANTES de processar a meta, quando `questoes_resolvidas` ainda é 0
-    # para a primeira questão do dia.
-    # =======================================================================
     if meta_hoje.questoes_resolvidas == 0:
-        _avaliar_e_conceder_recompensas(
-            user_profile,
-            Campanha.Gatilho.PRIMEIRA_ACAO_DO_DIA,
-            contexto={}
-        )
-    # =======================================================================
+        _avaliar_e_conceder_recompensas(user_profile, Campanha.Gatilho.PRIMEIRA_ACAO_DO_DIA, contexto={})
     
     meta_completa_info = _processar_meta_diaria(user_profile, gamificacao_data, meta_hoje, xp_ganho, settings)
     level_up_info = _verificar_level_up(gamificacao_data)
     gamificacao_data.save()
     
-    # 8. Avalia o desbloqueio de recompensas e conquistas
     nova_conquista = _avaliar_e_conceder_conquistas(user_profile)
     if level_up_info or nova_conquista:
         _verificar_desbloqueio_recompensas(user_profile, conquista_ganha=nova_conquista)
 
-    # 9. Retorna um dicionário completo com todos os eventos para o frontend
     return {
-        "xp_ganho": xp_ganho,
-        "moedas_ganhas": moedas_ganhas,
-        "bonus_ativo": bonus_aplicado,
-        "level_up_info": level_up_info,
-        "nova_conquista": nova_conquista,
-        "meta_completa_info": meta_completa_info,
-        "correta": correta,
-        "gabarito": questao.gabarito
+        "xp_ganho": xp_ganho, "moedas_ganhas": moedas_ganhas, "bonus_ativo": bonus_aplicado,
+        "level_up_info": level_up_info, "nova_conquista": nova_conquista, "meta_completa_info": meta_completa_info,
+        "correta": correta, "gabarito": questao.gabarito
     }
 
 def _processar_meta_diaria(user_profile, gamificacao_data, meta_hoje, xp_atual, settings):
@@ -222,8 +208,7 @@ def _verificar_desbloqueio_recompensas(user_profile, conquista_ganha=None):
 
 def _avaliar_e_conceder_conquistas(user_profile):
     """
-    Avalia e concede conquistas, agora passando o contexto de cada condição
-    para o motor de regras.
+    Avalia e concede conquistas, agora com o gatilho para campanhas.
     """
     conquistas_usuario_ids = set(ConquistaUsuario.objects.filter(user_profile=user_profile).values_list('conquista_id', flat=True))
     
@@ -239,20 +224,11 @@ def _avaliar_e_conceder_conquistas(user_profile):
 
         todas_condicoes_satisfeitas = True
         if not conquista.condicoes.exists():
-            # Se não há condições, a conquista é concedida se os pré-requisitos forem atendidos.
             pass
         else:
             for condicao in conquista.condicoes.all():
-                # =======================================================================
-                # ALTERAÇÃO PRINCIPAL AQUI
-                # Passamos o `condicao.contexto_json` para a função _obter_valor_variavel.
-                # =======================================================================
                 valor_atual_usuario = _obter_valor_variavel(user_profile, condicao.variavel.chave, condicao.contexto_json)
-                
-                operadores = {
-                    '>=': lambda a, b: a >= b, '<=': lambda a, b: a <= b,
-                    '==': lambda a, b: a == b, '!=': lambda a, b: a != b,
-                }
+                operadores = { '>=': lambda a, b: a >= b, '<=': lambda a, b: a <= b, '==': lambda a, b: a == b, '!=': lambda a, b: a != b, }
                 if not operadores[condicao.operador](valor_atual_usuario, condicao.valor):
                     todas_condicoes_satisfeitas = False
                     break
@@ -280,82 +256,92 @@ def _avaliar_e_conceder_conquistas(user_profile):
                         except Model.DoesNotExist:
                             continue
             
-            return conquista # Retorna a primeira nova conquista desbloqueada
+            # ===================================================================
+            # INÍCIO DA ADIÇÃO: Dispara o novo gatilho de Campanha
+            # ===================================================================
+            _avaliar_e_conceder_recompensas(user_profile, Campanha.Gatilho.CONQUISTA_DESBLOQUEADA, contexto={'conquista_id': conquista.id})
+            # ===================================================================
+            # FIM DA ADIÇÃO
+            # ===================================================================
+
+            return conquista
             
     return None
+
+from pratica.models import Comentario
+
+from django.db.models import Max
 
 def _obter_valor_variavel(user_profile, chave_variavel, contexto):
     """
     O CORAÇÃO DO MOTOR DE REGRAS. Busca o valor atual de uma estatística
-    do jogador com base na chave, agora aplicando filtros de contexto.
+    do jogador com base na chave, agora com as novas variáveis implementadas.
     """
     user = user_profile.user
     
-    if chave_variavel == 'level':
-        return user_profile.gamificacao_data.level
+    if chave_variavel == 'level': return user_profile.gamificacao_data.level
+    if chave_variavel == 'current_streak': user_profile.streak_data.update_streak(); return user_profile.streak_data.current_streak
+    if chave_variavel == 'max_streak': return user_profile.streak_data.max_streak
+    if chave_variavel == 'simulados_concluidos': return SessaoSimulado.objects.filter(usuario=user, finalizado=True).count()
+    if chave_variavel == 'dias_desde_ultima_pratica':
+        last_date = user_profile.streak_data.last_practice_date
+        if not last_date: return 999
+        return (date.today() - last_date).days
+    if chave_variavel == 'dias_desde_cadastro': return (timezone.now().date() - user.date_joined.date()).days
+    if chave_variavel == 'acertos_consecutivos_atuais': return user_profile.gamificacao_data.acertos_consecutivos
+    if chave_variavel == 'disciplinas_unicas_estudadas': return RespostaUsuario.objects.filter(usuario=user).values('questao__disciplina').distinct().count()
+    if chave_variavel == 'simulados_pessoais_criados': return Simulado.objects.filter(criado_por=user, is_oficial=False).count()
+    if chave_variavel == 'comentarios_criados': return Comentario.objects.filter(usuario=user, parent__isnull=True).count()
         
-    if chave_variavel == 'current_streak':
-        user_profile.streak_data.update_streak()
-        return user_profile.streak_data.current_streak
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO DE NOVAS VARIÁVEIS
+    # =======================================================================
+    if chave_variavel == 'bancas_unicas_estudadas':
+        return RespostaUsuario.objects.filter(usuario=user).values('questao__banca').distinct().count()
 
-    if chave_variavel == 'max_streak':
-        return user_profile.streak_data.max_streak
-
-    if chave_variavel == 'total_respostas':
-        qs = RespostaUsuario.objects.filter(usuario=user)
-        # =======================================================================
-        # ALTERAÇÃO PRINCIPAL AQUI
-        # Verifica se o contexto foi passado e se ele contém 'disciplina_id'
-        # =======================================================================
-        if contexto and contexto.get('disciplina_id'):
-            qs = qs.filter(questao__disciplina_id=contexto['disciplina_id'])
+    if chave_variavel == 'simulados_concluidos_por_dificuldade':
+        qs = SessaoSimulado.objects.filter(usuario=user, finalizado=True)
+        if contexto and contexto.get('dificuldade'):
+            qs = qs.filter(simulado__dificuldade=contexto['dificuldade'])
         return qs.count()
 
-    if chave_variavel == 'total_acertos':
-        qs = RespostaUsuario.objects.filter(usuario=user, foi_correta=True)
-        # =======================================================================
-        # ALTERAÇÃO PRINCIPAL AQUI
-        # Verifica se o contexto foi passado e se ele contém 'disciplina_id'
-        # =======================================================================
-        if contexto and contexto.get('disciplina_id'):
-            qs = qs.filter(questao__disciplina_id=contexto['disciplina_id'])
-        return qs.count()
+    if chave_variavel == 'melhor_percentual_acerto_em_simulado':
+        sessoes = SessaoSimulado.objects.filter(usuario=user, finalizado=True)
+        melhor_percentual = 0
+        for sessao in sessoes:
+            total_questoes = sessao.simulado.questoes.count()
+            if total_questoes > 0:
+                total_acertos = sessao.respostas.filter(foi_correta=True).count()
+                percentual_atual = (total_acertos / total_questoes) * 100
+                if percentual_atual > melhor_percentual:
+                    melhor_percentual = percentual_atual
+        return melhor_percentual
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
     
-    if chave_variavel == 'simulados_concluidos':
-        return SessaoSimulado.objects.filter(usuario=user, finalizado_em__isnull=False).count()
+    qs = RespostaUsuario.objects.filter(usuario=user)
+    
+    if contexto:
+        if contexto.get('disciplina_id'): qs = qs.filter(questao__disciplina_id=contexto['disciplina_id'])
+        if contexto.get('banca_id'): qs = qs.filter(questao__banca_id=contexto['banca_id'])
+        if contexto.get('assunto_id'): qs = qs.filter(questao__assunto_id=contexto['assunto_id'])
 
+    if chave_variavel == 'total_respostas': return qs.count()
+    if chave_variavel == 'total_acertos': return qs.filter(foi_correta=True).count()
     if chave_variavel == 'percentual_acertos_geral':
-        total_respostas = RespostaUsuario.objects.filter(usuario=user).count()
-        if total_respostas == 0:
-            return 0
-        total_acertos = RespostaUsuario.objects.filter(usuario=user, foi_correta=True).count()
+        total_respostas = qs.count()
+        if total_respostas == 0: return 0
+        total_acertos = qs.filter(foi_correta=True).count()
         return (total_acertos / total_respostas) * 100
-        
     if chave_variavel == 'acertos_na_semana_atual':
         hoje = date.today()
         inicio_da_semana = hoje - timedelta(days=hoje.weekday())
-        return RespostaUsuario.objects.filter(
-            usuario=user, 
-            foi_correta=True, 
-            data_resposta__date__gte=inicio_da_semana
-        ).count()
-
+        return qs.filter(foi_correta=True, data_resposta__date__gte=inicio_da_semana).count()
     if chave_variavel == 'acertos_no_mes_atual':
         hoje = date.today()
         inicio_do_mes = hoje.replace(day=1)
-        return RespostaUsuario.objects.filter(
-            usuario=user,
-            foi_correta=True,
-            data_resposta__date__gte=inicio_do_mes
-        ).count()
-    
-    if chave_variavel == 'dias_desde_ultima_pratica':
-        # Calcula o número de dias desde a última vez que o usuário praticou.
-        # Retorna 0 se ele praticou hoje.
-        last_date = user_profile.streak_data.last_practice_date
-        if not last_date:
-            return 999 # Um número alto para usuários que nunca praticaram
-        return (date.today() - last_date).days
+        return qs.filter(foi_correta=True, data_resposta__date__gte=inicio_do_mes).count()
     
     return 0
 

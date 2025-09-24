@@ -1,5 +1,4 @@
 <!-- gestao/templates/gestao/listar_recompensas.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -7,40 +6,55 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
-    .recompensa-card { border-left: 4px solid var(--cor-primaria); }
-    .recompensa-card img { height: 150px; object-fit: cover; }
+    /* Adiciona uma borda colorida para destacar os cards */
+    .recompensa-card { 
+        border-left: 4px solid var(--cor-primaria); 
+    }
+    .recompensa-card img { 
+        height: 150px; 
+        object-fit: cover; /* Garante que a imagem cubra a área sem distorcer */
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
+    <!-- Inclui o submenu de navegação da área de gamificação -->
     {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab=tipo %}
 
+    <!-- Cabeçalho da página com título e botão de adicionar -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2 class="h3 mb-0">{{ titulo }}</h2>
-        <a href="{% url 'gestao:criar_recompensa' tipo=tipo %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Adicionar Novo Item</a>
+        <a href="{% url 'gestao:criar_recompensa' tipo=tipo %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Adicionar Novo Item
+        </a>
     </div>
 
+    <!-- Exibe mensagens de sucesso ou erro (ex: "Item criado com sucesso") -->
     {% include 'gestao/includes/_messages.html' %}
 
+    <!-- Grid para exibir os cards de recompensa -->
     <div class="row g-4">
         {% for recompensa in recompensas %}
         <div class="col-lg-3 col-md-4 col-sm-6">
             <div class="card shadow-sm h-100 recompensa-card">
                 {% if recompensa.imagem %}
-                        <img src="{{ recompensa.imagem.url }}" class="card-img-top bg-light" alt="{{ recompensa.nome }}">
-                    {% else %}
-                        <!-- Isso mostra um placeholder se não houver imagem, em vez de quebrar a página -->
-                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
-                            <i class="fas fa-image fa-2x text-muted"></i>
-                        </div>
-                    {% endif %}
+                    <!-- A tag .url gera a URL completa para a imagem -->
+                    <img src="{{ recompensa.imagem.url }}" class="card-img-top bg-light" alt="{{ recompensa.nome }}">
+                {% else %}
+                    <!-- Placeholder para itens sem imagem, evitando um erro visual -->
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
+                        <i class="fas fa-image fa-2x text-muted"></i>
+                    </div>
+                {% endif %}
                 <div class="card-body">
                     <h5 class="card-title">{{ recompensa.nome }}</h5>
-                    <p class="card-text small text-muted">{{ recompensa.descricao }}</p>
+                    <p class="card-text small text-muted">{{ recompensa.descricao|truncatewords:15 }}</p>
                 </div>
                 <div class="card-footer d-flex justify-content-end gap-2">
+                    <!-- Botão de Editar -->
                     <a href="{% url 'gestao:editar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                    <!-- Botão de Excluir que aciona o modal de confirmação -->
                     <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" data-item-name="{{ recompensa.nome }}" title="Excluir">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -48,6 +62,7 @@
             </div>
         </div>
         {% empty %}
+        <!-- Mensagem exibida se não houver nenhum item cadastrado -->
         <div class="col-12">
             <div class="card card-body text-center p-5">
                 <h5 class="text-muted">Nenhum item cadastrado.</h5>
@@ -56,10 +71,12 @@
         {% endfor %}
     </div>
     
+    <!-- Componente de Paginação -->
     <div class="mt-4">
         {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
     </div>
 </div>
 
+<!-- Modal de Confirmação de Exclusão (reutilizável) -->
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}
 {% endblock %}

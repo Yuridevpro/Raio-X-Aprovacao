@@ -30,6 +30,11 @@ from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 import markdown
 
+from django.db.models import F, Value, Case, When, CharField
+from django.db.models.functions import Concat
+from django.conf import settings
+
+
 # -----------------------------------------------------------------------
 # 3. Importações de Outros Apps do Projeto
 # -----------------------------------------------------------------------
@@ -2122,60 +2127,84 @@ def api_contar_questoes_filtro(request):
 @login_required
 def gerenciar_conquistas_da_trilha(request, trilha_id):
     """
-    NOVA VIEW: O "Estúdio de Conquistas".
-    Exibe todas as conquistas de uma trilha específica e permite adicionar/editar.
+    Exibe todas as conquistas de uma trilha específica, agora com paginação.
     """
     trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
-    conquistas = trilha.conquistas.all()
+    conquistas_list = trilha.conquistas.all().order_by('nome')
+    
+    # Adicionando paginação
+    page_obj, page_numbers, per_page = paginar_itens(request, conquistas_list, items_per_page=9) # 9 cards por página
     
     context = {
         'trilha': trilha,
-        'conquistas': conquistas,
+        'conquistas': page_obj, # Passando o objeto paginado para o template
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
         'active_tab': 'trilhas',
         'titulo': f'Gerenciando Conquistas da Trilha: {trilha.nome}'
     }
     return render(request, 'gestao/gerenciar_conquistas_da_trilha.html', context)
 
 
+
+def _get_recompensas_with_full_urls(model):
+    """
+    Busca um modelo de recompensa e anota a URL completa da imagem para
+    ser usada em contextos JSON, garantindo que o frontend receba o caminho correto.
+    """
+    # Esta abordagem é mais segura e funciona tanto localmente quanto com S3/outros storages.
+    # Ela cria uma URL completa se o caminho do arquivo não for absoluto.
+    base_url = settings.MEDIA_URL if not settings.MEDIA_URL.startswith(('http:', 'https EETPS:')) else ''
+    
+    return list(model.objects.annotate(
+        imagem_url=Case(
+            When(imagem__isnull=False, then=Concat(Value(base_url), F('imagem'))),
+            default=Value(''),
+            output_field=CharField()
+        )
+    ).values('id', 'nome', 'imagem_url', 'raridade'))
+
+# =======================================================================
+# VIEW DE CONQUISTAS (MODIFICADA PARA CONSISTÊNCIA)
+# =======================================================================
+
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
 def criar_ou_editar_conquista(request, trilha_id, conquista_id=None):
+    """
+    Processa o formulário para criar ou editar uma Conquista, incluindo
+    suas condições (CondicaoFormSet) e recompensas associadas.
+    """
     trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
     instancia = get_object_or_404(Conquista, id=conquista_id) if conquista_id else None
     
     if request.method == 'POST':
         form_conquista = ConquistaForm(request.POST, instance=instancia, trilha=trilha)
-        # O formset precisa ser instanciado aqui, mas só será salvo depois
         formset_condicao = CondicaoFormSet(request.POST, instance=instancia, prefix='condicao')
         
         if form_conquista.is_valid() and formset_condicao.is_valid():
-            # Salva o formulário principal, mas não o commita no banco ainda
             conquista = form_conquista.save(commit=False)
             conquista.trilha = trilha
             
-            # ... (lógica de recompensas, sem alteração) ...
+            # Monta o dicionário de recompensas a partir do formulário
             recompensas = {
-                'xp': form_conquista.cleaned_data.get('recompensa_xp'), 'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
-                'avatares': list(form_conquista.cleaned_data.get('recompensa_avatares').values_list('id', flat=True)),
-                'bordas': list(form_conquista.cleaned_data.get('recompensa_bordas').values_list('id', flat=True)),
-                'banners': list(form_conquista.cleaned_data.get('recompensa_banners').values_list('id', flat=True)),
+                'xp': form_conquista.cleaned_data.get('recompensa_xp'), 
+                'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
+                'avatares': [int(v) for v in request.POST.getlist('recompensa_avatares')],
+                'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')],
+                'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
             }
+            # Remove chaves vazias ou nulas antes de salvar no JSONField
             conquista.recompensas = {k: v for k, v in recompensas.items() if v}
             
-            # =======================================================================
-            # CORREÇÃO DA ORDEM DE SALVAMENTO
-            # 1. Salva a conquista principal primeiro para gerar um ID.
-            # =======================================================================
             conquista.save()
-            
-            # 2. Salva a relação ManyToMany de pré-requisitos
-            form_conquista.save_m2m()
+            form_conquista.save_m2m() # Salva relações ManyToMany, como pré-requisitos
 
-            # 3. AGORA, com a conquista já salva, podemos associar e salvar o formset
+            # Salva o formset de condições associado à conquista
             formset_condicao.instance = conquista
             formset_condicao.save()
-            # =======================================================================
             
             messages.success(request, f'Conquista "{conquista.nome}" salva com sucesso!')
             return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha.id)
@@ -2184,14 +2213,20 @@ def criar_ou_editar_conquista(request, trilha_id, conquista_id=None):
         formset_condicao = CondicaoFormSet(instance=instancia, prefix='condicao')
 
     titulo = f'Editando: {instancia.nome}' if instancia else f'Nova Conquista para a Trilha "{trilha.nome}"'
+    
     context = {
         'form_conquista': form_conquista,
         'formset_condicao': formset_condicao,
         'trilha': trilha,
         'titulo': titulo,
-        'active_tab': 'trilhas'
+        'active_tab': 'trilhas',
+        # CORREÇÃO: Utilizando a função auxiliar para garantir URLs completas
+        'avatares_disponiveis': _get_recompensas_with_full_urls(Avatar),
+        'bordas_disponiveis': _get_recompensas_with_full_urls(Borda),
+        'banners_disponiveis': _get_recompensas_with_full_urls(Banner),
     }
     return render(request, 'gestao/form_conquista.html', context)
+
 
 
 @user_passes_test(is_staff_member)
@@ -2216,24 +2251,29 @@ def deletar_conquista(request, conquista_id):
 @login_required
 def listar_variaveis_do_jogo(request):
     """
-    NOVA VIEW: Lista as "Variáveis do Jogo" disponíveis para o motor de regras.
-    Substitui a antiga `listar_tipos_condicao`.
+    Lista as "Variáveis do Jogo" disponíveis em um layout de cards com paginação.
     """
-    variaveis = VariavelDoJogo.objects.all()
+    variaveis_list = VariavelDoJogo.objects.all().order_by('nome_exibicao')
+    
+    # Adicionando paginação
+    page_obj, page_numbers, per_page = paginar_itens(request, variaveis_list, items_per_page=9) # 9 cards por página
+
     context = {
-        'variaveis': variaveis,
+        'variaveis': page_obj, # Passando o objeto paginado
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
         'active_tab': 'variaveis_jogo',
         'titulo': 'Variáveis do Jogo para Condições'
     }
     return render(request, 'gestao/listar_variaveis_do_jogo.html', context)
 
 
-@user_passes_test(is_superuser) # Apenas superusuários podem criar/editar variáveis
+@user_passes_test(is_superuser)
 @login_required
 def criar_ou_editar_variavel(request, variavel_id=None):
     """
-    NOVA VIEW: Permite que superusuários criem ou editem as Variáveis do Jogo.
-    Substitui a antiga `criar_ou_editar_tipo_condicao`.
+    Permite que superusuários criem ou editem as Variáveis do Jogo.
     """
     instancia = get_object_or_404(VariavelDoJogo, id=variavel_id) if variavel_id else None
     if request.method == 'POST':
@@ -2569,26 +2609,59 @@ def aprovar_exclusao_logs(request, solicitacao_id):
     
     return redirect('gestao:listar_solicitacoes_exclusao_logs')
 
+# gestao/views.py
+
 @user_passes_test(is_staff_member)
 @login_required
-def listar_campanhas(request): # <- NOME CORRIGIDO
-    """Lista todas as Campanhas de Gamificação."""
-    regras = Campanha.objects.all().order_by('nome') # <- MODELO CORRIGIDO
+def listar_campanhas(request):
+    """
+    Lista, filtra, busca e ordena todas as Campanhas de Gamificação
+    usando um layout de cards responsivo.
+    """
+    base_queryset = Campanha.objects.all().order_by('nome')
+
+    # --- Lógica de Busca ---
+    termo_busca = request.GET.get('q', '').strip()
+    if termo_busca:
+        base_queryset = base_queryset.filter(nome__icontains=termo_busca)
+
+    # --- Lógica de Filtragem ---
+    filtro_status = request.GET.get('status')
+    filtro_gatilho = request.GET.get('gatilho')
+    filtro_recorrencia = request.GET.get('recorrencia')
+
+    if filtro_status:
+        base_queryset = base_queryset.filter(ativo=(filtro_status == 'ativo'))
+    if filtro_gatilho:
+        base_queryset = base_queryset.filter(gatilho=filtro_gatilho)
+    if filtro_recorrencia:
+        base_queryset = base_queryset.filter(tipo_recorrencia=filtro_recorrencia)
+        
+    # --- Paginação ---
+    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=12)
+
     context = {
-        'regras': regras,
-        'active_tab': 'campanhas', # <- NOME DA ABA CORRIGIDO
-        'titulo': 'Campanhas de Gamificação'
+        'campanhas': page_obj, # Renomeado para 'campanhas' para manter consistência com o template
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
+        'active_tab': 'campanhas',
+        'titulo': 'Campanhas de Gamificação',
+        'gatilho_choices': Campanha.Gatilho.choices,
+        'recorrencia_choices': Campanha.TipoRecorrencia.choices,
+        'active_filters': request.GET,
     }
-    return render(request, 'gestao/listar_regras_recompensa.html', context) # O template pode manter o nome antigo por enquanto
+    return render(request, 'gestao/listar_regras_recompensa.html', context)
 
-# gestao/views.py
-
-# gestao/views.py
 
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
 def criar_ou_editar_campanha(request, campanha_id=None):
+    """
+    Processa o formulário do assistente (wizard) para criar ou editar uma Campanha,
+    incluindo seus múltiplos grupos de condições e recompensas.
+    """
     instancia = get_object_or_404(Campanha, id=campanha_id) if campanha_id else None
     titulo = f"Editando Campanha: {instancia.nome}" if instancia else "Criar Nova Campanha"
 
@@ -2597,62 +2670,81 @@ def criar_ou_editar_campanha(request, campanha_id=None):
         if form.is_valid():
             campanha = form.save(commit=False)
             
+            # Processa os grupos de condições e recompensas enviados pelo frontend
             grupos = []
+            # Identifica os índices dos grupos a partir das chaves do POST (ex: 'grupo-0-nome', 'grupo-1-nome')
             grupo_indices = sorted(list(set([key.split('-')[1] for key in request.POST if key.startswith('grupo-')])))
 
             for index in grupo_indices:
+                # Lógica para garantir que apenas um dos campos de posição do ranking seja salvo
                 posicao_exata = request.POST.get(f'grupo-{index}-posicao_exata')
                 posicao_ate = request.POST.get(f'grupo-{index}-posicao_ate')
-                if posicao_exata: posicao_ate = ''
+                if posicao_exata: 
+                    posicao_ate = ''
 
+                # Monta a estrutura de dados para cada grupo
                 grupo_data = {
                     'nome_grupo': request.POST.get(f'grupo-{index}-nome_grupo', f'Grupo #{int(index) + 1}'),
-                    'condicao_posicao_exata': posicao_exata,
+                    'condicao_posicao_exata': posicao_exata, 
                     'condicao_posicao_ate': posicao_ate,
                     'condicao_min_acertos_percent': request.POST.get(f'grupo-{index}-min_acertos_percent'),
-                    'xp_extra': request.POST.get(f'grupo-{index}-xp_extra'),
+                    'xp_extra': request.POST.get(f'grupo-{index}-xp_extra'), 
                     'moedas_extras': request.POST.get(f'grupo-{index}-moedas_extras'),
                     'avatares': [int(v) for v in request.POST.getlist(f'grupo-{index}-avatares')],
                     'bordas': [int(v) for v in request.POST.getlist(f'grupo-{index}-bordas')],
                     'banners': [int(v) for v in request.POST.getlist(f'grupo-{index}-banners')],
                 }
-
+                
+                # Processa as condições dinâmicas (gerais) dentro do grupo
                 condicoes_dinamicas = []
-                cond_indices = sorted(list(set([key.split('-')[3] for key in request.POST if key.startswith(f'grupo-{index}-cond-var-')])))
+                # =======================================================================
+                # INÍCIO DA CORREÇÃO: O índice do split estava errado.
+                # O nome do campo é 'grupo-{index}-cond-var-{c_index}', então o
+                # índice correto para {c_index} após o split é [4], e não [3].
+                # =======================================================================
+                cond_indices = sorted(list(set([key.split('-')[4] for key in request.POST if key.startswith(f'grupo-{index}-cond-var-')])))
                 
                 for c_index in cond_indices:
                     var_id = request.POST.get(f'grupo-{index}-cond-var-{c_index}')
                     op = request.POST.get(f'grupo-{index}-cond-op-{c_index}')
                     val = request.POST.get(f'grupo-{index}-cond-val-{c_index}')
                     
-                    if var_id and op and val:
-                        condicao_data = {
-                            'variavel_id': int(var_id),
-                            'operador': op,
-                            'valor': int(val)
-                        }
+                    # Esta validação já estava correta para permitir o valor '0'.
+                    if var_id and op and val is not None and val.strip() != '':
+                        condicao_data = {'variavel_id': int(var_id), 'operador': op, 'valor': int(val)}
                         
-                        # =======================================================================
-                        # ADIÇÃO: Captura e adiciona o contexto da condição, se existir.
-                        # =======================================================================
+                        # Processa o contexto opcional da condição (disciplina, banca, etc.)
                         ctx_disciplina_id = request.POST.get(f'grupo-{index}-cond-ctx-disciplina-{c_index}')
-                        if ctx_disciplina_id:
-                            condicao_data['contexto'] = {'disciplina_id': int(ctx_disciplina_id)}
-                        # =======================================================================
+                        ctx_banca_id = request.POST.get(f'grupo-{index}-cond-ctx-banca-{c_index}')
+                        ctx_assunto_id = request.POST.get(f'grupo-{index}-cond-ctx-assunto-{c_index}')
+                        contexto = {}
+                        if ctx_disciplina_id: contexto['disciplina_id'] = int(ctx_disciplina_id)
+                        if ctx_banca_id: contexto['banca_id'] = int(ctx_banca_id)
+                        if ctx_assunto_id: contexto['assunto_id'] = int(ctx_assunto_id)
+                        if contexto: 
+                            condicao_data['contexto'] = contexto
                         
                         condicoes_dinamicas.append(condicao_data)
                 
-                if condicoes_dinamicas:
+                if condicoes_dinamicas: 
                     grupo_data['condicoes'] = condicoes_dinamicas
-
+                
+                # A lógica de limpeza já estava correta.
                 grupo_limpo = {}
                 for key, value in grupo_data.items():
+                    # Para listas (avatares, bordas, etc.), só adiciona se não estiverem vazias
                     if isinstance(value, list):
-                        if value: grupo_limpo[key] = value
-                    elif value:
-                        grupo_limpo[key] = int(value) if str(value).isdigit() else value
+                        if value: 
+                            grupo_limpo[key] = value
+                    # Para outros valores, adiciona se não forem Nulos ou uma string vazia
+                    elif value is not None and value != '':
+                        try:
+                            # Tenta converter para inteiro se for um valor numérico, senão mantém como string
+                            grupo_limpo[key] = int(value)
+                        except (ValueError, TypeError):
+                            grupo_limpo[key] = value
                 
-                if grupo_limpo:
+                if grupo_limpo: 
                     grupos.append(grupo_limpo)
 
             campanha.grupos_de_condicoes = grupos
@@ -2665,25 +2757,44 @@ def criar_ou_editar_campanha(request, campanha_id=None):
     else:
         form = CampanhaForm(instance=instancia)
     
-    avatares_disponiveis = list(Avatar.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
-    bordas_disponiveis = list(Borda.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
-    banners_disponiveis = list(Banner.objects.filter(tipos_desbloqueio__nome='CAMPANHA').values('id', 'nome'))
-    variaveis_disponiveis = list(VariavelDoJogo.objects.values('id', 'nome_exibicao'))
-    disciplinas_disponiveis = list(Disciplina.objects.values('id', 'nome').order_by('nome'))
-    grupos_de_condicoes = instancia.grupos_de_condicoes if instancia and isinstance(instancia.grupos_de_condicoes, list) else []
-        
     context = {
-        'form': form,
-        'titulo': titulo,
-        'campanha': instancia,
+        'form': form, 
+        'titulo': titulo, 
+        'campanha': instancia, 
         'active_tab': 'campanhas',
-        'avatares_disponiveis': avatares_disponiveis,
-        'bordas_disponiveis': bordas_disponiveis,
-        'banners_disponiveis': banners_disponiveis,
-        'variaveis_disponiveis': variaveis_disponiveis,
-        'disciplinas_disponiveis': disciplinas_disponiveis,
-        'grupos_de_condicoes': grupos_de_condicoes,
+        'avatares_disponiveis': _get_recompensas_with_full_urls(Avatar),
+        'bordas_disponiveis': _get_recompensas_with_full_urls(Borda),
+        'banners_disponiveis': _get_recompensas_with_full_urls(Banner),
+        'variaveis_disponiveis': list(VariavelDoJogo.objects.values('id', 'nome_exibicao')),
+        'disciplinas_disponiveis': list(Disciplina.objects.values('id', 'nome').order_by('nome')),
+        'bancas_disponiveis': list(Banca.objects.values('id', 'nome').order_by('nome')),
+        'assuntos_disponiveis': list(Assunto.objects.values('id', 'nome').order_by('nome')),
+        'grupos_de_condicoes': instancia.grupos_de_condicoes if instancia and isinstance(instancia.grupos_de_condicoes, list) else []
     }
+    return render(request, 'gestao/form_regra_recompensa.html', context)
+    
+    # =======================================================================
+    # INÍCIO DA ALTERAÇÃO: Construindo a URL completa da imagem
+    # =======================================================================
+    def get_recompensas_with_urls(model):
+        return list(model.objects.annotate(
+            imagem_url=F('imagem')
+        ).values('id', 'nome', 'imagem_url', 'raridade'))
+    
+    context = {
+        'form': form, 'titulo': titulo, 'campanha': instancia, 'active_tab': 'campanhas',
+        'avatares_disponiveis': get_recompensas_with_urls(Avatar),
+        'bordas_disponiveis': get_recompensas_with_urls(Borda),
+        'banners_disponiveis': get_recompensas_with_urls(Banner),
+        'variaveis_disponiveis': list(VariavelDoJogo.objects.values('id', 'nome_exibicao')),
+        'disciplinas_disponiveis': list(Disciplina.objects.values('id', 'nome').order_by('nome')),
+        'bancas_disponiveis': list(Banca.objects.values('id', 'nome').order_by('nome')),
+        'assuntos_disponiveis': list(Assunto.objects.values('id', 'nome').order_by('nome')),
+        'grupos_de_condicoes': instancia.grupos_de_condicoes if instancia and isinstance(instancia.grupos_de_condicoes, list) else []
+    }
+    # =======================================================================
+    # FIM DA ALTERAÇÃO
+    # =======================================================================
     return render(request, 'gestao/form_regra_recompensa.html', context)
 
 
@@ -2799,16 +2910,23 @@ def conceder_recompensa_manual(request):
 @login_required
 def listar_trilhas(request):
     """
-    Lista todas as Trilhas de Conquistas. Agora é o ponto de entrada principal
-    para o gerenciamento de conquistas.
+    Lista todas as Trilhas de Conquistas em um layout de cards, agora com paginação.
     """
-    trilhas = TrilhaDeConquistas.objects.annotate(num_conquistas=Count('conquistas')).order_by('ordem')
+    trilhas_list = TrilhaDeConquistas.objects.annotate(num_conquistas=Count('conquistas')).order_by('ordem')
+    
+    # Adicionando paginação
+    page_obj, page_numbers, per_page = paginar_itens(request, trilhas_list, items_per_page=9) # 9 cards por página
+
     context = {
-        'trilhas': trilhas,
+        'trilhas': page_obj, # Passando o objeto paginado para o template
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,
+        'per_page': per_page,
         'active_tab': 'trilhas',
         'titulo': 'Trilhas & Conquistas'
     }
     return render(request, 'gestao/listar_trilhas.html', context)
+
 
 
 @user_passes_test(is_staff_member)

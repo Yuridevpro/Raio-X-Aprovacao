@@ -1,5 +1,4 @@
-<!-- gestao/templates/gestao/form_conquista.html (Arquivo Completo) -->
-
+<!-- gestao/templates/gestao/form_conquista.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -7,41 +6,32 @@
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <style>
-    /* Estilos para o construtor de condições aprimorado */
-    .formset-row > div {
-        /* Hack para fazer o grid funcionar com a estrutura do Django formset */
-        display: contents;
-    }
-    .formset-row-inner {
-        display: grid;
-        grid-template-columns: 1fr 1fr 1fr auto;
-        gap: 0.75rem;
-        align-items: center;
-    }
-    .formset-row-wrapper {
-        padding: 0.75rem;
-        border-radius: .5rem;
-        margin-bottom: 0.5rem;
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-    }
+    /* Estilos para o construtor de condições (FormSet) */
+    .formset-row-inner { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; align-items: center; }
+    .formset-row-wrapper { padding: 0.75rem; border-radius: .5rem; margin-bottom: 0.5rem; background-color: #f8f9fa; border: 1px solid #dee2e6; }
     .formset-row label { display: none; }
     .delete-checkbox-wrapper { text-align: center; }
     .formset-row .form-select, .formset-row .form-control { font-size: 0.875rem; }
+    /* Esconde o checkbox original, pois o jquery.formset.js o substitui por um botão */
     .formset-row input[type="checkbox"] { display: none; }
-    .context-field {
-        display: none; /* Começa escondido */
-        padding-top: 0.75rem;
-        margin-top: 0.75rem;
-        border-top: 1px dashed #ced4da;
-    }
+    .context-field { display: none; padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px dashed #ced4da; }
 
-    /* Estilos para o Seletor de Ícones */
+    /* Estilos para o Seletor de Ícones (Modal) */
     #iconPickerModal .modal-body { max-height: 60vh; overflow-y: auto; }
     #iconGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.5rem; }
     .icon-item { display: flex; align-items: center; justify-content: center; height: 60px; border: 1px solid #dee2e6; border-radius: 0.25rem; font-size: 1.5rem; cursor: pointer; transition: all 0.2s ease; }
     .icon-item:hover { background-color: var(--cor-primaria); color: white; transform: scale(1.1); }
     #iconPreview { font-size: 1.5rem; min-width: 40px; text-align: center; }
+
+    /* Estilos para o Seletor Visual de Recompensas */
+    .reward-picker-preview { display: flex; flex-wrap: wrap; gap: 0.5rem; min-height: 48px; border: 1px solid #dee2e6; border-radius: 0.375rem; padding: 0.5rem; }
+    .reward-preview-item { position: relative; }
+    .reward-preview-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .reward-picker-modal .modal-body { max-height: 70vh; overflow-y: auto; }
+    .reward-item-card { cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; }
+    .reward-item-card:hover { border-color: #a0c4ff; }
+    .reward-item-card.selected { border-color: var(--cor-primaria); background-color: #eef5ff; box-shadow: 0 0 10px rgba(74, 144, 226, 0.5); }
+    .reward-item-card img { height: 100px; object-fit: cover; }
 </style>
 {% endblock %}
 
@@ -56,7 +46,7 @@
     <form method="POST">
         {% csrf_token %}
         <div class="row g-4">
-            <!-- Coluna Principal (Dados Gerais e Recompensas) -->
+            <!-- Coluna da Esquerda (Dados Gerais e Recompensas) -->
             <div class="col-lg-7">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><h5 class="mb-0">Dados Gerais</h5></div>
@@ -66,7 +56,7 @@
                         <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}{{ form_conquista.descricao.errors }}</div>
                         
                         <div class="row align-items-center">
-                            <div class="col-md-8 mb-3">
+                            <div class="col mb-3">
                                 <label for="{{ form_conquista.icone.id_for_label }}" class="form-label">{{ form_conquista.icone.label }}</label>
                                 <div class="input-group">
                                     <span class="input-group-text" id="iconPreview"><i class=""></i></span>
@@ -74,13 +64,16 @@
                                     <button class="btn btn-outline-secondary" type="button" data-bs-toggle="modal" data-bs-target="#iconPickerModal"><i class="fas fa-search"></i></button>
                                 </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label for="{{ form_conquista.cor.id_for_label }}" class="form-label">{{ form_conquista.cor.label }}</label>
-                                {{ form_conquista.cor }}
+                            <div class="col-auto mb-3">
+                                <label for="id_cor_picker" class="form-label">{{ form_conquista.cor.label }}</label>
+                                <div class="input-group">
+                                    <input type="color" class="form-control form-control-color" id="id_cor_picker" value="{{ form_conquista.cor.value|default:'#0D6EFD' }}">
+                                    {{ form_conquista.cor }}
+                                </div>
                             </div>
                         </div>
 
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}<small class="form-text text-muted">Apenas conquistas desta mesma trilha podem ser pré-requisitos.</small></div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.pre_requisitos.label }}</label>{{ form_conquista.pre_requisitos }}<small class="form-text text-muted">{{ form_conquista.pre_requisitos.help_text }}</small></div>
                         <div class="form-check form-switch mt-3">{{ form_conquista.is_secreta }}<label class="form-check-label" for="{{ form_conquista.is_secreta.id_for_label }}">{{ form_conquista.is_secreta.label }}</label></div>
                     </div>
                 </div>
@@ -92,25 +85,40 @@
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_xp.label }}</label>{{ form_conquista.recompensa_xp }}</div>
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_moedas.label }}</label>{{ form_conquista.recompensa_moedas }}</div>
                         </div>
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_avatares.label }}</label>{{ form_conquista.recompensa_avatares }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_bordas.label }}</label>{{ form_conquista.recompensa_bordas }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_banners.label }}</label>{{ form_conquista.recompensa_banners }}</div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form_conquista.recompensa_avatares.label }}</label>
+                            {{ form_conquista.recompensa_avatares }}
+                            <div class="reward-picker-preview" id="preview-avatares"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="avatares" data-target-select-id="id_recompensa_avatares">Selecionar Avatares</button>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form_conquista.recompensa_bordas.label }}</label>
+                            {{ form_conquista.recompensa_bordas }}
+                            <div class="reward-picker-preview" id="preview-bordas"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="bordas" data-target-select-id="id_recompensa_bordas">Selecionar Bordas</button>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">{{ form_conquista.recompensa_banners.label }}</label>
+                            {{ form_conquista.recompensa_banners }}
+                            <div class="reward-picker-preview" id="preview-banners"></div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="banners" data-target-select-id="id_recompensa_banners">Selecionar Banners</button>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Coluna Lateral (Condições) -->
+            <!-- Coluna da Direita (Condições) -->
             <div class="col-lg-5">
                 <div class="card shadow-sm mb-4">
                     <div class="card-header"><h5 class="mb-0">Condições de Desbloqueio</h5></div>
                     <div class="card-body p-4">
                         <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS.</p>
-                        
                         <div id="condicao-formset-container">
                             <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;">
                                 <label class="form-label small text-muted">Variável</label>
                                 <label class="form-label small text-muted">Operador</label>
                                 <label class="form-label small text-muted">Valor</label>
+                                <label></label> <!-- Espaço para o botão de deletar -->
                             </div>
                             {{ formset_condicao.management_form }}
                             {% for form in formset_condicao.forms %}
@@ -121,13 +129,20 @@
                                             {{ form.variavel }}
                                             {{ form.operador }}
                                             {{ form.valor }}
+                                            <!-- ALTERAÇÃO INÍCIO: Botão de exclusão manual -->
                                             <div class="delete-checkbox-wrapper">
-                                                {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
+                                                {{ form.DELETE }} <!-- Campo oculto original do Django -->
+                                                <button type="button" class="btn btn-sm btn-link p-0 manual-delete-btn" title="Remover Condição">
+                                                    <i class="fas fa-trash text-danger"></i>
+                                                </button>
                                             </div>
+                                            <!-- ALTERAÇÃO FIM: Botão de exclusão manual -->
                                         </div>
                                         <div class="context-field">
-                                            {{ form.disciplina_contexto.label_tag }}
                                             {{ form.disciplina_contexto }}
+                                            {{ form.banca_contexto }}
+                                            {{ form.assunto_contexto }}
+                                            {{ form.dificuldade_contexto }}
                                         </div>
                                     </div>
                                 </div>
@@ -145,10 +160,10 @@
 </div>
 
 <!-- Modal do Seletor de Ícones -->
-<div class="modal fade" id="iconPickerModal" tabindex="-1" aria-labelledby="iconPickerModalLabel" aria-hidden="true">
+<div class="modal fade" id="iconPickerModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title" id="iconPickerModalLabel">Selecione um Ícone</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+            <div class="modal-header"><h5 class="modal-title">Selecione um Ícone</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <div class="mb-3"><input type="text" id="iconSearchInput" class="form-control" placeholder="Buscar ícone pelo nome..."></div>
                 <div id="iconGrid"><div class="text-center w-100 p-5"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div></div></div>
@@ -156,126 +171,184 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Seletor Visual de Recompensas -->
+<div class="modal fade" id="rewardPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Selecionar Recompensas</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header py-2"><input type="text" id="rewardSearchInput" class="form-control" placeholder="Buscar recompensa por nome..."></div>
+            <div class="modal-body" id="rewardPickerModalBody"></div>
+            <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button><button type="button" class="btn btn-primary" id="confirmRewardSelectionBtn">Confirmar Seleção</button></div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<!-- Dados do Django para o JavaScript -->
+{{ avatares_disponiveis|json_script:"avatares-data" }}
+{{ bordas_disponiveis|json_script:"bordas-data" }}
+{{ banners_disponiveis|json_script:"banners-data" }}
+
+<!-- Bibliotecas JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="{% static 'js/jquery.formset.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // =======================================================================
+    // SEÇÃO 1: INICIALIZAÇÃO E FUNÇÕES AUXILIARES
+    // =======================================================================
+
+    /**
+     * Inicializa a biblioteca TomSelect em todos os elementos elegíveis
+     * dentro de um container específico. Evita reinicializações.
+     * @param {HTMLElement} container O elemento pai para procurar por selects.
+     */
+    function initializeTomSelectIn(container) {
+        container.querySelectorAll('.tom-select-single:not(.ts-hidden-accessible)').forEach(el => {
+            if (!el.tomselect) new TomSelect(el, { placeholder: 'Selecione...' });
+        });
+        container.querySelectorAll('.tom-select-multiple:not(.ts-hidden-accessible)').forEach(el => {
+            if (!el.tomselect) new TomSelect(el, {
+                plugins: { remove_button: { title: 'Remover' } },
+                placeholder: 'Selecione um ou mais...'
+            });
+        });
+    }
+
+    // =======================================================================
+    // SEÇÃO 2: LÓGICA DO FORMSET DE CONDIÇÕES
+    // =======================================================================
     function handleContextFields() {
         document.querySelectorAll('.formset-row').forEach(row => {
             const variavelSelect = row.querySelector('select[name$="-variavel"]');
             const contextField = row.querySelector('.context-field');
+            if (!variavelSelect || !contextField) return;
+
+            const contextMap = {
+                'acertos': ['disciplina', 'banca', 'assunto'],
+                'respostas': ['disciplina', 'banca', 'assunto'],
+                'simulados concluídos': ['dificuldade']
+            };
 
             function toggleContext() {
-                if (!variavelSelect || !contextField) return;
                 const selectedOptionText = variavelSelect.options[variavelSelect.selectedIndex]?.text.toLowerCase() || '';
-                
-                if (selectedOptionText.includes('acertos') || selectedOptionText.includes('respostas')) {
-                    contextField.style.display = 'block';
-                } else {
-                    contextField.style.display = 'none';
-                    const disciplinaSelect = contextField.querySelector('select');
-                    if (disciplinaSelect) disciplinaSelect.value = '';
+                let fieldsToShow = [];
+                for (const key in contextMap) {
+                    if (selectedOptionText.includes(key)) {
+                        fieldsToShow = contextMap[key];
+                        break;
+                    }
                 }
+                contextField.style.display = fieldsToShow.length > 0 ? 'block' : 'none';
+                ['disciplina', 'banca', 'assunto', 'dificuldade'].forEach(fieldName => {
+                    const field = contextField.querySelector(`select[name$="-${fieldName}_contexto"]`);
+                    if (field) {
+                        const wrapper = field.parentElement.classList.contains('ts-wrapper') ? field.parentElement.parentElement : field.parentElement;
+                        if (wrapper) {
+                            if (fieldsToShow.includes(fieldName)) {
+                                wrapper.style.display = 'block';
+                            } else {
+                                wrapper.style.display = 'none';
+                                if (field.tomselect) field.tomselect.clear();
+                            }
+                        }
+                    }
+                });
             }
-
-            variavelSelect.addEventListener('change', toggleContext);
-            toggleContext(); // Executa ao carregar para verificar o estado inicial
+            if (variavelSelect.tomselect) {
+                variavelSelect.tomselect.on('change', toggleContext);
+            }
+            toggleContext();
         });
     }
 
-    $(function() {
-        $('#condicao-formset-container .formset-row').formset({
-            prefix: '{{ formset_condicao.prefix }}',
-            addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
-            deleteText: '<i class="fas fa-trash text-danger"></i>',
-            addCssClass: 'btn btn-outline-success btn-sm mt-2 w-100',
-            deleteCssClass: 'btn btn-sm btn-link p-0',
-            added: function(row) {
-                handleContextFields(); // Aplica a lógica de contexto para novas linhas
-            }
-        });
+    // --- Execução da Lógica Principal ---
 
-        document.querySelectorAll('.tom-select').forEach((el) => {
-            new TomSelect(el, {
-                plugins: { remove_button: { title: 'Remover este item' } },
-                placeholder: 'Selecione um ou mais itens...'
-            });
-        });
-
-        handleContextFields(); // Executa ao carregar a página
+    const mainFormContainer = document.querySelector('.col-lg-7');
+    if (mainFormContainer) {
+        initializeTomSelectIn(mainFormContainer);
+    }
+    
+    $('#condicao-formset-container .formset-row').each(function() {
+        initializeTomSelectIn(this);
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Lógica do Seletor de Ícones (sem alterações)
-        const iconPickerModal = document.getElementById('iconPickerModal');
-        if (iconPickerModal) {
-            const iconGrid = document.getElementById('iconGrid');
-            const searchInput = document.getElementById('iconSearchInput');
-            const targetInput = document.getElementById('{{ form_conquista.icone.id_for_label }}');
-            const iconPreview = document.getElementById('iconPreview').querySelector('i');
-            let allIcons = [];
-            const modal = new bootstrap.Modal(iconPickerModal);
-
-            function updatePreview() { iconPreview.className = targetInput.value || ''; }
-            
-            iconPickerModal.addEventListener('show.bs.modal', async function () {
-                if (allIcons.length > 0) return;
-                try {
-                    const response = await fetch("{% static 'vendor/fontawesome/icons.json' %}");
-                    if (!response.ok) throw new Error('Network response was not ok');
-                    const iconsData = await response.json();
-                    allIcons = Object.keys(iconsData).filter(key => iconsData[key].styles.includes('solid'));
-                    renderIcons(allIcons.slice(0, 200));
-                } catch (error) {
-                    console.error("Erro ao carregar o arquivo de ícones:", error);
-                    iconGrid.innerHTML = '<p class="text-danger text-center">Não foi possível carregar os ícones.</p>';
-                }
-            });
-
-            function renderIcons(icons) {
-                iconGrid.innerHTML = '';
-                if (icons.length === 0) {
-                    iconGrid.innerHTML = '<p class="text-muted text-center w-100">Nenhum ícone encontrado.</p>';
-                    return;
-                }
-                icons.forEach(iconName => {
-                    const iconClass = `fas fa-${iconName}`;
-                    const iconItem = document.createElement('div');
-                    iconItem.className = 'icon-item';
-                    iconItem.dataset.class = iconClass;
-                    iconItem.title = iconName;
-                    const i = document.createElement('i');
-                    i.className = iconClass;
-                    iconItem.appendChild(i);
-                    iconGrid.appendChild(iconItem);
-                });
-            }
-
-            searchInput.addEventListener('input', function() {
-                const searchTerm = this.value.toLowerCase().trim();
-                if (!searchTerm) {
-                    renderIcons(allIcons.slice(0, 200));
-                    return;
-                }
-                const filteredIcons = allIcons.filter(iconName => iconName.includes(searchTerm));
-                renderIcons(filteredIcons);
-            });
-
-            iconGrid.addEventListener('click', function(e) {
-                const iconItem = e.target.closest('.icon-item');
-                if (iconItem) {
-                    targetInput.value = iconItem.dataset.class;
-                    updatePreview();
-                    modal.hide();
-                }
-            });
-            
-            targetInput.addEventListener('input', updatePreview);
-            updatePreview();
+    // ALTERAÇÃO INÍCIO: Simplificando a inicialização do formset
+    // Removemos deleteText e deleteCssClass, pois agora controlamos o botão manualmente.
+    $('#condicao-formset-container .formset-row').formset({
+        prefix: '{{ formset_condicao.prefix }}',
+        addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
+        addCssClass: 'btn btn-outline-success btn-sm mt-2 w-100 mt-3',
+        added: function(row) {
+            initializeTomSelectIn(row[0]);
+            handleContextFields();
         }
     });
+    // ALTERAÇÃO FIM
+
+    // ALTERAÇÃO INÍCIO: Lógica para o botão de exclusão manual
+    const formsetContainer = document.getElementById('condicao-formset-container');
+    // Usamos um 'event listener' delegado que funciona para as linhas existentes e para as novas
+    formsetContainer.addEventListener('click', function(e) {
+        // Verifica se o clique foi no nosso botão de deletar ou em seu ícone
+        const deleteBtn = e.target.closest('.manual-delete-btn');
+        if (!deleteBtn) return; // Se não foi, não faz nada
+
+        e.preventDefault();
+
+        const formsetRow = deleteBtn.closest('.formset-row');
+        if (formsetRow) {
+            const deleteCheckbox = formsetRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
+            if (deleteCheckbox) {
+                // Marca o checkbox para que o Django saiba que deve deletar este item
+                deleteCheckbox.checked = true;
+                // Esconde a linha para o usuário
+                formsetRow.style.display = 'none';
+            }
+        }
+    });
+    // ALTERAÇÃO FIM
+
+    handleContextFields();
+
+    document.getElementById('condicao-formset-container').addEventListener('change', function(e) {
+        if (e.target && e.target.matches('select[name$="-variavel"]')) {
+            handleContextFields();
+        }
+    });
+
+
+    // =======================================================================
+    // SEÇÃO 3: LÓGICA DOS WIDGETS (COR, ÍCONE, RECOMPENSAS) - Sem alterações
+    // =======================================================================
+    const colorPicker = document.getElementById('id_cor_picker');
+    const colorHiddenInput = document.getElementById('{{ form_conquista.cor.id_for_label }}');
+    if (colorPicker && colorHiddenInput) {
+        colorPicker.addEventListener('input', (e) => { colorHiddenInput.value = e.target.value; });
+        colorHiddenInput.addEventListener('input', (e) => { try { colorPicker.value = e.target.value; } catch (err) {} });
+    }
+    
+    const rewardData = { avatares: JSON.parse(document.getElementById('avatares-data').textContent), bordas: JSON.parse(document.getElementById('bordas-data').textContent), banners: JSON.parse(document.getElementById('banners-data').textContent) };
+    const rewardModal = new bootstrap.Modal(document.getElementById('rewardPickerModal'));
+    const modalBody = document.getElementById('rewardPickerModalBody');
+    const confirmBtn = document.getElementById('confirmRewardSelectionBtn');
+    const rewardSearchInput = document.getElementById('rewardSearchInput');
+    let currentSelectId = null;
+    let currentType = null;
+    document.querySelectorAll('.btn-reward-picker').forEach(button => { button.addEventListener('click', () => { currentType = button.dataset.targetModalType; currentSelectId = button.dataset.targetSelectId; rewardSearchInput.value = ''; populateRewardModal(currentType, currentSelectId); rewardModal.show(); }); });
+    function populateRewardModal(type, selectId, searchTerm = '') { const data = rewardData[type]; const selectedIds = Array.from(document.getElementById(selectId).options).filter(o => o.selected).map(o => parseInt(o.value, 10)); const filteredData = searchTerm ? data.filter(item => item.nome.toLowerCase().includes(searchTerm.toLowerCase())) : data; const groupedByRarity = filteredData.reduce((acc, item) => { (acc[item.raridade] = acc[item.raridade] || []).push(item); return acc; }, {}); let html = ''; const rarityOrder = ['COMUM', 'RARO', 'EPICO', 'LENDARIO', 'MITICO']; for (const rarity of rarityOrder) { if (groupedByRarity[rarity] && groupedByRarity[rarity].length > 0) { html += `<h6 class="mb-3 text-muted text-uppercase small">${rarity}</h6><div class="row row-cols-2 row-cols-md-4 g-3 mb-4">`; groupedByRarity[rarity].forEach(item => { const isSelected = selectedIds.includes(item.id); const imageUrl = item.imagem_url; html += `<div class="col"><div class="card h-100 reward-item-card ${isSelected ? 'selected' : ''}" data-id="${item.id}"><img src="${imageUrl}" class="card-img-top" alt="${item.nome}"><div class="card-body p-2 text-center"><small class="card-title fw-bold">${item.nome}</small></div></div></div>`; }); html += `</div>`; } } modalBody.innerHTML = html || '<p class="text-center text-muted">Nenhuma recompensa encontrada.</p>'; }
+    modalBody.addEventListener('click', (e) => { const card = e.target.closest('.reward-item-card'); if (card) { card.classList.toggle('selected'); } });
+    confirmBtn.addEventListener('click', () => { const selectedIds = Array.from(modalBody.querySelectorAll('.reward-item-card.selected')).map(c => c.dataset.id); const targetSelect = document.getElementById(currentSelectId); const tomselect = targetSelect.tomselect; if(tomselect) { tomselect.setValue(selectedIds); } else { Array.from(targetSelect.options).forEach(o => { o.selected = selectedIds.includes(o.value); }); } updateRewardPreview(currentType, selectedIds); rewardModal.hide(); });
+    rewardSearchInput.addEventListener('input', () => { populateRewardModal(currentType, currentSelectId, rewardSearchInput.value); });
+    function updateRewardPreview(type, selectedIds) { const previewContainer = document.getElementById(`preview-${type}`); previewContainer.innerHTML = ''; selectedIds.forEach(id => { const item = rewardData[type].find(r => r.id == id); if (item) { const imageUrl = item.imagem_url; previewContainer.innerHTML += `<div class="reward-preview-item" title="${item.nome}"><img src="${imageUrl}" class="reward-preview-img"></div>`; } }); }
+    ['avatares', 'bordas', 'banners'].forEach(type => { const select = document.getElementById(`id_recompensa_${type}`); if (select) { const selectedIds = Array.from(select.options).filter(o => o.selected).map(o => o.value); updateRewardPreview(type, selectedIds); } });
+    
+    const iconPickerModal = document.getElementById('iconPickerModal'); if (iconPickerModal) { const iconGrid = document.getElementById('iconGrid'); const searchInput = document.getElementById('iconSearchInput'); const targetInput = document.getElementById('{{ form_conquista.icone.id_for_label }}'); const iconPreview = document.getElementById('iconPreview').querySelector('i'); let allIcons = []; const modal = new bootstrap.Modal(iconPickerModal); function updatePreview() { if (targetInput.value) { iconPreview.className = targetInput.value; } else { iconPreview.className = ''; } } iconPickerModal.addEventListener('show.bs.modal', async function () { if (allIcons.length > 0) return; try { const response = await fetch("{% static 'vendor/fontawesome/icons.json' %}"); if (!response.ok) throw new Error('Network response was not ok'); const iconsData = await response.json(); allIcons = Object.keys(iconsData).filter(key => iconsData[key].styles.includes('solid')); renderIcons(allIcons.slice(0, 200)); } catch (error) { console.error("Erro ao carregar o arquivo de ícones:", error); iconGrid.innerHTML = '<p class="text-danger text-center">Não foi possível carregar os ícones.</p>'; } }); function renderIcons(icons) { iconGrid.innerHTML = ''; if (icons.length === 0) { iconGrid.innerHTML = '<p class="text-muted text-center w-100">Nenhum ícone encontrado.</p>'; return; } icons.forEach(iconName => { const iconClass = `fas fa-${iconName}`; const iconItem = document.createElement('div'); iconItem.className = 'icon-item'; iconItem.dataset.class = iconClass; iconItem.title = iconName; const i = document.createElement('i'); i.className = iconClass; iconItem.appendChild(i); iconGrid.appendChild(iconItem); }); } searchInput.addEventListener('input', function() { const searchTerm = this.value.toLowerCase().trim(); if (!searchTerm) { renderIcons(allIcons.slice(0, 200)); return; } const filteredIcons = allIcons.filter(iconName => iconName.includes(searchTerm)); renderIcons(filteredIcons); }); iconGrid.addEventListener('click', function(e) { const iconItem = e.target.closest('.icon-item'); if (iconItem) { targetInput.value = iconItem.dataset.class; updatePreview(); modal.hide(); } }); targetInput.addEventListener('input', updatePreview); updatePreview(); }
+
+});
 </script>
 {% endblock %}

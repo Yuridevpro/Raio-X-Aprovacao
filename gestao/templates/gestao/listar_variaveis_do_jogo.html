@@ -1,7 +1,21 @@
+<!-- gestao/templates/gestao/listar_variaveis_do_jogo.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<style>
+    .variavel-card {
+        transition: all 0.2s ease-in-out;
+        border-left: 4px solid var(--bs-info);
+    }
+    .variavel-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
+        border-left-color: var(--bs-info-dark);
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
@@ -10,51 +24,47 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="h3 mb-0">{{ titulo }}</h2>
-            <p class="text-muted mb-0">Estas são as estatísticas do jogador que podem ser usadas para criar regras de conquistas.</p>
+            <p class="text-muted mb-0">Estas são as estatísticas do jogador que podem ser usadas para criar regras.</p>
         </div>
+        {% if user.is_superuser %}
         <a href="{% url 'gestao:criar_variavel_do_jogo' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Variável</a>
+        {% endif %}
     </div>
 
     {% include 'gestao/includes/_messages.html' %}
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Nome para o Admin</th>
-                            <th>Chave do Sistema</th>
-                            <th>Descrição</th>
-                            <th class="text-end" style="width: 120px;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for var in variaveis %}
-                        <tr>
-                            <td class="fw-bold">{{ var.nome_exibicao }}</td>
-                            <td><code>{{ var.chave }}</code></td>
-                            <td>{{ var.descricao }}</td>
-                            <td class="text-end">
-                                <a href="{% url 'gestao:editar_variavel_do_jogo' var.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
-                                <!-- Opcional: Adicionar botão de deletar se criar a view/url para isso -->
-                                <!--
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="..." data-item-name="{{ var.nome_exibicao }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                -->
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="text-center p-5">
-                            <h5 class="text-muted">Nenhuma variável de jogo cadastrada.</h5>
-                            <p>Clique em "Nova Variável" para definir as estatísticas que o sistema pode rastrear.</p>
-                        </td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+    <div class="row g-4">
+        {% for var in paginated_object %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card shadow-sm h-100 variavel-card">
+                <div class="card-body d-flex flex-column">
+                    <h5 class="card-title">{{ var.nome_exibicao }}</h5>
+                    <p class="card-text small"><code class="text-info-emphasis bg-info-subtle border border-info-subtle rounded-2 px-1">{{ var.chave }}</code></p>
+                    <p class="card-text small text-muted flex-grow-1">{{ var.descricao }}</p>
+                    
+                    {% if user.is_superuser %}
+                    <div class="mt-auto d-flex justify-content-end gap-2 border-top pt-3">
+                        <a href="{% url 'gestao:editar_variavel_do_jogo' var.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i> Editar</a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center p-5">
+                <h5 class="text-muted">Nenhuma variável de jogo cadastrada.</h5>
+                {% if user.is_superuser %}
+                <p>Clique em "Nova Variável" para definir as estatísticas que o sistema pode rastrear.</p>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Paginação -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
     </div>
 </div>
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}

@@ -67,13 +67,21 @@
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa TomSelect para o campo de busca de usuário
     new TomSelect('.tom-select-user', { create: false, placeholder: 'Digite para buscar um usuário...' });
+
+    // Inicializa TomSelect para todos os outros selects de opção única
+    document.querySelectorAll('.tom-select-single').forEach((el) => {
+        new TomSelect(el, { create: false, placeholder: 'Selecione...' });
+    });
     
-    const tipoSelect = document.getElementById('id_tipo_recompensa');
+    // Lógica para mostrar/esconder campos de recompensa
+    const tipoSelectEl = document.getElementById('id_tipo_recompensa');
+    const tipoSelect = tipoSelectEl.tomselect; // Acessa a instância do TomSelect
     const recompensaFields = document.querySelectorAll('.recompensa-field');
 
     function toggleRecompensaFields() {
-        const selectedType = tipoSelect.value;
+        const selectedType = tipoSelect.getValue(); // Usa a API do TomSelect para obter o valor
         recompensaFields.forEach(field => {
             field.style.display = 'none';
         });
@@ -86,7 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    tipoSelect.addEventListener('change', toggleRecompensaFields);
+    tipoSelect.on('change', toggleRecompensaFields); // Usa o evento 'change' da API do TomSelect
     toggleRecompensaFields(); // Executa na inicialização
 });
 </script>

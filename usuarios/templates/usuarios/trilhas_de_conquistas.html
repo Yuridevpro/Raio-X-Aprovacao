@@ -1,3 +1,4 @@
+<!-- usuarios/templates/usuarios/trilhas_de_conquistas.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load gamificacao_extras %}
@@ -6,39 +7,34 @@
 {% block head %}
 <style>
     .trilha-card { border-left: 4px solid var(--cor-primaria); }
-    .conquista-node { display: flex; align-items: flex-start; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem; transition: all 0.3s ease; }
-    .conquista-node.unlocked { background-color: #d1e7dd; border: 1px solid #a3cfbb; }
-    .conquista-node.available { background-color: #cff4fc; border: 1px solid #9eeaf9; box-shadow: 0 0 15px rgba(3, 169, 244, 0.4); }
-    .conquista-node.locked { background-color: #f8f9fa; border: 1px solid #dee2e6; opacity: 0.7; }
     
-    .conquista-icon-wrapper { flex-shrink: 0; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.8rem; margin-right: 1rem; }
-    .unlocked .conquista-icon-wrapper { color: white; } /* A cor vem do modelo */
+    .sequencia-wrapper { position: relative; padding: 1.5rem; border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); margin-bottom: 2rem; }
+    .sequencia-wrapper::before { content: 'SEQUÊNCIA DE CONQUISTAS'; position: absolute; top: -12px; left: 20px; background-color: #fff; padding: 0 10px; font-size: 0.8rem; font-weight: 600; color: var(--cor-secundaria); }
+    .sequencia-connector { position: absolute; left: 45px; top: 80px; bottom: 80px; width: 4px; background-color: #e9ecef; z-index: 1; }
+    
+    .conquista-node { display: flex; align-items: center; padding: 1rem; border: 1px solid transparent; border-radius: 0.5rem; position: relative; background-color: #fff; z-index: 2; transition: all 0.3s ease; }
+    .conquista-node:not(:last-child) { margin-bottom: 1.5rem; }
+
+    .conquista-node.unlocked { background-color: #f8f9fa; border-color: #dee2e6; }
+    .conquista-node.available { border-color: var(--cor-info); box-shadow: 0 4px 15px rgba(3, 169, 244, 0.2); }
+    .conquista-node.locked { background-color: #f8f9fa; border-color: #dee2e6; filter: grayscale(90%); opacity: 0.7; cursor: not-allowed; }
+    .conquista-node.locked:hover { transform: none; box-shadow: none; }
+    
+    .step-indicator { width: 30px; height: 30px; border-radius: 50%; background-color: #6c757d; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 1rem; z-index: 3; }
+    .unlocked .step-indicator { background-color: var(--cor-sucesso); }
+    .available .step-indicator { background-color: var(--cor-info); }
+
+    .conquista-icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.5rem; margin-right: 1rem; color: white; }
+    .unlocked .conquista-icon-wrapper { opacity: 0.7; }
     .available .conquista-icon-wrapper { background-color: var(--cor-info); color: white; }
     .locked .conquista-icon-wrapper { background-color: #e9ecef; color: #6c757d; }
     
-    .conquista-details h6 { margin-bottom: 0.25rem; }
-    .conquista-details p { margin-bottom: 0; font-size: 0.9rem; color: #495057; }
-    .locked .conquista-details p { color: #6c757d; }
-
-    /* Estilos para as recompensas da conquista */
+    .progress { height: 8px; }
     .conquista-recompensas { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ced4da; }
-    .recompensa-icon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        cursor: pointer;
-        transition: transform 0.2s ease;
-    }
-    .recompensa-icon:hover {
-        transform: scale(1.15);
-        z-index: 10;
-    }
-    
-    /* Reutiliza os estilos de modal da página de ranking */
+    .locked .conquista-recompensas { opacity: 0.6; }
+    .recompensa-icon { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s ease; }
+    .recompensa-icon:hover { transform: scale(1.15); z-index: 10; }
     .modal-recompensa-img { width: 150px; height: 150px; }
-    .raridade-badge { font-size: 0.8em; padding: 0.4em 0.7em; }
 </style>
 {% endblock %}
 
@@ -59,49 +55,22 @@
         <div class="card-header bg-light">
             <h5 class="mb-0"><i class="{{ trilha.icone }} me-2 text-primary"></i>{{ trilha.nome }}</h5>
         </div>
-        <div class="card-body p-4">
+        <div class="card-body p-lg-4 p-3">
             <p class="text-muted">{{ trilha.descricao }}</p>
             
-            {% for conquista in trilha.conquistas.all %}
-                {% if conquista.status != 'hidden' %}
-                    <div class="conquista-node {{ conquista.status }}">
-                        <div class="conquista-icon-wrapper" style="{% if conquista.status == 'unlocked' %}background-color: {{ conquista.cor }}{% endif %}">
-                            <i class="{{ conquista.icone }}"></i>
-                        </div>
-                        <div class="conquista-details w-100">
-                            <h6 class="fw-bold">{{ conquista.nome }}</h6>
-                            <p>{{ conquista.descricao }}</p>
+            <!-- Renderiza Grupos Sequenciais -->
+            {% for sequencia in trilha.sequencias %}
+            <div class="sequencia-wrapper">
+                <div class="sequencia-connector"></div>
+                {% for conquista in sequencia %}
+                    {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=forloop.counter %}
+                {% endfor %}
+            </div>
+            {% endfor %}
 
-                            <!-- SEÇÃO DE RECOMPENSAS DA CONQUISTA -->
-                            {% if conquista.recompensas_detalhadas or conquista.recompensas.xp or conquista.recompensas.moedas %}
-                            <div class="conquista-recompensas d-flex align-items-center gap-2 flex-wrap">
-                                <small class="text-muted fw-bold me-2">Recompensas:</small>
-                                
-                                <!-- XP e Moedas -->
-                                {% if conquista.recompensas.xp %}
-                                <span class="badge bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ conquista.recompensas.xp }} XP</span>
-                                {% endif %}
-                                {% if conquista.recompensas.moedas %}
-                                <span class="badge bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ conquista.recompensas.moedas }} Moedas</span>
-                                {% endif %}
-
-                                <!-- Itens Cosméticos -->
-                                {% for recompensa in conquista.recompensas_detalhadas %}
-                                <img src="{{ recompensa.imagem.url }}" class="recompensa-icon"
-                                     data-bs-toggle="modal" 
-                                     data-bs-target="#recompensaModal"
-                                     data-nome="{{ recompensa.nome }}"
-                                     data-descricao="{{ recompensa.descricao }}"
-                                     data-raridade="{{ recompensa.get_raridade_display }}"
-                                     data-raridade-classe="raridade-{{ recompensa.raridade|lower }}"
-                                     data-imagem="{{ recompensa.imagem.url }}"
-                                     title="{{ recompensa.nome }}">
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-                {% endif %}
+            <!-- Renderiza Conquistas Individuais -->
+            {% for conquista in trilha.conquistas_individuais %}
+                {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=None %}
             {% endfor %}
         </div>
     </div>
@@ -114,27 +83,15 @@
     {% endfor %}
 </div>
 
-<!-- O mesmo Modal Reutilizável da página de Ranking -->
-<div class="modal fade" id="recompensaModal" tabindex="-1" aria-labelledby="recompensaModalLabel" aria-hidden="true">
+<!-- Modal Reutilizável para Recompensas -->
+<div class="modal fade" id="recompensaModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="recompensaModalLabel">Detalhes da Recompensa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa">
-                <h4 id="modalNome" class="fw-bold"></h4>
-                <p id="modalDescricao" class="text-muted"></p>
-                <span id="modalRaridade" class="badge raridade-badge"></span>
-            </div>
-        </div>
+        <div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title" id="recompensaModalLabel">Detalhes da Recompensa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa"><h4 id="modalNome" class="fw-bold"></h4><p id="modalDescricao" class="text-muted"></p><span id="modalRaridade" class="badge"></span></div></div>
     </div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<!-- O Script é idêntico ao da página de Ranking -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
@@ -156,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function () {
       recompensaModal.querySelector('#modalDescricao').textContent = descricao;
       recompensaModal.querySelector('#modalRaridade').textContent = raridade;
       recompensaModal.querySelector('#modalImagem').src = imagem;
-      recompensaModal.querySelector('#modalRaridade').className = 'badge raridade-badge ' + raridadeClasse;
+      recompensaModal.querySelector('#modalRaridade').className = 'badge ' + raridadeClasse;
     });
   }
 });

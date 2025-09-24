@@ -20,6 +20,12 @@
     .btn-resgatar .fa-check { display: none; }
     .btn-resgatar.btn-success .fa-check { display: inline-block; }
     .btn-resgatar.btn-success .fa-gift { display: none; }
+
+    /* Estilo para a animação de remoção do card */
+    .card-fading-out {
+        opacity: 0;
+        transform: scale(0.9);
+    }
 </style>
 {% endblock %}
 
@@ -35,7 +41,7 @@
 
     {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='caixa_de_recompensas' %}
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="recompensas-grid">
         {% for premio in recompensas_pendentes %}
         <div class="col" id="premio-card-{{ premio.id }}">
             <div class="card h-100 shadow-sm premio-card">
@@ -57,7 +63,7 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-12">
+        <div class="col-12" id="empty-message-container">
             <div class="card card-body text-center py-5">
                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                 <h4 class="h5">Sua caixa de recompensas está vazia</h4>
@@ -76,7 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.btn-resgatar').forEach(button => {
         button.addEventListener('click', function() {
             const pendenteId = this.dataset.pendenteId;
-            const card = document.getElementById(`premio-card-${pendenteId}`);
+            const cardWrapper = document.getElementById(`premio-card-${pendenteId}`);
 
             this.disabled = true;
             this.querySelector('span').textContent = 'Resgatando...';
@@ -89,10 +95,12 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(result => {
                 if (result.status === 'success') {
+                    // Feedback visual no botão
                     button.classList.remove('btn-primary');
                     button.classList.add('btn-success');
                     button.querySelector('span').textContent = 'Resgatado!';
                     
+                    // Efeito de confete
                     if (window.confetti) {
                         const rect = button.getBoundingClientRect();
                         const origin = { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight };
@@ -100,6 +108,47 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     showNotificationModal('Prêmio Resgatado!', result.message, 'success');
+
+                    // ===========================================================
+                    // INÍCIO DA CORREÇÃO: Atualizar contador e remover card
+                    // ===========================================================
+                    const counter = document.getElementById('recompensa-counter');
+                    if (counter) {
+                        let currentCount = parseInt(counter.textContent, 10);
+                        if (!isNaN(currentCount)) {
+                            currentCount -= 1;
+                            if (currentCount > 0) {
+                                counter.textContent = currentCount;
+                            } else {
+                                counter.remove(); // Remove o badge completamente
+                            }
+                        }
+                    }
+
+                    // Animação de remoção do card
+                    if (cardWrapper) {
+                        cardWrapper.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        cardWrapper.classList.add('card-fading-out');
+                        setTimeout(() => {
+                            cardWrapper.remove();
+                            // Verifica se a grade de recompensas ficou vazia
+                            const grid = document.getElementById('recompensas-grid');
+                            if (grid && grid.children.length === 0) {
+                                grid.innerHTML = `
+                                <div class="col-12" id="empty-message-container">
+                                    <div class="card card-body text-center py-5">
+                                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                                        <h4 class="h5">Sua caixa de recompensas está vazia</h4>
+                                        <p class="text-muted">Continue praticando para desbloquear novos itens!</p>
+                                    </div>
+                                </div>`;
+                            }
+                        }, 500); // Tempo da animação
+                    }
+                    // ===========================================================
+                    // FIM DA CORREÇÃO
+                    // ===========================================================
+
                 } else {
                     button.disabled = false;
                     button.querySelector('span').textContent = 'Resgatar';

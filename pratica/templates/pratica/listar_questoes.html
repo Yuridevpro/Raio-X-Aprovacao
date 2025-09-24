@@ -803,121 +803,124 @@
         }
     
         function handleResponder(button) {
-            const questaoId = button.dataset.questaoId;
-            const questaoCard = document.getElementById(`questao-${questaoId}`);
-            const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
-            
-            if (!alternativaSelecionada) { 
-                window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
-                return; 
+        const questaoId = button.dataset.questaoId;
+        const questaoCard = document.getElementById(`questao-${questaoId}`);
+        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+        
+        if (!alternativaSelecionada) { 
+            window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
+            return; 
+        }
+        
+        fetch("{% url 'pratica:verificar_resposta' %}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+            body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
             }
-            
-            fetch("{% url 'pratica:verificar_resposta' %}", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result.status === 'success') {
-                    // --- 1. Lógica de feedback visual da questão ---
-                    const feedbackDiv = questaoCard.querySelector('.feedback');
-                    const alertDiv = feedbackDiv.querySelector('.alert');
-                    const alternativasDiv = questaoCard.querySelector('.alternativas');
-                    
-                    alternativasDiv.classList.add('respondido');
-                    questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
-                    button.style.display = 'none';
+            return response.json();
+        })
+        .then(result => {
+            if (result.status === 'success') {
+                const feedbackDiv = questaoCard.querySelector('.feedback');
+                const alertDiv = feedbackDiv.querySelector('.alert');
+                const alternativasDiv = questaoCard.querySelector('.alternativas');
+                
+                alternativasDiv.classList.add('respondido');
+                questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+                button.style.display = 'none';
 
-                    alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
-                    alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
-                    
-                    questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
-                        const input = item.querySelector('input');
-                        const label = item.querySelector('label');
-                        if (input.value === result.gabarito) {
-                            label.classList.add('label-correta');
-                        } else if (input.checked && !result.correta) {
-                            label.classList.add('label-errada');
-                        }
-                    });
-
-                    if (result.explicacao) {
-                        feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
-                        questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
+                alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
+                alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
+                
+                questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
+                    const input = item.querySelector('input');
+                    const label = item.querySelector('label');
+                    if (input.value === result.gabarito) {
+                        label.classList.add('label-correta');
+                    } else if (input.checked && !result.correta) {
+                        label.classList.add('label-errada');
                     }
-                    feedbackDiv.style.display = 'block';
+                });
 
-                    // --- 2. Lógica de Notificações de Gamificação (Toasts) ---
-                    let delay = 100; // Delay inicial de 100ms
+                if (result.explicacao) {
+                    feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
+                    questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
+                }
+                feedbackDiv.style.display = 'block';
 
-                    // Notificação de ganho de XP
+                let delay = 100;
+
+                // INÍCIO DA MODIFICAÇÃO: Lógica de Feedback de Bloqueio
+                if (result.motivo_bloqueio) {
+                    let title = "Ação Rápida!";
+                    let message = "Você respondeu muito rápido! Para garantir um aprendizado eficaz e justo, o ganho de XP foi desabilitado para esta resposta.";
+                    let icon = 'fas fa-stopwatch';
+                    let color = '#fd7e14';
+
+                    if (result.motivo_bloqueio === 'COOLDOWN_QUESTAO') {
+                        title = "Revisão Recente";
+                        message = "Você já respondeu esta questão recentemente. O ganho de XP está em cooldown para incentivar a prática de novas questões.";
+                        icon = 'fas fa-history';
+                        color = '#6c757d';
+                    } else if (result.motivo_bloqueio === 'TETO_XP_DIARIO') {
+                        title = "Teto de XP Atingido!";
+                        message = "Parabéns, você atingiu o limite máximo de XP que pode ser ganho hoje! Volte amanhã para continuar acumulando.";
+                        icon = 'fas fa-battery-full';
+                        color = '#0dcaf0';
+                    }
+                    showGamificationToast(title, message, icon, color);
+                } else {
+                    // Exibe toasts de recompensas normais apenas se não houver bloqueio
                     if (result.xp_ganho > 0) {
-                        let xpTitle = `+${result.xp_ganho} XP`;
-                        let xpBody = 'Sua resposta foi registrada com sucesso!';
+                        let xpMessage = `pela sua resposta.`;
                         if (result.bonus_ativo) {
-                            xpTitle += ' (Bônus 2x)';
-                            xpBody = 'Você ativou o bônus por acertos consecutivos!';
+                            xpMessage = `pelo seu <strong>combo de acertos!</strong>`;
                         }
-                        showGamificationToast(xpTitle, xpBody, 'fas fa-brain', '#6f42c1');
+                        showGamificationToast(`+${result.xp_ganho} XP`, xpMessage, 'fas fa-star', '#ffc107');
                         delay += 2000;
                     }
-                    
-                    // Notificação de ganho de Moedas
                     if (result.moedas_ganhas > 0) {
                         const saldoAtual = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
                         updateNavbarCoinBalance(saldoAtual + result.moedas_ganhas);
-                        
-                        setTimeout(() => {
-                            showCoinToast(result.moedas_ganhas, 'pela sua resposta');
-                        }, delay);
+                        setTimeout(() => showCoinToast(result.moedas_ganhas, 'pela sua resposta'), delay);
                         delay += 2000;
                     }
-
-                    // Notificação de Meta Diária
-                    if (result.meta_completa_info) {
-                        const meta = result.meta_completa_info;
-                        const saldoAtualMoedas = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
-                        updateNavbarCoinBalance(saldoAtualMoedas + meta.moedas_bonus);
-
-                        const metaBody = `Você completou sua meta e ganhou <strong>+${meta.xp_bonus} XP</strong> e <strong>+${meta.moedas_bonus} FC</strong> de bônus!`;
-                        setTimeout(() => {
-                            showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745');
-                        }, delay);
-                        delay += 2500;
-                    }
-
-                    // Notificação de Level Up (agora aponta para a Caixa de Recompensas)
-                    if (result.level_up_info) {
-                        const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>! Novos prêmios podem estar esperando na sua Caixa de Recompensas.`;
-                        setTimeout(() => {
-                            showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733');
-                        }, delay);
-                        delay += 2500;
-                    }
-                    
-                    // Notificação de Nova Conquista
-                    if (result.nova_conquista) {
-                        const conquista = result.nova_conquista;
-                        const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
-                        setTimeout(() => {
-                            showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor);
-                        }, delay);
-                    }
-                    
-                } else {
-                    window.showNotificationModal('Erro ao Responder', result.message, 'error');
                 }
-            }).catch(err => {
-                console.error('Erro no fetch da resposta:', err);
-                window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta. Verifique sua conexão e tente novamente.', 'error')
-            });
-        }
+                // FIM DA MODIFICAÇÃO
+
+                if (result.meta_completa_info) {
+                    const meta = result.meta_completa_info;
+                    const saldoAtualMoedas = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
+                    updateNavbarCoinBalance(saldoAtualMoedas + meta.moedas_bonus);
+                    const metaBody = `Você completou sua meta e ganhou <strong>+${meta.xp_bonus} XP</strong> e <strong>+${meta.moedas_bonus} FC</strong> de bônus!`;
+                    setTimeout(() => showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745'), delay);
+                    delay += 2500;
+                }
+
+                if (result.level_up_info) {
+                    const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>! Novos prêmios podem estar esperando na sua Caixa de Recompensas.`;
+                    setTimeout(() => showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733'), delay);
+                    delay += 2500;
+                }
+                
+                if (result.nova_conquista) {
+                    const conquista = result.nova_conquista;
+                    const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
+                    setTimeout(() => showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor), delay);
+                }
+                
+            } else {
+                window.showNotificationModal('Erro ao Responder', result.message, 'error');
+            }
+        }).catch(err => {
+            console.error('Erro no fetch da resposta:', err);
+            window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta. Verifique sua conexão e tente novamente.', 'error')
+        });
+    }
         
         function handleToggleExplicacao(button) {
             const questaoId = button.dataset.questaoId;

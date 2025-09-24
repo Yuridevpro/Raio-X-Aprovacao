@@ -1,3 +1,4 @@
+<!-- gamificacao/templates/gamificacao/campanhas_ativas.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo_pagina }}{% endblock %}
@@ -10,7 +11,26 @@
     }
     .campanha-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .reward-node {
+        padding: 1rem;
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        background-color: var(--cor-fundo-claro);
+    }
+    .reward-node:not(:last-child) {
+        margin-bottom: 1rem;
+    }
+    .condition-list {
+        font-size: 0.9rem;
+        color: var(--cor-secundaria);
+        margin-top: 0.5rem;
+        padding-left: 1.25rem;
+    }
+    .condition-list li::marker {
+        color: var(--cor-primaria);
+        font-weight: bold;
     }
     .recompensa-icon {
         width: 45px;
@@ -44,16 +64,31 @@
                     {% endif %}
                 </div>
                 <div class="card-body">
-                    <p><strong>Gatilho:</strong> {{ campanha.get_gatilho_display }}</p>
+                    <p><strong><i class="fas fa-play-circle text-muted me-2"></i>Gatilho:</strong> {{ campanha.get_gatilho_display }}</p>
                     {% if campanha.simulado_especifico %}
-                        <p><strong>Desafio:</strong> Concluir o simulado "{{ campanha.simulado_especifico.nome }}"</p>
+                        <p><strong><i class="fas fa-tasks text-muted me-2"></i>Desafio:</strong> Concluir o simulado "{{ campanha.simulado_especifico.nome }}"</p>
                     {% endif %}
                     
                     <hr>
-                    <h6>Prêmios:</h6>
+                    <h6><i class="fas fa-trophy text-warning me-2"></i>Faixas de Prêmios:</h6>
+
                     {% for grupo in campanha.grupos_de_condicoes %}
-                        <div class="p-2 rounded mb-2 {% if forloop.counter|divisibleby:2 %}bg-light{% endif %}">
-                            <p class="fw-bold mb-1">{{ grupo.nome_grupo|default:"Prêmios" }}</p>
+                        <div class="reward-node">
+                            <h6 class="fw-bold mb-0">{{ grupo.nome_grupo|default:"Prêmios" }}</h6>
+                            
+                            <!-- =================================================================== -->
+                            <!-- INÍCIO DA ALTERAÇÃO: Renderizando a lista unificada de condições -->
+                            <!-- =================================================================== -->
+                            <ul class="condition-list mb-2">
+                                {% for condicao in grupo.condicoes_humanizadas %}
+                                    <li>{{ condicao|safe }}</li>
+                                {% endfor %}
+                            </ul>
+                            <!-- =================================================================== -->
+                            <!-- FIM DA ALTERAÇÃO -->
+                            <!-- =================================================================== -->
+
+                            <!-- Lista de Recompensas -->
                             <div class="d-flex align-items-center gap-3 flex-wrap">
                                 {% if grupo.xp_extra > 0 %}<span class="badge bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ grupo.xp_extra }} XP</span>{% endif %}
                                 {% if grupo.moedas_extras > 0 %}<span class="badge bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ grupo.moedas_extras }} Moedas</span>{% endif %}
@@ -81,7 +116,6 @@
 
 {% block scripts %}
 <script>
-// Inicializa os tooltips do Bootstrap
 document.addEventListener('DOMContentLoaded', function () {
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

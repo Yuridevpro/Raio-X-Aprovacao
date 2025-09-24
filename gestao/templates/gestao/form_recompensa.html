@@ -1,3 +1,4 @@
+<!-- gestao/templates/gestao/form_recompensa.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
@@ -36,17 +37,26 @@
                         <h5 class="h6 mb-3 border-bottom pb-2">Dados da Recompensa</h5>
                         <div class="row">
                             <div class="col-md-8 mb-3">
-                                <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                                <label class="form-label d-flex justify-content-between">
+                                    {{ form.nome.label }}
+                                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.nome.help_text }}"></i>
+                                </label>
                                 {{ form.nome }}
                                 {% if form.nome.errors %}<div class="invalid-feedback d-block">{{ form.nome.errors.0 }}</div>{% endif %}
                             </div>
                             <div class="col-md-4 mb-3">
-                                <label for="{{ form.raridade.id_for_label }}" class="form-label">{{ form.raridade.label }}</label>
+                                <label class="form-label d-flex justify-content-between">
+                                    {{ form.raridade.label }}
+                                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.raridade.help_text }}"></i>
+                                </label>
                                 {{ form.raridade }}
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.descricao.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.descricao.help_text }}"></i>
+                            </label>
                             {{ form.descricao }}
                         </div>
                         <div class="mb-3">
@@ -64,7 +74,10 @@
                         {% endif %}
 
                         <hr class="my-4">
-                        <h5 class="h6 mb-3 border-bottom pb-2">Formas de Desbloqueio</h5>
+                        <h5 class="h6 mb-3 border-bottom pb-2 d-flex justify-content-between">
+                            Formas de Desbloqueio
+                            <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.tipos_desbloqueio.help_text }}"></i>
+                        </h5>
                         
                         <div class="mb-3 checkbox-grid" id="tipos-desbloqueio-container">
                             {% for checkbox in form.tipos_desbloqueio %}
@@ -78,27 +91,29 @@
                             <div class="alert alert-danger p-2 small">{{ form.tipos_desbloqueio.errors.0 }}</div>
                         {% endif %}
 
-                        <!-- Campos Condicionais com Exibição de Erros -->
                         <div id="requisito-nivel" class="mb-3" style="display: none;">
-                            <label for="{{ form.nivel_necessario.id_for_label }}" class="form-label">{{ form.nivel_necessario.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.nivel_necessario.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.nivel_necessario.help_text }}"></i>
+                            </label>
                             {{ form.nivel_necessario }}
-                            {% if form.nivel_necessario.errors %}
-                                <div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>
-                            {% endif %}
+                            {% if form.nivel_necessario.errors %}<div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>{% endif %}
                         </div>
                         <div id="requisito-conquista" class="mb-3" style="display: none;">
-                            <label for="{{ form.conquista_necessaria.id_for_label }}" class="form-label">{{ form.conquista_necessaria.label }}</label>
+                             <label class="form-label d-flex justify-content-between">
+                                {{ form.conquista_necessaria.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.conquista_necessaria.help_text }}"></i>
+                            </label>
                             {{ form.conquista_necessaria }}
-                            {% if form.conquista_necessaria.errors %}
-                                <div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>
-                            {% endif %}
+                            {% if form.conquista_necessaria.errors %}<div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>{% endif %}
                         </div>
                         <div id="requisito-preco" class="mb-3" style="display: none;">
-                            <label for="{{ form.preco_moedas.id_for_label }}" class="form-label">{{ form.preco_moedas.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.preco_moedas.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.preco_moedas.help_text }}"></i>
+                            </label>
                             {{ form.preco_moedas }}
-                            {% if form.preco_moedas.errors %}
-                                <div class="invalid-feedback d-block">{{ form.preco_moedas.errors.0 }}</div>
-                            {% endif %}
+                            {% if form.preco_moedas.errors %}<div class="invalid-feedback d-block">{{ form.preco_moedas.errors.0 }}</div>{% endif %}
                         </div>
 
                         <div class="mt-4 d-flex justify-content-center gap-2">
@@ -116,6 +131,10 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa todos os tooltips na página
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
     // Mapeamento EXATO do texto da label (em maiúsculas) para o ID da div a ser controlada.
     const labelMap = {
         'POR NÍVEL': 'requisito-nivel',
@@ -123,7 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
         'COMPRÁVEL NA LOJA': 'requisito-preco'
     };
 
-    // Pega todos os checkboxes de tipo de desbloqueio
     const checkboxes = document.querySelectorAll('#tipos-desbloqueio-container input[type="checkbox"]');
 
     function toggleConditionalFields() {
@@ -143,10 +161,9 @@ document.addEventListener('DOMContentLoaded', function() {
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', toggleConditionalFields);
     });
-
     toggleConditionalFields();
 
-    // Lógica do preview de imagem (sem alterações)
+    // Lógica do preview de imagem
     const imageInput = document.getElementById('{{ form.imagem.id_for_label }}');
     if (imageInput) {
         imageInput.addEventListener('change', function(event) {

@@ -15,12 +15,39 @@
             <!-- Coluna 1: XP por Questões -->
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header"><h5 class="mb-0">XP por Questões</h5></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">XP por Questões</h5>
+                        <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip" title="Regras de XP para a resolução de questões individuais na área de prática."></i>
+                    </div>
                     <div class="card-body">
-                        <div class="mb-3"><label class="form-label">{{ form.xp_por_acerto.label }}</label>{{ form.xp_por_acerto }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.xp_acerto_primeira_vez.label }}</label>{{ form.xp_acerto_primeira_vez }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.xp_acerto_redencao.label }}</label>{{ form.xp_acerto_redencao }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.xp_por_erro.label }}</label>{{ form.xp_por_erro }}</div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.xp_por_acerto.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_por_acerto.help_text }}"></i>
+                            </label>
+                            {{ form.xp_por_acerto }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.xp_acerto_primeira_vez.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_acerto_primeira_vez.help_text }}"></i>
+                            </label>
+                            {{ form.xp_acerto_primeira_vez }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.xp_acerto_redencao.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_acerto_redencao.help_text }}"></i>
+                            </label>
+                            {{ form.xp_acerto_redencao }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.xp_por_erro.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_por_erro.help_text }}"></i>
+                            </label>
+                            {{ form.xp_por_erro }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -28,32 +55,71 @@
             <!-- Coluna 2: Bônus e Metas -->
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header"><h5 class="mb-0">Bônus e Metas</h5></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Bônus e Metas</h5>
+                        <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip" title="Incentivos para manter o engajamento diário e a consistência."></i>
+                    </div>
                     <div class="card-body">
-                        <div class="mb-3"><label class="form-label">{{ form.acertos_consecutivos_para_bonus.label }}</label>{{ form.acertos_consecutivos_para_bonus }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.bonus_multiplicador_acertos_consecutivos.label }}</label>{{ form.bonus_multiplicador_acertos_consecutivos }}</div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.acertos_consecutivos_para_bonus.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.acertos_consecutivos_para_bonus.help_text }}"></i>
+                            </label>
+                            {{ form.acertos_consecutivos_para_bonus }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.bonus_multiplicador_acertos_consecutivos.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.bonus_multiplicador_acertos_consecutivos.help_text }}"></i>
+                            </label>
+                            {{ form.bonus_multiplicador_acertos_consecutivos }}
+                        </div>
                         <hr>
-                        <div class="mb-3"><label class="form-label">{{ form.meta_diaria_questoes.label }}</label>{{ form.meta_diaria_questoes }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.xp_bonus_meta_diaria.label }}</label>{{ form.xp_bonus_meta_diaria }}</div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.meta_diaria_questoes.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.meta_diaria_questoes.help_text }}"></i>
+                            </label>
+                            {{ form.meta_diaria_questoes }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.xp_bonus_meta_diaria.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_bonus_meta_diaria.help_text }}"></i>
+                            </label>
+                            {{ form.xp_bonus_meta_diaria }}
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- COLUNA ADICIONADA: Economia de Moedas -->
+            <!-- Coluna 3: Economia de Moedas -->
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header"><h5 class="mb-0">Economia de Moedas</h5></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Economia de Moedas</h5>
+                        <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip" title="Regras de ganho da moeda virtual do sistema, os 'Fragmentos de Conhecimento'."></i>
+                    </div>
                     <div class="card-body">
                         <div class="mb-3">
-                            <label class="form-label">{{ form.moedas_por_acerto.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.moedas_por_acerto.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.moedas_por_acerto.help_text }}"></i>
+                            </label>
                             {{ form.moedas_por_acerto }}
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">{{ form.moedas_por_meta_diaria.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.moedas_por_meta_diaria.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.moedas_por_meta_diaria.help_text }}"></i>
+                            </label>
                             {{ form.moedas_por_meta_diaria }}
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">{{ form.moedas_por_conclusao_simulado.label }}</label>
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.moedas_por_conclusao_simulado.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.moedas_por_conclusao_simulado.help_text }}"></i>
+                            </label>
                             {{ form.moedas_por_conclusao_simulado }}
                         </div>
                     </div>
@@ -63,7 +129,10 @@
             <!-- Coluna 4: XP por Simulados -->
             <div class="col-lg-3 col-md-6 mb-4">
                 <div class="card shadow-sm h-100">
-                    <div class="card-header"><h5 class="mb-0">XP por Simulados</h5></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">XP por Simulados</h5>
+                         <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip" title="Regras de XP para a finalização de simulados."></i>
+                    </div>
                     <div class="card-body">
                         <div class="form-check form-switch mb-2">
                             {{ form.usar_xp_dinamico_simulado }}
@@ -74,10 +143,22 @@
                                 {{ form.xp_dinamico_considera_erros }}
                                 <label class="form-check-label" for="{{ form.xp_dinamico_considera_erros.id_for_label }}">{{ form.xp_dinamico_considera_erros.label }}</label>
                             </div>
-                            <div class="mb-3"><label class="form-label">{{ form.multiplicador_xp_simulado.label }}</label>{{ form.multiplicador_xp_simulado }}</div>
+                            <div class="mb-3">
+                                <label class="form-label d-flex justify-content-between">
+                                    {{ form.multiplicador_xp_simulado.label }}
+                                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.multiplicador_xp_simulado.help_text }}"></i>
+                                </label>
+                                {{ form.multiplicador_xp_simulado }}
+                            </div>
                         </div>
                         <div id="xp-fixo-fields">
-                            <div class="mb-3"><label class="form-label">{{ form.xp_base_simulado_concluido.label }}</label>{{ form.xp_base_simulado_concluido }}</div>
+                            <div class="mb-3">
+                                <label class="form-label d-flex justify-content-between">
+                                    {{ form.xp_base_simulado_concluido.label }}
+                                    <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.xp_base_simulado_concluido.help_text }}"></i>
+                                </label>
+                                {{ form.xp_base_simulado_concluido }}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -87,18 +168,43 @@
         <div class="row justify-content-center mt-3">
             <div class="col-lg-8">
                 <div class="card shadow-sm">
-                    <div class="card-header"><h5 class="mb-0">Regras de Segurança (Anti-Farming)</h5></div>
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Regras de Segurança (Anti-Farming)</h5>
+                        <i class="fas fa-question-circle text-muted" data-bs-toggle="tooltip" title="Configurações para prevenir abusos e garantir que a pontuação seja justa."></i>
+                    </div>
                     <div class="card-body">
                         <div class="form-check form-switch mb-3">
                             {{ form.habilitar_teto_xp_diario }}
                             <label class="form-check-label" for="{{ form.habilitar_teto_xp_diario.id_for_label }}">{{ form.habilitar_teto_xp_diario.label }}</label>
                         </div>
                         <div id="teto-xp-container" class="mb-3">
-                            <label class="form-label">{{ form.teto_xp_diario.label }}</label>{{ form.teto_xp_diario }}
+                             <label class="form-label d-flex justify-content-between">
+                                {{ form.teto_xp_diario.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.teto_xp_diario.help_text }}"></i>
+                            </label>
+                            {{ form.teto_xp_diario }}
                         </div>
-                        <div class="mb-3"><label class="form-label">{{ form.cooldown_mesma_questao_horas.label }}</label>{{ form.cooldown_mesma_questao_horas }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.cooldown_mesmo_simulado_horas.label }}</label>{{ form.cooldown_mesmo_simulado_horas }}</div>
-                        <div class="mb-3"><label class="form-label">{{ form.tempo_minimo_entre_respostas_segundos.label }}</label>{{ form.tempo_minimo_entre_respostas_segundos }}</div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.cooldown_mesma_questao_horas.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.cooldown_mesma_questao_horas.help_text }}"></i>
+                            </label>
+                            {{ form.cooldown_mesma_questao_horas }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.cooldown_mesmo_simulado_horas.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.cooldown_mesmo_simulado_horas.help_text }}"></i>
+                            </label>
+                            {{ form.cooldown_mesmo_simulado_horas }}
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label d-flex justify-content-between">
+                                {{ form.tempo_minimo_entre_respostas_segundos.label }}
+                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.tempo_minimo_entre_respostas_segundos.help_text }}"></i>
+                            </label>
+                            {{ form.tempo_minimo_entre_respostas_segundos }}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -114,12 +220,14 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa todos os tooltips na página
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
+    // Lógica para mostrar/esconder campos condicionais
     const tetoToggle = document.getElementById('id_habilitar_teto_xp_diario');
     const tetoContainer = document.getElementById('teto-xp-container');
-    if(tetoToggle) {
+    if(tetoToggle && tetoContainer) {
         function toggleTetoInput() { tetoContainer.style.display = tetoToggle.checked ? 'block' : 'none'; }
         tetoToggle.addEventListener('change', toggleTetoInput);
         toggleTetoInput();
@@ -128,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const xpSimuladoToggle = document.getElementById('id_usar_xp_dinamico_simulado');
     const xpDinamicoFields = document.getElementById('xp-dinamico-fields');
     const xpFixoFields = document.getElementById('xp-fixo-fields');
-    if(xpSimuladoToggle) {
+    if(xpSimuladoToggle && xpDinamicoFields && xpFixoFields) {
         function toggleXPSimuladoFields() {
             xpDinamicoFields.style.display = xpSimuladoToggle.checked ? 'block' : 'none';
             xpFixoFields.style.display = xpSimuladoToggle.checked ? 'none' : 'block';

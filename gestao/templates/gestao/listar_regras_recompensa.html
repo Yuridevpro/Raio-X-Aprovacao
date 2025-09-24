@@ -2,62 +2,134 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Gerenciar Campanhas de Gamificação{% endblock %}
-{% block head %}<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">{% endblock %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<!-- ADIÇÃO: CSS do TomSelect para estilizar os filtros -->
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+<style>
+    .campaign-card {
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        border: 1px solid var(--cor-borda);
+        border-left: 4px solid var(--cor-primaria);
+    }
+    .campaign-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .card-footer {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container my-5">
     {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='campanhas' %}
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <h2 class="h3 mb-0">Campanhas de Gamificação</h2>
-        <!-- CORREÇÃO DA URL AQUI -->
         <a href="{% url 'gestao:criar_campanha' %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Campanha</a>
     </div>
 
     {% include 'gestao/includes/_messages.html' %}
 
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 align-middle">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Nome da Campanha</th>
-                            <th>Gatilho</th>
-                            <th>Status</th>
-                            <th>Recorrência</th>
-                            <th style="width: 120px;">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for regra in regras %}
-                        <tr>
-                            <td class="fw-bold">{{ regra.nome }}</td>
-                            <td>{{ regra.get_gatilho_display }}</td>
-                            <td>
-                                {% if regra.ativo %}
-                                    <span class="badge bg-success-subtle text-success-emphasis">Ativo</span>
-                                {% else %}
-                                    <span class="badge bg-secondary-subtle text-secondary-emphasis">Inativo</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ regra.get_tipo_recorrencia_display }}</td>
-                            <td>
-                                <!-- CORREÇÃO DAS URLs AQUI -->
-                                <a href="{% url 'gestao:editar_campanha' regra.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_campanha' regra.id %}" data-item-name="{{ regra.nome }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr><td colspan="5" class="text-center p-5"><h5 class="text-muted">Nenhuma campanha cadastrada.</h5></td></tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <!-- Filtros -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="GET" action="">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <input type="text" name="q" class="form-control" placeholder="Buscar pelo nome..." value="{{ active_filters.q }}">
+                    </div>
+                    <!-- ATUALIZAÇÃO: Adicionada a classe 'tom-select-single' para aplicar o novo estilo -->
+                    <div class="col-md-2">
+                        <select name="status" class="form-select tom-select-single">
+                            <option value="">Status</option>
+                            <option value="ativo" {% if active_filters.status == 'ativo' %}selected{% endif %}>Ativo</option>
+                            <option value="inativo" {% if active_filters.status == 'inativo' %}selected{% endif %}>Inativo</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="gatilho" class="form-select tom-select-single">
+                            <option value="">Gatilho</option>
+                            {% for value, name in gatilho_choices %}
+                                <option value="{{ value }}" {% if active_filters.gatilho == value %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <select name="recorrencia" class="form-select tom-select-single">
+                            <option value="">Recorrência</option>
+                            {% for value, name in recorrencia_choices %}
+                                <option value="{{ value }}" {% if active_filters.recorrencia == value %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex">
+                        <button type="submit" class="btn btn-primary flex-grow-1 me-2">Filtrar</button>
+                        <a href="{% url 'gestao:listar_campanhas' %}" class="btn btn-outline-secondary" title="Limpar Filtros"><i class="fas fa-times"></i></a>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
+
+    <!-- Listagem em Cards -->
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for campanha in campanhas %}
+        <div class="col">
+            <div class="card h-100 shadow-sm campaign-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ campanha.nome }}</h5>
+                        {% if campanha.ativo %}
+                            <span class="badge bg-success-subtle text-success-emphasis">Ativo</span>
+                        {% else %}
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis">Inativo</span>
+                        {% endif %}
+                    </div>
+                    <div class="mb-3">
+                        <small class="text-muted d-block"><strong>Gatilho:</strong> {{ campanha.get_gatilho_display }}</small>
+                        <small class="text-muted d-block"><strong>Recorrência:</strong> {{ campanha.get_tipo_recorrencia_display }}</small>
+                    </div>
+                </div>
+                <div class="card-footer d-flex justify-content-end gap-2">
+                    <a href="{% url 'gestao:editar_campanha' campanha.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i> Editar</a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_campanha' campanha.id %}" data-item-name="{{ campanha.nome }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card card-body text-center p-5">
+                <h5 class="text-muted">Nenhuma campanha encontrada com os filtros selecionados.</h5>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Paginação -->
+    <div class="mt-4">
+        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+    </div>
 </div>
+
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% endblock %}
+
+{% block scripts %}
+<!-- ADIÇÃO: JavaScript do TomSelect e script de inicialização -->
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.tom-select-single').forEach((el) => {
+            new TomSelect(el, {
+                create: false, // Impede a criação de novas opções
+            });
+        });
+    });
+</script>
 {% endblock %}

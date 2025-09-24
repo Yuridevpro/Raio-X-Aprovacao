@@ -94,6 +94,8 @@ def listar_questoes(request):
 
 from gamificacao.services import processar_resposta_gamificacao
 
+# pratica/views.py
+
 @login_required
 @require_POST
 def verificar_resposta(request):
@@ -107,7 +109,6 @@ def verificar_resposta(request):
             
         questao = get_object_or_404(Questao, id=questao_id)
         
-        # A view agora apenas chama o serviço, que faz todo o trabalho.
         gamificacao_eventos = processar_resposta_gamificacao(
             user=request.user, 
             questao=questao, 
@@ -131,6 +132,7 @@ def verificar_resposta(request):
             'meta_completa_info': gamificacao_eventos.get('meta_completa_info'),
             'xp_ganho': gamificacao_eventos.get('xp_ganho', 0),
             'bonus_ativo': gamificacao_eventos.get('bonus_ativo', False),
+            'motivo_bloqueio': gamificacao_eventos.get('motivo_bloqueio') # <-- LINHA ADICIONADA
         })
     except Exception as e:
         print(f"Erro inesperado em verificar_resposta: {e}")
@@ -228,6 +230,10 @@ def carregar_comentarios(request, questao_id):
 
 
 
+
+from gamificacao.services import _avaliar_e_conceder_recompensas
+from gamificacao.models import Campanha
+
 @login_required
 @require_POST
 def adicionar_comentario(request):
@@ -250,26 +256,27 @@ def adicionar_comentario(request):
         if parent_id:
             try:
                 parent_comentario = Comentario.objects.get(id=parent_id)
-
-                # =======================================================================
-                # INÍCIO DA ADIÇÃO DE SEGURANÇA E INTEGRIDADE
-                # =======================================================================
-                # Verifica se o comentário pai realmente pertence à questão informada.
-                # Isso impede que uma resposta seja criada em uma árvore de comentários de outra questão.
                 if parent_comentario.questao_id != questao.id:
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Inconsistência de dados detectada. A resposta não corresponde à questão principal.'
-                    }, status=400) # 400 Bad Request é apropriado aqui.
-                # =======================================================================
-                # FIM DA ADIÇÃO
-                # =======================================================================
-
+                    return JsonResponse({'status': 'error', 'message': 'Inconsistência de dados detectada.'}, status=400)
                 dados_novo_comentario['parent'] = parent_comentario
             except Comentario.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Comentário pai não encontrado.'}, status=404)
         
         novo_comentario = questao.comentarios.create(**dados_novo_comentario)
+
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Dispara o gatilho de Campanha para comentários
+        # =======================================================================
+        # O gatilho só é acionado para comentários principais, não para respostas.
+        if not novo_comentario.parent:
+            _avaliar_e_conceder_recompensas(
+                request.user.userprofile, 
+                Campanha.Gatilho.COMENTARIO_PUBLICADO, 
+                contexto={'comentario_id': novo_comentario.id, 'questao_id': questao_id}
+            )
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
 
         return JsonResponse({
             'status': 'success',
@@ -279,19 +286,12 @@ def adicionar_comentario(request):
                 'conteudo': markdown.markdown(novo_comentario.conteudo),
                 'conteudo_raw': novo_comentario.conteudo,
                 'data_criacao': novo_comentario.data_criacao.strftime('%d de %B de %Y às %H:%M'),
-                'pode_editar': True,
-                'likes_count': 0,
-                'user_liked': False,
-                'respostas': [],
-                'respostas_count': 0,
-                'parent_id': novo_comentario.parent_id
+                'pode_editar': True, 'likes_count': 0, 'user_liked': False,
+                'respostas': [], 'respostas_count': 0, 'parent_id': novo_comentario.parent_id
             }
         })
-
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-# ... (resto do arquivo pratica/views.py) ...
 
 # --- INÍCIO DA NOVA VIEW PARA LIKE ---
 @login_required
@@ -304,13 +304,23 @@ def toggle_like_comentario(request):
         user = request.user
 
         if user in comentario.likes.all():
-            # Se já curtiu, remove o like
             comentario.likes.remove(user)
             liked = False
         else:
-            # Se não curtiu, adiciona o like
             comentario.likes.add(user)
             liked = True
+
+            # ===================================================================
+            # INÍCIO DA ADIÇÃO: Dispara o gatilho de Campanha ao dar um like
+            # ===================================================================
+            _avaliar_e_conceder_recompensas(
+                request.user.userprofile, 
+                Campanha.Gatilho.LIKE_EM_COMENTARIO_CONCEDIDO, 
+                contexto={'comentario_id': comentario.id}
+            )
+            # ===================================================================
+            # FIM DA ADIÇÃO
+            # ===================================================================
 
         return JsonResponse({
             'status': 'success',

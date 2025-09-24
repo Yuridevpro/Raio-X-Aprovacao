@@ -1,3 +1,4 @@
+<!-- gamificacao/templates/gamificacao/ranking.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load gamificacao_extras %}
@@ -12,6 +13,12 @@
         color: white;
     }
     .ranking-table th { font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
+    /* Adicionado para o ícone de ajuda */
+    .ranking-table th i {
+        cursor: help;
+        margin-left: 5px;
+        color: #adb5bd;
+    }
     .ranking-table .rank-position { font-size: 1.2rem; font-weight: 700; width: 60px; text-align: center; }
     .ranking-table .user-name a { font-weight: 500; color: var(--bs-body-color); text-decoration: none; }
     .ranking-table .user-name a:hover { color: var(--cor-primaria); text-decoration: underline; }
@@ -88,7 +95,7 @@
     </div>
     {% endif %}
 
-    <!-- Bloco de Recompensas em Disputa (NOVO E MELHORADO) -->
+    <!-- Bloco de Recompensas em Disputa -->
     {% if premios_por_faixa %}
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light text-center">
@@ -118,7 +125,7 @@
                                          data-nome="{{ recompensa.nome }}"
                                          data-descricao="{{ recompensa.descricao }}"
                                          data-raridade="{{ recompensa.get_raridade_display }}"
-                                         data-raridade-classe="raridade-{{ recompensa.raridade|lower }}"
+                                         data-raridade-classe="rarity-{{ recompensa.raridade|lower }}"
                                          data-imagem="{{ recompensa.imagem.url }}">
                                         <img src="{{ recompensa.imagem.url }}" class="recompensa-img" 
                                              data-bs-toggle="tooltip" data-bs-placement="top" title="{{ recompensa.nome }}">
@@ -162,8 +169,6 @@
     </div>
     {% endif %}
     
-    <!-- O restante do template (Tabela, Paginação, Modal e Script) permanece exatamente o mesmo -->
-    
     <!-- Tabela do Ranking -->
     <div class="card shadow-sm">
         <div class="card-body p-0">
@@ -175,12 +180,12 @@
                             <th class="rank-position">Posição</th>
                             <th>Usuário</th>
                             {% if periodo_ativo == 'geral' %}
-                                <th class="text-center">Total de Acertos</th>
-                                <th class="text-center">Total de Respostas</th>
-                                <th class="text-center">Sequência Atual</th>
+                                <th class="text-center">Total de Acertos<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação. O ranking é ordenado pelo maior número total de acertos."></i></th>
+                                <th class="text-center">Total de Respostas<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Número total de questões respondidas. Apenas usuários com pelo menos uma resposta aparecem no ranking."></i></th>
+                                <th class="text-center">Sequência Atual<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Principal critério de desempate. Em caso de empate nos acertos, a maior sequência de dias de prática fica na frente."></i></th>
                             {% else %}
-                                <th class="text-center">Acertos no Período</th>
-                                <th class="text-center">Respostas no Período</th>
+                                <th class="text-center">Acertos no Período<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação para este período. O ranking é ordenado pelo maior número de acertos na semana/mês."></i></th>
+                                <th class="text-center">Respostas no Período<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério de desempate. Em caso de empate nos acertos, o maior número de respostas no período fica na frente."></i></th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -252,30 +257,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Lógica para popular o modal dinamicamente
   const recompensaModal = document.getElementById('recompensaModal');
-  recompensaModal.addEventListener('show.bs.modal', function (event) {
-    const button = event.relatedTarget; // O item clicado
-    
-    // Extrai as informações dos atributos data-*
-    const nome = button.getAttribute('data-nome');
-    const descricao = button.getAttribute('data-descricao');
-    const raridade = button.getAttribute('data-raridade');
-    const raridadeClasse = button.getAttribute('data-raridade-classe');
-    const imagem = button.getAttribute('data-imagem');
-    
-    // Atualiza o conteúdo do modal
-    const modalNome = recompensaModal.querySelector('#modalNome');
-    const modalDescricao = recompensaModal.querySelector('#modalDescricao');
-    const modalRaridade = recompensaModal.querySelector('#modalRaridade');
-    const modalImagem = recompensaModal.querySelector('#modalImagem');
-    
-    modalNome.textContent = nome;
-    modalDescricao.textContent = descricao;
-    modalRaridade.textContent = raridade;
-    modalImagem.src = imagem;
-    
-    // Atualiza a classe da badge de raridade
-    modalRaridade.className = 'badge raridade-badge ' + raridadeClasse;
-  });
+  if (recompensaModal) {
+      recompensaModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget; // O item clicado
+        
+        // Extrai as informações dos atributos data-*
+        const nome = button.getAttribute('data-nome');
+        const descricao = button.getAttribute('data-descricao');
+        const raridade = button.getAttribute('data-raridade');
+        const raridadeClasse = button.getAttribute('data-raridade-classe');
+        const imagem = button.getAttribute('data-imagem');
+        
+        // Atualiza o conteúdo do modal
+        const modalNome = recompensaModal.querySelector('#modalNome');
+        const modalDescricao = recompensaModal.querySelector('#modalDescricao');
+        const modalRaridade = recompensaModal.querySelector('#modalRaridade');
+        const modalImagem = recompensaModal.querySelector('#modalImagem');
+        
+        modalNome.textContent = nome;
+        modalDescricao.textContent = descricao;
+        modalRaridade.textContent = raridade;
+        modalImagem.src = imagem;
+        
+        // Atualiza a classe da badge de raridade
+        modalRaridade.className = 'badge raridade-badge ' + raridadeClasse;
+      });
+  }
 });
 </script>
 {% endblock %}

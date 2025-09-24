@@ -21,7 +21,8 @@ from usuarios.models import UserProfile
 from .models import (
     RankingSemanal, RankingMensal, Campanha, Avatar, Borda, Banner,
     RecompensaPendente,
-    AvatarUsuario, BordaUsuario, BannerUsuario, RecompensaUsuario
+    AvatarUsuario, BordaUsuario, BannerUsuario, RecompensaUsuario, 
+    VariavelDoJogo 
 )
 
 
@@ -327,10 +328,15 @@ def resgatar_recompensa_ajax(request):
         return JsonResponse({'status': 'error', 'message': 'Ocorreu um erro inesperado.'}, status=500)
     
 
+# gamificacao/views.py
+
+# gamificacao/views.py
+
 @login_required
 def campanhas_ativas(request):
     """
-    Exibe uma página para os usuários com todas as campanhas e eventos ativos.
+    Exibe uma página para os usuários com todas as campanhas e eventos ativos,
+    agora com detalhes completos e legíveis sobre TODAS as condições.
     """
     agora = timezone.now()
     campanhas = Campanha.objects.filter(
@@ -340,31 +346,59 @@ def campanhas_ativas(request):
         Q(data_fim__gte=agora) | Q(data_fim__isnull=True)
     ).prefetch_related('simulado_especifico').order_by('data_fim')
 
-    # =======================================================================
-    # CORREÇÃO: Inicializa os dicionários de recompensas ANTES de qualquer loop.
-    # =======================================================================
-    # 1. Coleta TODOS os IDs de recompensa de TODAS as campanhas de uma vez.
     all_reward_ids = {'avatares': set(), 'bordas': set(), 'banners': set()}
+    all_variavel_ids = set()
     for campanha in campanhas:
         for grupo in campanha.grupos_de_condicoes:
             all_reward_ids['avatares'].update(grupo.get('avatares', []))
             all_reward_ids['bordas'].update(grupo.get('bordas', []))
             all_reward_ids['banners'].update(grupo.get('banners', []))
-    
-    # 2. Faz apenas 3 queries no banco para buscar todos os objetos necessários.
+            if 'condicoes' in grupo:
+                for cond in grupo['condicoes']:
+                    all_variavel_ids.add(cond.get('variavel_id'))
+
     avatars_map = {a.id: a for a in Avatar.objects.filter(id__in=all_reward_ids['avatares'])}
     bordas_map = {b.id: b for b in Borda.objects.filter(id__in=all_reward_ids['bordas'])}
     banners_map = {b.id: b for b in Banner.objects.filter(id__in=all_reward_ids['banners'])}
-    # =======================================================================
+    variaveis_map = {v.id: v for v in VariavelDoJogo.objects.filter(id__in=all_variavel_ids)}
 
-    # 3. Agora, anexa os objetos de recompensa detalhados a cada grupo.
-    # Esta parte agora é segura, pois os dicionários já existem.
     for campanha in campanhas:
         for grupo in campanha.grupos_de_condicoes:
             grupo['recompensas_detalhadas'] = []
             grupo['recompensas_detalhadas'].extend([avatars_map[id] for id in grupo.get('avatares', []) if id in avatars_map])
             grupo['recompensas_detalhadas'].extend([bordas_map[id] for id in grupo.get('bordas', []) if id in bordas_map])
             grupo['recompensas_detalhadas'].extend([banners_map[id] for id in grupo.get('banners', []) if id in banners_map])
+            
+            # =======================================================================
+            # INÍCIO DA ALTERAÇÃO: Lógica unificada para exibir todas as condições
+            # =======================================================================
+            grupo['condicoes_humanizadas'] = []
+            
+            # 1. Processa as condições específicas do gatilho (as "antigas")
+            pos_exata = grupo.get('condicao_posicao_exata')
+            pos_ate = grupo.get('condicao_posicao_ate')
+            min_acertos = grupo.get('condicao_min_acertos_percent')
+
+            if pos_exata:
+                grupo['condicoes_humanizadas'].append(f"Alcançar a <strong>{pos_exata}ª posição</strong> no ranking.")
+            if pos_ate:
+                grupo['condicoes_humanizadas'].append(f"Ficar entre os <strong>{pos_ate} primeiros</strong> no ranking.")
+            if min_acertos:
+                grupo['condicoes_humanizadas'].append(f"Atingir no mínimo <strong>{min_acertos}% de acertos</strong>.")
+
+            # 2. Processa as condições gerais baseadas em Variáveis de Jogo
+            if 'condicoes' in grupo:
+                for cond in grupo['condicoes']:
+                    variavel = variaveis_map.get(cond['variavel_id'])
+                    if variavel:
+                        grupo['condicoes_humanizadas'].append(f"Ter <strong>{variavel.nome_exibicao}</strong> {cond['operador']} {cond['valor']}")
+            
+            # 3. Adiciona uma mensagem padrão se nenhuma condição for encontrada
+            if not grupo['condicoes_humanizadas']:
+                 grupo['condicoes_humanizadas'].append("Recompensa concedida por participar do evento.")
+            # =======================================================================
+            # FIM DA ALTERAÇÃO
+            # =======================================================================
 
     context = {
         'campanhas_ativas': campanhas,
