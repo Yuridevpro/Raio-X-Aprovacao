@@ -1,31 +1,44 @@
 <!-- usuarios/templates/usuarios/caixa_de_recompensas.html -->
+
 {% extends 'base.html' %}
 {% load static %}
-{% block title %}Minha Caixa de Recompensas{% endblock %}
+{% block title %}{{ titulo_pagina }}{% endblock %}
 
 {% block head %}
 <style>
     .premio-card {
-        border: 1px solid var(--cor-borda);
+        background-color: var(--cor-fundo-intermediario);
+        border: 1px solid rgba(141, 118, 198, 0.3);
         border-radius: var(--raio-borda);
         overflow: hidden;
-        transition: all 0.3s ease;
-        background-color: #fff;
+        transition: var(--transicao-padrao);
+        color: var(--cor-texto-claro);
+    }
+    .premio-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(141, 118, 198, 0.3);
+        border-color: var(--cor-dourada);
     }
     .premio-card .card-img-top {
         height: 200px;
         object-fit: cover;
-        background-color: #f8f9fa;
+        filter: saturate(0.8) brightness(0.9);
+    }
+    .premio-card .card-body { background-color: transparent; }
+    .premio-card .card-title {
+        color: var(--cor-texto-claro);
+        font-family: var(--fonte-display);
+    }
+    .premio-card .text-muted { color: var(--cor-secundaria) !important; }
+    .btn-resgatar {
+        background-color: var(--cor-dourada);
+        border-color: var(--cor-dourada);
+        color: var(--cor-texto-escuro);
     }
     .btn-resgatar .fa-check { display: none; }
     .btn-resgatar.btn-success .fa-check { display: inline-block; }
     .btn-resgatar.btn-success .fa-gift { display: none; }
-
-    /* Estilo para a animação de remoção do card */
-    .card-fading-out {
-        opacity: 0;
-        transform: scale(0.9);
-    }
+    .card-fading-out { opacity: 0; transform: scale(0.9); }
 </style>
 {% endblock %}
 
@@ -33,10 +46,10 @@
 <div class="container my-5">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2 class="h3 mb-0">Minha Coleção</h2>
-            <p class="text-muted">Resgate os prêmios que você ganhou para adicioná-los à sua coleção.</p>
+            <h2 class="h3 mb-0">{{ titulo_pagina }}</h2>
+            <p class="text-muted">Revele os artefatos que você conquistou em sua jornada.</p>
         </div>
-        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil</a>
+        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Santuário</a>
     </div>
 
     {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='caixa_de_recompensas' %}
@@ -45,19 +58,17 @@
         {% for premio in recompensas_pendentes %}
         <div class="col" id="premio-card-{{ premio.id }}">
             <div class="card h-100 shadow-sm premio-card">
-                {% if premio.recompensa.imagem %}
-                <img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">
-                {% endif %}
+                {% if premio.recompensa.imagem %}<img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">{% endif %}
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
-                    <p class="card-text small text-muted flex-grow-1">
-                        Desbloqueado por: <strong>{{ premio.origem_desbloqueio }}</strong><br>
-                        Ganho em: {{ premio.data_ganho|date:"d/m/Y" }}
+                    <p class="card-text small flex-grow-1">
+                        Origem: <strong>{{ premio.origem_desbloqueio }}</strong><br>
+                        Conquistado em: {{ premio.data_ganho|date:"d/m/Y" }}
                     </p>
-                    <button class="btn btn-primary w-100 mt-3 btn-resgatar" data-pendente-id="{{ premio.id }}">
+                    <button class="btn fw-bold btn-resgatar w-100 mt-3" data-pendente-id="{{ premio.id }}">
                         <i class="fas fa-gift me-2"></i>
                         <i class="fas fa-check me-2"></i>
-                        <span>Resgatar</span>
+                        <span>Revelar</span>
                     </button>
                 </div>
             </div>
@@ -66,8 +77,8 @@
         <div class="col-12" id="empty-message-container">
             <div class="card card-body text-center py-5">
                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <h4 class="h5">Sua caixa de recompensas está vazia</h4>
-                <p class="text-muted">Continue praticando para desbloquear novos itens!</p>
+                <h4 class="h5">Sua câmara de tesouros está vazia</h4>
+                <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
             </div>
         </div>
         {% endfor %}
@@ -85,7 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const cardWrapper = document.getElementById(`premio-card-${pendenteId}`);
 
             this.disabled = true;
-            this.querySelector('span').textContent = 'Resgatando...';
+            this.querySelector('span').textContent = 'Revelando...';
 
             fetch("{% url 'gamificacao:resgatar_recompensa' %}", {
                 method: 'POST',
@@ -95,23 +106,19 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(result => {
                 if (result.status === 'success') {
-                    // Feedback visual no botão
                     button.classList.remove('btn-primary');
                     button.classList.add('btn-success');
                     button.querySelector('span').textContent = 'Resgatado!';
                     
-                    // Efeito de confete
                     if (window.confetti) {
                         const rect = button.getBoundingClientRect();
                         const origin = { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight };
                         confetti({ particleCount: 100, spread: 70, origin: origin });
                     }
                     
-                    showNotificationModal('Prêmio Resgatado!', result.message, 'success');
+                    showNotificationModal('Tesouro Revelado!', result.message, 'success');
 
-                    // ===========================================================
-                    // INÍCIO DA CORREÇÃO: Atualizar contador e remover card
-                    // ===========================================================
+                    // ✅ INÍCIO DA CORREÇÃO: Atualizar contador e remover card
                     const counter = document.getElementById('recompensa-counter');
                     if (counter) {
                         let currentCount = parseInt(counter.textContent, 10);
@@ -120,44 +127,40 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (currentCount > 0) {
                                 counter.textContent = currentCount;
                             } else {
-                                counter.remove(); // Remove o badge completamente
+                                counter.parentElement.remove(); // Remove o link inteiro se o contador zerar
                             }
                         }
                     }
 
-                    // Animação de remoção do card
                     if (cardWrapper) {
                         cardWrapper.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                         cardWrapper.classList.add('card-fading-out');
                         setTimeout(() => {
                             cardWrapper.remove();
-                            // Verifica se a grade de recompensas ficou vazia
                             const grid = document.getElementById('recompensas-grid');
                             if (grid && grid.children.length === 0) {
                                 grid.innerHTML = `
                                 <div class="col-12" id="empty-message-container">
                                     <div class="card card-body text-center py-5">
                                         <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                                        <h4 class="h5">Sua caixa de recompensas está vazia</h4>
-                                        <p class="text-muted">Continue praticando para desbloquear novos itens!</p>
+                                        <h4 class="h5">Sua câmara de tesouros está vazia</h4>
+                                        <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
                                     </div>
                                 </div>`;
                             }
-                        }, 500); // Tempo da animação
+                        }, 500);
                     }
-                    // ===========================================================
-                    // FIM DA CORREÇÃO
-                    // ===========================================================
+                    // ✅ FIM DA CORREÇÃO
 
                 } else {
                     button.disabled = false;
-                    button.querySelector('span').textContent = 'Resgatar';
+                    button.querySelector('span').textContent = 'Revelar';
                     showNotificationModal('Erro ao Resgatar', result.message, 'error');
                 }
             })
             .catch(err => {
                 button.disabled = false;
-                button.querySelector('span').textContent = 'Resgatar';
+                button.querySelector('span').textContent = 'Revelar';
                 showNotificationModal('Erro de Rede', 'Não foi possível resgatar o prêmio. Tente novamente.', 'error');
             });
         });

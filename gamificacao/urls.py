@@ -1,5 +1,4 @@
-# gamificacao/urls.py (NOVO ARQUIVO)
-
+# gamificacao/urls.py
 from django.urls import path
 from . import views
 

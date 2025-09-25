@@ -1,18 +1,18 @@
-/* static/base/css/base.css */
-
 /* ========================================================================= */
-/* 1. VARIÁVEIS GLOBAIS DE DESIGN (DESIGN TOKENS)
+/* 1. VARIÁVEIS GLOBAIS DE DESIGN (DESIGN TOKENS) - TEMA CELESTIAL
 /* ========================================================================= */
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&family=Poppins:wght@400;500;600;700&display=swap');
 
 :root {
-    /* Paleta de Cores Primárias */
-    --cor-primaria: #4A90E2;       /* Azul moderno para botões e links principais */
-    --cor-primaria-escura: #357ABD; /* Para hover de botões primários */
-    --cor-secundaria: #5A6978;    /* Cinza azulado para textos secundários e bordas */
-    --cor-fundo-escuro: #2c3e50;  /* Fundo da navbar e footer */
+    /* Paleta de Cores Celestial */
+    --cor-primaria: #8d76c6;       /* Violeta Etéreo para ações e destaques */
+    --cor-primaria-escura: #5a499c; /* Para hover */
+    --cor-secundaria: #adb5bd;    /* Cinza claro para textos secundários */
+    --cor-fundo-escuro: #1a1f3d;  /* Azul Cósmico para navbar e footer */
+    --cor-fundo-intermediario: #252a4a; /* Tom mais claro para cards escuros */
     --cor-fundo-claro: #FFFFFF;     /* Fundo de cards e modais */
-    --cor-fundo-body: #F8F9FC;    /* Fundo principal da página (cinza muito claro) */
+    --cor-fundo-body: #F8F9FC;    /* Fundo principal da página */
+    --cor-dourada: #FFD700;       /* Dourado Estelar para destaques e raridade Lendária */
 
     /* Cores de Feedback Semântico */
     --cor-sucesso: #28a745;
@@ -22,21 +22,19 @@
 
     /* Cores de Texto */
     --cor-texto-escuro: #343a40;
-    --cor-texto-claro: #ffffff;
+    --cor-texto-claro: #f8f9fa;
     --cor-texto-muted: #6c757d;
 
     /* Tipografia */
     --fonte-principal: 'Poppins', sans-serif;
-    --tamanho-fonte-base: 1rem;
-    --peso-fonte-normal: 400;
-    --peso-fonte-medio: 500;
-    --peso-fonte-bold: 700;
+    --fonte-display: 'Oxanium', sans-serif; /* Fonte temática para títulos e UI */
 
     /* Estilos de Componentes */
-    --sombra-caixa: 0 4px 12px rgba(0, 0, 0, 0.08); /* Sombra suave para cards e modais */
-    --raio-borda: 12px;                            /* Bordas mais arredondadas */
-    --cor-borda: #EAECEF;                           /* Cor padrão para bordas sutis */
-    --transicao-padrao: all 0.3s ease-in-out;        /* Transição suave para interações */
+    --sombra-caixa: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --sombra-caixa-hover: 0 8px 25px rgba(26, 31, 61, 0.15);
+    --raio-borda: 12px;
+    --cor-borda: #EAECEF;
+    --transicao-padrao: all 0.3s ease-in-out;
 }
 
 /* ========================================================================= */
@@ -49,8 +47,6 @@ body {
     background-color: var(--cor-fundo-body);
     font-family: var(--fonte-principal);
     color: var(--cor-texto-escuro);
-    font-size: var(--tamanho-fonte-base);
-    overflow-x: hidden;
 }
 
 main {
@@ -58,7 +54,8 @@ main {
 }
 
 h1, h2, h3, h4, h5, h6 {
-    font-weight: var(--peso-fonte-bold);
+    font-family: var(--fonte-display);
+    font-weight: 600;
     color: var(--cor-texto-escuro);
 }
 
@@ -70,7 +67,7 @@ a {
 
 a:hover {
     color: var(--cor-primaria-escura);
-    text-decoration: underline;
+    filter: brightness(1.1);
 }
 
 /* ========================================================================= */
@@ -78,26 +75,27 @@ a:hover {
 /* ========================================================================= */
 .btn {
     border-radius: 8px;
-    font-weight: var(--peso-fonte-medio);
+    font-weight: 500;
     transition: var(--transicao-padrao);
+    border: none;
+    padding: 0.6rem 1.2rem;
 }
 
 .btn-primary {
     background-color: var(--cor-primaria);
-    border-color: var(--cor-primaria);
     color: var(--cor-texto-claro);
+    box-shadow: 0 4px 15px rgba(141, 118, 198, 0.3);
 }
 
 .btn-primary:hover {
     background-color: var(--cor-primaria-escura);
-    border-color: var(--cor-primaria-escura);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 6px 20px rgba(141, 118, 198, 0.4);
 }
 
 .card {
     border: 1px solid var(--cor-borda);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--sombra-caixa);
     border-radius: var(--raio-borda);
     background-color: var(--cor-fundo-claro);
 }
@@ -117,54 +115,51 @@ a:hover {
 /* ========================================================================= */
 .navbar-custom {
     background-color: var(--cor-fundo-escuro);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .navbar-custom .navbar-brand {
-    letter-spacing: 0.5px;
-    font-weight: 600;
+    font-family: var(--fonte-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: 1px;
+    text-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
 }
 
 .navbar-custom .nav-link {
     color: rgba(255, 255, 255, 0.75);
+    font-weight: 500;
     transition: color 0.2s ease-in-out;
 }
 
 .navbar-custom .nav-link:hover,
 .navbar-custom .nav-link.active {
     color: var(--cor-texto-claro);
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
 }
 
 .footer-custom {
     background-color: var(--cor-fundo-escuro);
     color: rgba(255, 255, 255, 0.8);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-custom h5 {
     color: var(--cor-texto-claro);
-    font-weight: var(--peso-fonte-medio);
-    opacity: 0.9;
+    font-family: var(--fonte-display);
+    font-weight: 600;
 }
 
 .footer-link {
     color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    transition: color 0.2s ease-in-out;
 }
 
 .footer-link:hover {
-    color: var(--cor-texto-claro);
-}
-
-.footer-custom .border-secondary {
-    border-color: rgba(255, 255, 255, 0.15) !important;
-}
-
-.footer-social a {
-    font-size: 1.5rem;
+    color: var(--cor-dourada);
 }
 
 /* ========================================================================= */
-/* 5. CLASSES UTILITÁRIAS E ESPECÍFICAS
+/* 5. CLASSES UTILITÁVEIS E ESPECÍFICAS
 /* ========================================================================= */
 .filter-card .card-header {
     cursor: pointer;
@@ -172,7 +167,7 @@ a:hover {
 
 .filter-card .card-header .icon-toggle::before {
     content: '\f078';
-    font-family: 'Font Awesome 5 Free';
+    font-family: 'Font Awesome 6 Free';
     font-weight: 900;
     transition: transform 0.3s ease;
     display: inline-block;
@@ -182,14 +177,11 @@ a:hover {
     transform: rotate(-180deg);
 }
 
-/* ========================================================================= */
-/* 6. NAVBAR DROPDOWN ESTILOS (NOVO)
-/* ========================================================================= */
 .navbar-custom .dropdown-menu {
     background-color: var(--cor-fundo-escuro);
     border-color: rgba(255, 255, 255, 0.15);
     border-radius: var(--raio-borda);
-    margin-top: 0.5rem; /* Adiciona um pequeno espaço da navbar */
+    margin-top: 0.5rem;
 }
 
 .navbar-custom .dropdown-item {
@@ -204,59 +196,4 @@ a:hover {
 
 .navbar-custom .dropdown-divider {
     border-top-color: rgba(255, 255, 255, 0.15);
-}
-
-/* ========================================================================= */
-/* 7. ESTILOS RESPONSIVOS
-/* ========================================================================= */
-@media (max-width: 991.98px) {
-    .navbar-collapse {
-        padding: 1rem;
-        margin-top: 0.5rem;
-        background-color: rgba(0, 0, 0, 0.1);
-        border-radius: var(--raio-borda);
-    }
-    .navbar-custom .navbar-nav .nav-item {
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .navbar-custom .navbar-nav .nav-item:last-child {
-        border-bottom: none;
-    }
-    .navbar-custom .navbar-nav .nav-link {
-        text-align: center;
-        padding: 0.8rem 1rem;
-        font-size: 1.1rem;
-        font-weight: var(--peso-fonte-medio);
-    }
-    .navbar-custom .navbar-nav .nav-item.dropdown {
-        border-bottom: none; /* Remove a linha dupla no mobile */
-    }
-    .navbar-custom .navbar-nav .dropdown-menu {
-        width: 100%;
-        text-align: center;
-        background-color: transparent;
-        border: none;
-        box-shadow: none;
-        margin-top: 0;
-    }
-    .navbar-custom .navbar-nav .dropdown-item {
-        padding: 0.8rem 1rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .navbar-custom .navbar-nav .dropdown-item:last-child {
-        border-bottom: none;
-    }
-
-    .footer-custom .row > div {
-        text-align: center;
-        margin-bottom: 1.5rem;
-    }
-    .footer-custom .list-unstyled {
-        padding-left: 0;
-    }
-    .footer-social {
-        display: flex;
-        justify-content: center;
-        gap: 1.5rem;
-    }
 }

@@ -1,4 +1,4 @@
-# usuarios/views.py (ARQUIVO CORRIGIDO E FINALIZADO)
+# usuarios/views.py
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.models import User
@@ -14,10 +14,13 @@ from gamificacao.models import (
 )
 from gamificacao.services import (
     calcular_xp_para_nivel, 
-    _verificar_desbloqueio_recompensas
+    _verificar_desbloqueio_recompensas,
+    _obter_valor_variavel
 )
 # 2. Agora, importamos UserProfile, que DEPENDE dos modelos de gamificação.
 from .models import UserProfile, Ativacao, PasswordResetToken
+from simulados.models import SessaoSimulado # ✅ Adicionado
+
 # =======================================================================
 # FIM DA CORREÇÃO
 # =======================================================================
@@ -34,6 +37,7 @@ from .utils import enviar_email_com_template
 from django.db import transaction
 from datetime import date
 from questoes.utils import paginar_itens
+from questoes.models import Questao # Adicione esta importação no topo
 
 
 # =======================================================================
@@ -203,10 +207,20 @@ def sair(request):
     return redirect('login')
 
 def home(request):
+    """
+    Renderiza a página inicial com estatísticas dinâmicas para
+    mostrar a escala e atividade da plataforma.
+    """
     total_questoes = Questao.objects.count()
-    context = {'total_questoes': total_questoes}
-    return render(request, 'home.html', context)
+    total_usuarios = User.objects.filter(is_active=True).count()
+    total_simulados_concluidos = SessaoSimulado.objects.filter(finalizado=True).count()
 
+    context = {
+        'total_questoes': total_questoes,
+        'total_usuarios': total_usuarios,
+        'total_simulados_concluidos': total_simulados_concluidos,
+    }
+    return render(request, 'home.html', context)
 # =======================================================================
 # VIEWS DE PERFIL E CONTA
 # =======================================================================
@@ -227,7 +241,6 @@ def visualizar_perfil(request, username):
     context = _get_profile_context(user_profile)
     return render(request, 'usuarios/perfil.html', context)
 
-from gamificacao.services import _obter_valor_variavel
 
 def _get_profile_context(user_profile):
     """
@@ -572,15 +585,10 @@ def caixa_de_recompensas(request):
     ).prefetch_related('recompensa')
     context = {
         'recompensas_pendentes': recompensas,
+        'titulo_pagina': 'Câmara dos Tesouros', # Título temático adicionado
+        'active_tab': 'caixa_de_recompensas'
     }
     return render(request, 'usuarios/caixa_de_recompensas.html', context)
-
-
-from gamificacao.models import TrilhaDeConquistas, ConquistaUsuario
-
-# usuarios/views.py
-
-# usuarios/views.py
 
 @login_required
 def trilhas_de_conquistas(request):

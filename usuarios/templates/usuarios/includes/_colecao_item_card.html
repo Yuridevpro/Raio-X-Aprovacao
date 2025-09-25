@@ -1,58 +1,55 @@
 <!-- usuarios/templates/usuarios/includes/_colecao_item_card.html -->
+
 {% load colecao_extras %}
+{% load static %}
+
+
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 
 <div class="col">
-    <div class="card h-100 collection-card {% if item.id in desbloqueados_ids %}unlocked{% else %}locked{% endif %}">
+    <div class="card h-100 collection-card {% rarity_class item.raridade %} {% if item.id in desbloqueados_ids %}unlocked{% else %}locked{% endif %}">
         
-        <!-- Imagem -->
-        {% if tipo_item == 'banner' %}
-            <img src="{{ item.imagem.url }}" class="card-img-top bg-light" alt="{{ item.nome }}" style="aspect-ratio: 16 / 9;">
-        {% else %}
-            <img src="{{ item.imagem.url }}" class="card-img-top bg-light" alt="{{ item.nome }}">
-        {% endif %}
+        <div class="card-img-container">
+            <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+            <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
+        </div>
 
-        <div class="card-body d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-start">
-                <h6 class="card-title mb-1">{{ item.nome }}</h6>
-                <span class="rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
-            </div>
+        <div class="card-body">
+            <h5 class="card-title">{{ item.nome }}</h5>
+            {% if item.descricao %}
+                <p class="card-text">{{ item.descricao }}</p>
+            {% endif %}
+        </div>
 
-            <!-- >>> INÍCIO DA MUDANÇA: CONDIÇÃO DE DESBLOQUEIO DINÂMICA <<< -->
-            <small class="text-muted mb-2 unlock-condition">
-                {% if item.tipo_desbloqueio == 'NIVEL' %}
-                    <i class="fas fa-star me-1"></i> Desbloqueia no Nível {{ item.nivel_necessario }}
-                {% elif item.tipo_desbloqueio == 'CONQUISTA' and item.conquista_necessaria %}
-                    <i class="fas fa-trophy me-1"></i> Pela conquista "{{ item.conquista_necessaria.nome }}"
-                {% elif item.tipo_desbloqueio == 'REGRA' %}
-                     <i class="fas fa-scroll me-1"></i> Por Regra Automática
+        <div class="card-footer">
+            {% if item.id in desbloqueados_ids %}
+                {% if equipado_id == item.id %}
+                    <button class="btn btn-sm btn-success w-100" disabled>
+                        <i class="fas fa-check-circle me-2"></i>Equipado
+                    </button>
                 {% else %}
-                     <i class="fas fa-gift me-1"></i> Recompensa Especial
-                {% endif %}
-            </small>
-            <!-- >>> FIM DA MUDANÇA <<< -->
-
-            <p class="card-text flex-grow-1">{{ item.descricao }}</p>
-
-            <!-- Botões de Ação -->
-            <div class="mt-auto">
-                {% if item.id in desbloqueados_ids %}
-                    {% if item.id == equipado_id %}
-                        <a href="{% url 'desequipar_item' tipo_item=tipo_item %}" class="btn btn-outline-secondary w-100">
-                            <i class="fas fa-times me-1"></i> Desequipar
+                    {% if tipo_item == 'avatar' %}
+                        <a href="{% url 'equipar_avatar' item.id %}" class="btn btn-sm btn-celestial w-100">
+                            <!-- ATUALIZAÇÃO: Ícone de escudo trocado por estrela -->
+                            <span><i class="fas fa-star me-2"></i>Equipar</span>
+                            <div class="star-1"></div><div class="star-2"></div><div class="star-3"></div><div class="star-4"></div><div class="star-5"></div><div class="star-6"></div>
                         </a>
-                    {% else %}
-                        {% if tipo_item == 'borda' and not user_profile.avatar_equipado %}
-                             <button class="btn btn-secondary w-100" disabled data-bs-toggle="tooltip" title="Equipe um avatar para usar uma borda.">
-                                 Equipar
-                             </button>
-                        {% else %}
-                            <a href="{% if tipo_item == 'avatar' %}{% url 'equipar_avatar' item.id %}{% elif tipo_item == 'borda' %}{% url 'equipar_borda' item.id %}{% else %}{% url 'equipar_banner' item.id %}{% endif %}" class="btn btn-primary w-100">Equipar</a>
-                        {% endif %}
+                    {% elif tipo_item == 'borda' %}
+                         <a href="{% url 'equipar_borda' item.id %}" class="btn btn-sm btn-celestial w-100"
+                            {% if not user_profile.avatar_equipado %} disabled data-bs-toggle="tooltip" title="Você precisa equipar um avatar primeiro." {% endif %}>
+                            <span><i class="fas fa-ring me-2"></i>Equipar</span>
+                            <div class="star-1"></div><div class="star-2"></div><div class="star-3"></div><div class="star-4"></div><div class="star-5"></div><div class="star-6"></div>
+                        </a>
+                    {% elif tipo_item == 'banner' %}
+                         <a href="{% url 'equipar_banner' item.id %}" class="btn btn-sm btn-celestial w-100">
+                            <span><i class="fas fa-image me-2"></i>Equipar</span>
+                            <div class="star-1"></div><div class="star-2"></div><div class="star-3"></div><div class="star-4"></div><div class="star-5"></div><div class="star-6"></div>
+                        </a>
                     {% endif %}
-                {% else %}
-                    <button class="btn btn-secondary w-100" disabled><i class="fas fa-lock me-1"></i> Bloqueado</button>
                 {% endif %}
-            </div>
+            {% else %}
+                <button class="btn btn-sm btn-secondary w-100" disabled><i class="fas fa-lock me-2"></i>Bloqueado</button>
+            {% endif %}
         </div>
     </div>
 </div>

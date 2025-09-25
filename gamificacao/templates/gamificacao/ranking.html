@@ -7,169 +7,62 @@
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
-    /* Estilos Gerais */
-    .ranking-header {
-        background: linear-gradient(135deg, rgba(74, 144, 226, 0.9) 0%, rgba(44, 62, 80, 1) 100%);
-        color: white;
+    .ranking-header { background: linear-gradient(135deg, var(--cor-fundo-escuro), var(--cor-primaria-escura)); color: white; border: 1px solid rgba(141, 118, 198, 0.3); }
+    .ranking-header h1 { font-family: var(--fonte-display); color: var(--cor-texto-claro); }
+    .ranking-header .lead { color: rgba(255, 255, 255, 0.8); }
+    .ranking-table th { font-family: var(--fonte-display); font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; color: var(--cor-texto-muted); }
+    .ranking-table th i { cursor: help; margin-left: 5px; color: #adb5bd; }
+    .ranking-table .rank-position { font-family: var(--fonte-display); font-size: 1.5rem; font-weight: 700; width: 60px; text-align: center; }
+    .ranking-table .user-name a { font-weight: 500; color: var(--bs-body-color); }
+    .ranking-table .user-name a:hover { color: var(--cor-primaria); }
+    .ranking-table .streak-icon { color: #fc4a1a; text-shadow: 0 0 8px #fc4a1a; }
+    .user-highlight { background: linear-gradient(90deg, rgba(141, 118, 198, 0.15), transparent); border-left: 4px solid var(--cor-primaria); }
+    .user-position-card { position: sticky; top: 80px; z-index: 100; background-color: var(--cor-fundo-intermediario); color: var(--cor-texto-claro); border: 1px solid rgba(141, 118, 198, 0.3); }
+    .user-position-card h5, .user-position-card p { color: var(--cor-texto-claro); }
+    .user-position-card .text-muted { color: var(--cor-secundaria) !important; }
+    .user-position-card strong { color: var(--cor-texto-claro); }
+    .premio-faixa-card { background-color: var(--cor-fundo-intermediario); border: 1px solid rgba(255, 215, 0, 0.2); color: var(--cor-texto-claro); }
+    .faixa-titulo { font-family: var(--fonte-display); color: var(--cor-dourada); }
+    .recompensa-item { cursor: pointer; transition: transform 0.2s ease; }
+    .recompensa-item:hover { transform: scale(1.1); }
+    .recompensa-img { width: 55px; height: 55px; border-radius: 50%; border: 2px solid var(--cor-primaria-escura); }
+    .modal-recompensa-img { width: 150px; height: 150px; }
+    
+    /* ======================================================================= */
+    /* ✅ INÍCIO DA ATUALIZAÇÃO: Estilos para responsividade da tabela
+    /* ======================================================================= */
+    @media (max-width: 767px) {
+        /* Esconde o texto "TOTAL DE" em telas menores que 'md' (tablets) */
+        .hide-on-mobile {
+            display: none;
+        }
     }
-    .ranking-table th { font-weight: 600; text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
-    /* Adicionado para o ícone de ajuda */
-    .ranking-table th i {
-        cursor: help;
-        margin-left: 5px;
-        color: #adb5bd;
-    }
-    .ranking-table .rank-position { font-size: 1.2rem; font-weight: 700; width: 60px; text-align: center; }
-    .ranking-table .user-name a { font-weight: 500; color: var(--bs-body-color); text-decoration: none; }
-    .ranking-table .user-name a:hover { color: var(--cor-primaria); text-decoration: underline; }
-    .ranking-table .streak-icon { color: #fc4a1a; }
-    .table-hover tbody tr:hover { background-color: #f8f9fa; }
-    .user-highlight { background-color: var(--cor-sucesso-leve) !important; border: 2px solid var(--cor-sucesso); }
-    .user-position-card { position: sticky; top: 80px; z-index: 100; }
-
-    /* Estilos para a Nova Seção de Prêmios */
-    .premio-faixa-card {
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-        border-left: 4px solid var(--cor-primaria);
-    }
-    .premio-faixa-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important;
-    }
-    .faixa-titulo {
-        font-weight: 700;
-        color: var(--cor-primaria);
-    }
-    .recompensa-item {
-        cursor: pointer;
-        transition: transform 0.2s ease;
-    }
-    .recompensa-item:hover {
-        transform: scale(1.1);
-    }
-    .recompensa-img {
-        width: 55px;
-        height: 55px;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 2px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .modal-recompensa-img {
-        width: 150px;
-        height: 150px;
-    }
-    .raridade-badge {
-        font-size: 0.8em;
-        padding: 0.4em 0.7em;
-    }
-    .winner-alert .btn-outline-success {
-        --bs-btn-color: #198754;
-        --bs-btn-border-color: #198754;
-        --bs-btn-hover-bg: #198754;
-        --bs-btn-hover-border-color: #198754;
-    }
+    /* ======================================================================= */
+    /* FIM DA ATUALIZAÇÃO
+    /* ======================================================================= */
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <!-- Cabeçalho -->
     <div class="ranking-header text-center p-5 mb-4 rounded shadow">
-        <i class="fas fa-trophy fa-3x mb-3" style="color: #f7b733;"></i>
-        <h1 class="display-5 fw-bold">{{ titulo_ranking }}</h1>
-        <p class="lead">Veja sua posição e compare seu desempenho com outros estudantes.</p>
+        <i class="fas fa-trophy fa-3x mb-3" style="color: var(--cor-dourada); text-shadow: 0 0 15px var(--cor-dourada);"></i>
+        <h1 class="display-5">{{ titulo_ranking }}</h1>
+        <p class="lead">Ascenda entre os maiores e grave seu nome entre as estrelas.</p>
     </div>
 
-    <!-- MENSAGEM DE VENCEDOR -->
-    {% if mensagem_vencedor %}
-    <div class="alert alert-success d-flex align-items-center p-4 mb-4 shadow-sm winner-alert" role="alert">
-        <i class="fas fa-party-horn fa-2x me-4 text-success"></i>
-        <div>
-            <h5 class="alert-heading">{{ mensagem_vencedor.titulo }}</h5>
-            <p>{{ mensagem_vencedor.texto }}</p>
-            <a href="{{ mensagem_vencedor.link_caixa }}" class="btn btn-sm btn-outline-success fw-bold">
-                Ir para a Caixa de Recompensas <i class="fas fa-arrow-right ms-2"></i>
-            </a>
-        </div>
-    </div>
-    {% endif %}
+    {% if mensagem_vencedor %}<div class="alert alert-success d-flex align-items-center p-4 mb-4 shadow-sm winner-alert" role="alert"><i class="fas fa-party-horn fa-2x me-4 text-success"></i><div><h5 class="alert-heading">{{ mensagem_vencedor.titulo }}</h5><p>{{ mensagem_vencedor.texto }}</p><a href="{{ mensagem_vencedor.link_caixa }}" class="btn btn-sm btn-outline-success fw-bold">Ir para a Câmara dos Tesouros <i class="fas fa-arrow-right ms-2"></i></a></div></div>{% endif %}
 
-    <!-- Bloco de Recompensas em Disputa -->
-    {% if premios_por_faixa %}
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light text-center">
-            <h5 class="mb-0"><i class="fas fa-gift text-primary me-2"></i>Prêmios da Temporada</h5>
-        </div>
-        <div class="card-body p-4">
-            <div class="row g-3 justify-content-center">
-                {% for premio in premios_por_faixa %}
-                <div class="col-lg-4 col-md-6">
-                    <div class="card h-100 shadow-sm premio-faixa-card">
-                        <div class="card-body text-center d-flex flex-column">
-                            <h6 class="faixa-titulo mb-3"><i class="fas fa-trophy text-warning me-2"></i>{{ premio.faixa }}</h6>
-                            <div class="mt-auto">
-                                <div class="d-flex justify-content-center align-items-center gap-3 mb-3">
-                                    {% if premio.xp > 0 %}
-                                    <span class="badge fs-6 bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ premio.xp }} XP</span>
-                                    {% endif %}
-                                    {% if premio.moedas > 0 %}
-                                    <span class="badge fs-6 bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ premio.moedas }} Moedas</span>
-                                    {% endif %}
-                                </div>
-                                <div class="d-flex justify-content-center flex-wrap gap-2">
-                                    {% for recompensa in premio.recompensas %}
-                                    <div class="recompensa-item" 
-                                         data-bs-toggle="modal" 
-                                         data-bs-target="#recompensaModal"
-                                         data-nome="{{ recompensa.nome }}"
-                                         data-descricao="{{ recompensa.descricao }}"
-                                         data-raridade="{{ recompensa.get_raridade_display }}"
-                                         data-raridade-classe="rarity-{{ recompensa.raridade|lower }}"
-                                         data-imagem="{{ recompensa.imagem.url }}">
-                                        <img src="{{ recompensa.imagem.url }}" class="recompensa-img" 
-                                             data-bs-toggle="tooltip" data-bs-placement="top" title="{{ recompensa.nome }}">
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Abas de Navegação -->
     <ul class="nav nav-pills nav-fill mb-4">
         <li class="nav-item"><a class="nav-link {% if periodo_ativo == 'geral' %}active{% endif %}" href="?periodo=geral">Geral</a></li>
         <li class="nav-item"><a class="nav-link {% if periodo_ativo == 'semanal' %}active{% endif %}" href="?periodo=semanal">Semanal</a></li>
         <li class="nav-item"><a class="nav-link {% if periodo_ativo == 'mensal' %}active{% endif %}" href="?periodo=mensal">Mensal</a></li>
     </ul>
-
-    <!-- Posição do Usuário Logado -->
-    {% if posicao_usuario_logado %}
-    <div class="card shadow-sm mb-4 user-position-card">
-        <div class="card-body">
-            <div class="row align-items-center">
-                <div class="col-sm-2 col-md-1 text-center"><strong class="h4">#{{ posicao_usuario_logado.rank }}</strong></div>
-                <div class="col-sm-10 col-md-5"><h5 class="mb-0">Sua Posição</h5><p class="text-muted mb-0">Continue assim!</p></div>
-                <div class="col-6 col-md-3 text-center text-md-start mt-2 mt-md-0">
-                    <i class="fas fa-check-circle text-success me-2"></i>
-                    <strong>{% if periodo_ativo == 'geral' %}{{ posicao_usuario_logado.total_acertos_geral }}{% else %}{{ posicao_usuario_logado.total_acertos }}{% endif %}</strong> Acertos
-                </div>
-                <div class="col-6 col-md-3 text-center text-md-start mt-2 mt-md-0">
-                    <i class="fas fa-pencil-alt text-muted me-2"></i>
-                    <strong>{% if periodo_ativo == 'geral' %}{{ posicao_usuario_logado.total_respostas_geral }}{% else %}{{ posicao_usuario_logado.total_respostas }}{% endif %}</strong> Respostas
-                </div>
-            </div>
-        </div>
-    </div>
-    {% endif %}
     
-    <!-- Tabela do Ranking -->
+    {% if premios_por_faixa %}<div class="card shadow-sm mb-4 bg-transparent border-0"><div class="card-header bg-light text-center"><h5 class="mb-0"><i class="fas fa-gift text-primary me-2"></i>Prêmios da Temporada</h5></div><div class="card-body p-4" style="background-color: var(--cor-fundo-escuro); border-radius: 0 0 var(--raio-borda) var(--raio-borda);"><div class="row g-3 justify-content-center">{% for premio in premios_por_faixa %}<div class="col-lg-4 col-md-6"><div class="card h-100 shadow-sm premio-faixa-card"><div class="card-body text-center d-flex flex-column"><h6 class="faixa-titulo mb-3"><i class="fas fa-trophy me-2"></i>{{ premio.faixa }}</h6><div class="mt-auto"><div class="d-flex justify-content-center align-items-center gap-3 mb-3">{% if premio.xp > 0 %}<span class="badge fs-6 bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ premio.xp }} XP</span>{% endif %}{% if premio.moedas > 0 %}<span class="badge fs-6 bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ premio.moedas }} FC</span>{% endif %}</div><div class="d-flex justify-content-center flex-wrap gap-2">{% for recompensa in premio.recompensas %}<div class="recompensa-item" data-bs-toggle="modal" data-bs-target="#recompensaModal" data-nome="{{ recompensa.nome }}" data-descricao="{{ recompensa.descricao }}" data-raridade="{{ recompensa.get_raridade_display }}" data-raridade-classe="rarity-{{ recompensa.raridade|lower }}" data-imagem="{{ recompensa.imagem.url }}"><img src="{{ recompensa.imagem.url }}" class="recompensa-img" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ recompensa.nome }}"></div>{% endfor %}</div></div></div></div></div>{% endfor %}</div></div></div>{% endif %}
+
+    {% if posicao_usuario_logado %}<div class="card shadow-sm mb-4 user-position-card"><div class="card-body"><div class="row align-items-center"><div class="col-sm-2 col-md-1 text-center"><strong class="h4" style="color: var(--cor-dourada);">#{{ posicao_usuario_logado.rank }}</strong></div><div class="col-sm-10 col-md-5"><h5 class="mb-0">Sua Posição</h5><p class="text-white-50 mb-0 small">Continue sua ascensão!</p></div><div class="col-6 col-md-3 text-center text-md-start mt-2 mt-md-0"><i class="fas fa-check-circle text-success me-2"></i><strong>{% if periodo_ativo == 'geral' %}{{ posicao_usuario_logado.total_acertos_geral }}{% else %}{{ posicao_usuario_logado.total_acertos }}{% endif %}</strong> Acertos</div><div class="col-6 col-md-3 text-center text-md-start mt-2 mt-md-0"><i class="fas fa-pencil-alt text-muted me-2"></i><strong>{% if periodo_ativo == 'geral' %}{{ posicao_usuario_logado.total_respostas_geral }}{% else %}{{ posicao_usuario_logado.total_respostas }}{% endif %}</strong> Respostas</div></div></div></div>{% endif %}
+    
     <div class="card shadow-sm">
         <div class="card-body p-0">
             {% if ranking_list %}
@@ -180,12 +73,12 @@
                             <th class="rank-position">Posição</th>
                             <th>Usuário</th>
                             {% if periodo_ativo == 'geral' %}
-                                <th class="text-center">Total de Acertos<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação. O ranking é ordenado pelo maior número total de acertos."></i></th>
-                                <th class="text-center">Total de Respostas<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Número total de questões respondidas. Apenas usuários com pelo menos uma resposta aparecem no ranking."></i></th>
-                                <th class="text-center">Sequência Atual<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Principal critério de desempate. Em caso de empate nos acertos, a maior sequência de dias de prática fica na frente."></i></th>
+                                <th class="text-center"><span class="hide-on-mobile">Total de</span> Acertos<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação."></i></th>
+                                <th class="text-center"><span class="hide-on-mobile">Total de</span> Respostas<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Número total de questões respondidas."></i></th>
+                                <th class="text-center">Sequência<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério de desempate."></i></th>
                             {% else %}
-                                <th class="text-center">Acertos no Período<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação para este período. O ranking é ordenado pelo maior número de acertos na semana/mês."></i></th>
-                                <th class="text-center">Respostas no Período<i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério de desempate. Em caso de empate nos acertos, o maior número de respostas no período fica na frente."></i></th>
+                                <th class="text-center">Acertos <span class="hide-on-mobile">no Período</span><i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério principal de classificação."></i></th>
+                                <th class="text-center">Respostas <span class="hide-on-mobile">no Período</span><i class="fas fa-info-circle" data-bs-toggle="tooltip" title="Critério de desempate."></i></th>
                             {% endif %}
                         </tr>
                     </thead>
@@ -193,96 +86,31 @@
                         {% for item in ranking_list %}
                         <tr class="{% if periodo_ativo == 'geral' and item.user == request.user or periodo_ativo != 'geral' and item.user_profile.user == request.user %}user-highlight{% endif %}">
                             <td class="rank-position">#{{ item.rank }}</td>
-                            <td>
-                                <span class="user-name">
-                                    <a href="{% url 'visualizar_perfil' item.user.username %}">
-                                        {% if periodo_ativo == 'geral' %}{{ item.nome }} {{ item.sobrenome }}{% else %}{{ item.nome }} {{ item.sobrenome }}{% endif %}
-                                    </a>
-                                </span>
-                            </td>
-                            {% if periodo_ativo == 'geral' %}
-                                <td class="text-center">{{ item.total_acertos_geral }}</td>
-                                <td class="text-center">{{ item.total_respostas_geral }}</td>
-                                <td class="text-center"><i class="fas fa-fire streak-icon me-1"></i>{{ item.streak_data.current_streak }}</td>
-                            {% else %}
-                                <td class="text-center">{{ item.total_acertos }}</td>
-                                <td class="text-center">{{ item.total_respostas }}</td>
-                            {% endif %}
+                            <td><span class="user-name"><a href="{% url 'visualizar_perfil' item.user.username %}">{% if periodo_ativo == 'geral' %}{{ item.nome }} {{ item.sobrenome }}{% else %}{{ item.nome }} {{ item.sobrenome }}{% endif %}</a></span></td>
+                            {% if periodo_ativo == 'geral' %}<td class="text-center">{{ item.total_acertos_geral }}</td><td class="text-center">{{ item.total_respostas_geral }}</td><td class="text-center"><i class="fas fa-fire streak-icon me-1"></i>{{ item.streak_data.current_streak }}</td>
+                            {% else %}<td class="text-center">{{ item.total_acertos }}</td><td class="text-center">{{ item.total_respostas }}</td>{% endif %}
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
-            {% else %}
-            <div class="text-center p-5">
-                <p class="text-muted">Nenhum usuário no ranking para este período. Seja o primeiro!</p>
-            </div>
-            {% endif %}
+            {% else %}<div class="text-center p-5"><p class="text-muted">Nenhum usuário no ranking para este período. Seja o primeiro!</p></div>{% endif %}
         </div>
     </div>
 
-    <!-- Paginação -->
-    <div class="mt-4">
-        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
-    </div>
+    <div class="mt-4">{% include 'includes/_paginacao.html' with paginated_object=paginated_object %}</div>
 </div>
 
-<!-- Modal Reutilizável para Recompensas -->
-<div class="modal fade" id="recompensaModal" tabindex="-1" aria-labelledby="recompensaModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header border-0">
-                <h5 class="modal-title" id="recompensaModalLabel">Detalhes da Recompensa</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body text-center">
-                <img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa">
-                <h4 id="modalNome" class="fw-bold"></h4>
-                <p id="modalDescricao" class="text-muted"></p>
-                <span id="modalRaridade" class="badge raridade-badge"></span>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="modal fade" id="recompensaModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title" id="recompensaModalLabel"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa"><h4 id="modalNome" class="fw-bold"></h4><p id="modalDescricao" class="text-muted"></p><span id="modalRaridade" class="badge"></span></div></div></div></div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-  // Inicializa os tooltips do Bootstrap
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl)
-  });
-
-  // Lógica para popular o modal dinamicamente
+  var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) { return new bootstrap.Tooltip(tooltipTriggerEl) });
   const recompensaModal = document.getElementById('recompensaModal');
-  if (recompensaModal) {
-      recompensaModal.addEventListener('show.bs.modal', function (event) {
-        const button = event.relatedTarget; // O item clicado
-        
-        // Extrai as informações dos atributos data-*
-        const nome = button.getAttribute('data-nome');
-        const descricao = button.getAttribute('data-descricao');
-        const raridade = button.getAttribute('data-raridade');
-        const raridadeClasse = button.getAttribute('data-raridade-classe');
-        const imagem = button.getAttribute('data-imagem');
-        
-        // Atualiza o conteúdo do modal
-        const modalNome = recompensaModal.querySelector('#modalNome');
-        const modalDescricao = recompensaModal.querySelector('#modalDescricao');
-        const modalRaridade = recompensaModal.querySelector('#modalRaridade');
-        const modalImagem = recompensaModal.querySelector('#modalImagem');
-        
-        modalNome.textContent = nome;
-        modalDescricao.textContent = descricao;
-        modalRaridade.textContent = raridade;
-        modalImagem.src = imagem;
-        
-        // Atualiza a classe da badge de raridade
-        modalRaridade.className = 'badge raridade-badge ' + raridadeClasse;
-      });
-  }
+  if (recompensaModal) { recompensaModal.addEventListener('show.bs.modal', function (event) { const button = event.relatedTarget; const nome = button.getAttribute('data-nome'); const descricao = button.getAttribute('data-descricao'); const raridade = button.getAttribute('data-raridade'); const raridadeClasse = button.getAttribute('data-raridade-classe'); const imagem = button.getAttribute('data-imagem'); const modalNome = recompensaModal.querySelector('#modalNome'); const modalDescricao = recompensaModal.querySelector('#modalDescricao'); const modalRaridade = recompensaModal.querySelector('#modalRaridade'); const modalImagem = recompensaModal.querySelector('#modalImagem'); modalNome.textContent = nome; modalDescricao.textContent = descricao; modalRaridade.textContent = raridade; modalImagem.src = imagem; modalRaridade.className = 'badge raridade-badge ' + raridadeClasse; }); }
 });
 </script>
 {% endblock %}

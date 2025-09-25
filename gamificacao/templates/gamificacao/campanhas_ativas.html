@@ -1,99 +1,163 @@
-<!-- gamificacao/templates/gamificacao/campanhas_ativas.html -->
 {% extends 'base.html' %}
 {% load static %}
+{% load gamificacao_extras %}
 {% block title %}{{ titulo_pagina }}{% endblock %}
 
 {% block head %}
 <style>
-    .campanha-card {
-        border-left: 5px solid var(--cor-primaria);
-        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    /* ✅ CORREÇÃO: Força o fundo da página a ser claro */
+    body {
+        background-color: var(--cor-fundo-body);
     }
-    .campanha-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--sombra-caixa-hover);
-    }
-    .reward-node {
-        padding: 1rem;
-        border: 1px solid var(--cor-borda);
-        border-radius: var(--raio-borda);
-        background-color: var(--cor-fundo-claro);
-    }
-    .reward-node:not(:last-child) {
+
+    /* ======================================================================= */
+    /* ESTILOS DO ACORDEÃO DE CAMPANHAS (REDESIGN COMPLETO)
+    /* ======================================================================= */
+    .accordion-item {
+        background: linear-gradient(160deg, #252a4a, var(--cor-fundo-escuro));
+        border: 1px solid rgba(141, 118, 198, 0.4);
+        transition: var(--transicao-padrao);
         margin-bottom: 1rem;
+        border-radius: var(--raio-borda) !important;
+        overflow: hidden;
+        box-shadow: 0 0 15px rgba(141, 118, 198, 0.2);
+    }
+    .accordion-header {
+        margin-bottom: 0;
+    }
+    .accordion-button {
+        background-color: rgba(255, 255, 255, 0.05);
+        color: var(--cor-texto-claro);
+        font-family: var(--fonte-display);
+        font-size: 1.2rem;
+        font-weight: 600;
+        box-shadow: none !important;
+    }
+    .accordion-button:not(.collapsed) {
+        background-color: rgba(255, 215, 0, 0.1);
+        color: var(--cor-dourada);
+    }
+    .accordion-button::after {
+        filter: brightness(0) invert(1);
+    }
+    .accordion-button:focus {
+        border-color: transparent;
+    }
+    .accordion-body {
+        color: var(--cor-texto-claro);
+    }
+
+    /* ======================================================================= */
+    /* ESTILOS INTERNOS DOS CARDS
+    /* ======================================================================= */
+    .accordion-body .text-muted {
+        color: var(--cor-secundaria) !important;
+    }
+    .decreto-grupo {
+        padding-top: 1rem;
+        margin-top: 1rem;
+        border-top: 1px solid var(--cor-dourada);
+        box-shadow: 0 -5px 10px -5px rgba(255, 215, 0, 0.3); /* Efeito de brilho na linha */
     }
     .condition-list {
         font-size: 0.9rem;
         color: var(--cor-secundaria);
-        margin-top: 0.5rem;
-        padding-left: 1.25rem;
+        list-style: none;
+        padding-left: 0;
     }
-    .condition-list li::marker {
-        color: var(--cor-primaria);
-        font-weight: bold;
+    .condition-list li {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .condition-list li::before {
+        content: '\f658'; /* Ícone de runa/brilho */
+        font-family: 'Font Awesome 6 Free';
+        font-weight: 900;
+        position: absolute;
+        left: 0;
+        top: 0.1em;
+        color: var(--cor-dourada);
+        text-shadow: 0 0 5px var(--cor-dourada);
     }
     .recompensa-icon {
         width: 45px;
         height: 45px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid white;
+        border: 2px solid var(--cor-primaria-escura);
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+        cursor: pointer;
     }
+    .recompensa-icon:hover {
+        transform: scale(1.15);
+    }
+    .badge.bg-primary-soft {
+        background-color: rgba(141, 118, 198, 0.2) !important;
+        color: #d1c4f5 !important;
+        border: 1px solid rgba(141, 118, 198, 0.5);
+    }
+    .badge.bg-warning-soft {
+        background-color: rgba(255, 215, 0, 0.15) !important;
+        color: #ffe66b !important;
+        border: 1px solid rgba(255, 215, 0, 0.5);
+    }
+
+    .modal-recompensa-img { width: 150px; height: 150px; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="text-center mb-5">
-        <i class="fas fa-bullhorn fa-3x text-primary mb-3"></i>
-        <h1 class="display-5 fw-bold">{{ titulo_pagina }}</h1>
-        <p class="lead text-muted">Fique por dentro dos desafios ativos e ganhe recompensas exclusivas!</p>
+    <div class="d-flex justify-content-between align-items-center mb-5 flex-wrap gap-2">
+        <div class="text-center text-md-start">
+            <h1 class="display-5 fw-bold">Decretos Celestiais</h1>
+            <p class="lead text-muted">Consulte as jornadas ativas e as bênçãos que aguardam os mais dedicados.</p>
+        </div>
+        <a href="{% url 'colecao_avatares' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar para a Coleção</a>
     </div>
 
-    <div class="row g-4">
+    <div class="accordion" id="campanhasAccordion">
         {% for campanha in campanhas_ativas %}
-        <div class="col-lg-6">
-            <div class="card shadow-sm h-100 campanha-card">
-                <div class="card-header bg-light">
-                    <h5 class="mb-0">{{ campanha.nome }}</h5>
-                    {% if campanha.data_fim %}
-                        <small class="text-muted">Termina em: {{ campanha.data_fim|date:"d/m/Y" }}</small>
-                    {% else %}
-                        <small class="text-muted">Evento Contínuo</small>
-                    {% endif %}
-                </div>
-                <div class="card-body">
-                    <p><strong><i class="fas fa-play-circle text-muted me-2"></i>Gatilho:</strong> {{ campanha.get_gatilho_display }}</p>
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="heading-{{ campanha.id }}">
+                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ campanha.id }}">
+                    <i class="fas fa-scroll me-3 text-white-50"></i>{{ campanha.nome }}
+                </button>
+            </h2>
+            <div id="collapse-{{ campanha.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#campanhasAccordion">
+                <div class="accordion-body">
+                    <p class="mb-2"><strong><i class="fas fa-play-circle text-muted me-2"></i>Gatilho:</strong> {{ campanha.get_gatilho_display }}</p>
                     {% if campanha.simulado_especifico %}
                         <p><strong><i class="fas fa-tasks text-muted me-2"></i>Desafio:</strong> Concluir o simulado "{{ campanha.simulado_especifico.nome }}"</p>
                     {% endif %}
                     
-                    <hr>
-                    <h6><i class="fas fa-trophy text-warning me-2"></i>Faixas de Prêmios:</h6>
-
                     {% for grupo in campanha.grupos_de_condicoes %}
-                        <div class="reward-node">
-                            <h6 class="fw-bold mb-0">{{ grupo.nome_grupo|default:"Prêmios" }}</h6>
+                        <div class="decreto-grupo">
+                            <h6 class="fw-bold mb-2 text-white">{{ grupo.nome_grupo|default:"Decreto Único" }}</h6>
                             
-                            <!-- =================================================================== -->
-                            <!-- INÍCIO DA ALTERAÇÃO: Renderizando a lista unificada de condições -->
-                            <!-- =================================================================== -->
-                            <ul class="condition-list mb-2">
+                            <p class="small text-uppercase fw-bold text-muted mb-1">Requisitos para a Glória:</p>
+                            <ul class="condition-list mb-3">
                                 {% for condicao in grupo.condicoes_humanizadas %}
                                     <li>{{ condicao|safe }}</li>
                                 {% endfor %}
                             </ul>
-                            <!-- =================================================================== -->
-                            <!-- FIM DA ALTERAÇÃO -->
-                            <!-- =================================================================== -->
 
-                            <!-- Lista de Recompensas -->
+                            <p class="small text-uppercase fw-bold text-muted mb-2">Bênçãos Concedidas:</p>
                             <div class="d-flex align-items-center gap-3 flex-wrap">
-                                {% if grupo.xp_extra > 0 %}<span class="badge bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ grupo.xp_extra }} XP</span>{% endif %}
-                                {% if grupo.moedas_extras > 0 %}<span class="badge bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ grupo.moedas_extras }} Moedas</span>{% endif %}
+                                {% if grupo.xp_extra > 0 %}<span class="badge fs-6 bg-primary-soft"><i class="fas fa-star me-1"></i> {{ grupo.xp_extra }} XP</span>{% endif %}
+                                {% if grupo.moedas_extras > 0 %}<span class="badge fs-6 bg-warning-soft"><i class="fas fa-coins me-1"></i> {{ grupo.moedas_extras }} FC</span>{% endif %}
                                 {% for recompensa in grupo.recompensas_detalhadas %}
-                                    <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" title="{{ recompensa.nome }} ({{ recompensa.get_raridade_display }})" data-bs-toggle="tooltip">
+                                    <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" 
+                                         title="{{ recompensa.nome }} ({{ recompensa.get_raridade_display }})" 
+                                         data-bs-toggle="modal" 
+                                         data-bs-target="#recompensaModal"
+                                         data-nome="{{ recompensa.nome }}"
+                                         data-descricao="{{ recompensa.descricao }}"
+                                         data-raridade="{{ recompensa.get_raridade_display }}"
+                                         data-raridade-classe="rarity-{{ recompensa.raridade|lower }}"
+                                         data-imagem="{{ recompensa.imagem.url }}">
                                 {% endfor %}
                             </div>
                         </div>
@@ -103,13 +167,20 @@
         </div>
         {% empty %}
         <div class="col-12">
-            <div class="card card-body text-center py-5">
+            <div class="card card-body text-center py-5 bg-light">
                 <i class="fas fa-calendar-times fa-3x text-muted mb-3"></i>
                 <h4 class="h5">Nenhum evento ativo no momento</h4>
-                <p class="text-muted">Volte em breve para conferir os próximos desafios!</p>
+                <p class="text-muted">Os céus estão calmos. Volte em breve para conferir os próximos desafios!</p>
             </div>
         </div>
         {% endfor %}
+    </div>
+</div>
+
+<!-- Modal Reutilizável para Recompensas -->
+<div class="modal fade" id="recompensaModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title" id="recompensaModalLabel"></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa"><h4 id="modalNome" class="fw-bold"></h4><p id="modalDescricao" class="text-muted"></p><span id="modalRaridade" class="badge"></span></div></div>
     </div>
 </div>
 {% endblock %}
@@ -121,6 +192,26 @@ document.addEventListener('DOMContentLoaded', function () {
   var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
     return new bootstrap.Tooltip(tooltipTriggerEl)
   })
+
+  // Lógica para popular o modal de recompensas
+  const recompensaModal = document.getElementById('recompensaModal');
+  if (recompensaModal) {
+    recompensaModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget;
+      const nome = button.getAttribute('data-nome');
+      const descricao = button.getAttribute('data-descricao');
+      const raridade = button.getAttribute('data-raridade');
+      const raridadeClasse = button.getAttribute('data-raridade-classe');
+      const imagem = button.getAttribute('data-imagem');
+      
+      recompensaModal.querySelector('#recompensaModalLabel').textContent = nome;
+      recompensaModal.querySelector('#modalNome').textContent = nome;
+      recompensaModal.querySelector('#modalDescricao').textContent = descricao;
+      recompensaModal.querySelector('#modalRaridade').textContent = raridade;
+      recompensaModal.querySelector('#modalImagem').src = imagem;
+      recompensaModal.querySelector('#modalRaridade').className = 'badge ' + raridadeClasse;
+    });
+  }
 });
 </script>
 {% endblock %}

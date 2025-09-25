@@ -1,40 +1,36 @@
-<!-- base.html -->
 {% load static %}
 <!doctype html>
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Raio-X da Aprovaçao{% endblock %}</title>
+    <title>{% block title %}Raio-X da Aprovação{% endblock %}</title>
+    
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
-    <!-- Nosso CSS base -->
+    <!-- Nosso CSS base reestruturado -->
     <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
     
-    <!-- Outros CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/simplemde/latest/simplemde.min.css">
-
+    <!-- Outros CSS (se necessário, movido para blocos específicos) -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
-        .footer-custom .text-muted {
-            color: rgba(255, 255, 255, 0.7) !important;
-        }
-
-        /* ESTILOS PARA O AVATAR E BORDA NA NAVBAR */
+        /* ESTILOS ESPECÍFICOS PARA O AVATAR NA NAVBAR */
         .navbar-avatar-container {
             position: relative;
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             vertical-align: middle;
             margin-right: 8px;
+            transition: transform 0.3s ease;
+        }
+        .navbar-avatar-container:hover {
+            transform: scale(1.1);
         }
         .navbar-avatar-image {
             width: 100%;
@@ -43,19 +39,20 @@
             object-fit: cover;
             position: relative;
             z-index: 1;
+            border: 1px solid rgba(255,255,255,0.2);
         }
         .navbar-border-image {
             position: absolute;
-            top: -4px;
-            left: -4px;
-            width: 36px;
-            height: 36px;
+            top: -5px;
+            left: -5px;
+            width: 42px;
+            height: 42px;
             pointer-events: none;
             z-index: 2;
         }
         .navbar-avatar-container.with-frame {
-            width: 32px;
-            height: 32px;
+            width: 38px;
+            height: 38px;
         }
         .navbar-avatar-container.with-frame .navbar-avatar-image {
             width: 65%;
@@ -68,7 +65,12 @@
             width: 100%;
             height: 100%;
         }
-
+        /* ✅ INÍCIO DA CORREÇÃO DO CONTADOR DE RECOMPENSAS */
+        #recompensa-counter {
+            top: 5px;
+            right: -8px;
+        }
+        /* ✅ FIM DA CORREÇÃO DO CONTADOR DE RECOMPENSAS */
     </style>
 
     {% block head %}{% endblock %}
@@ -76,164 +78,121 @@
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark navbar-custom shadow-sm">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{% url 'home' %}">
-                <i class="fas fa-chart-line me-2"></i>Raio-X da Aprovaçao
+            <a class="navbar-brand" href="{% url 'home' %}">
+                <i class="fas fa-meteor me-2"></i>Raio-X da Aprovação
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                     {% if user.is_authenticated and user.is_staff %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'gestao:dashboard' %}">Painel de Gestão</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'gestao:dashboard' %}">Painel de Gestão</a></li>
                     {% endif %}
                 </ul>
     
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
                     {% if user.is_authenticated %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'pratica:listar_questoes' %}">Praticar</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'pratica:listar_questoes' %}">Praticar</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a></li>
+                    
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Meu Progresso</a>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fas fa-chart-pie fa-fw me-2"></i>Meu Desempenho</a></li>
+                            <li><a class="dropdown-item" href="{% url 'gamificacao:ranking' %}"><i class="fas fa-trophy fa-fw me-2"></i>Ranking</a></li>
+                        </ul>
                     </li>
                     
-                    <!-- ======================================================================= -->
-                    <!-- INÍCIO DA ALTERAÇÃO: Dropdown "Meu Progresso" -->
-                    <!-- ======================================================================= -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Meu Progresso
-                        </a>
+                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Coleção</a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fas fa-chart-pie me-2"></i>Meu Desempenho</a></li>
-                            <li><a class="dropdown-item" href="{% url 'gamificacao:ranking' %}"><i class="fas fa-trophy me-2"></i>Ranking</a></li>
+                            <li><a class="dropdown-item" href="{% url 'gamificacao:loja' %}"><i class="fas fa-store fa-fw me-2"></i>Loja</a></li>
+                            <li><a class="dropdown-item" href="{% url 'gamificacao:campanhas_ativas' %}"><i class="fas fa-calendar-check fa-fw me-2"></i>Eventos Ativos</a></li>
+                            <li><a class="dropdown-item" href="{% url 'trilhas_de_conquistas' %}"><i class="fas fa-road fa-fw me-2"></i>Trilhas de Conquistas</a></li>
+                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem fa-fw me-2"></i>Meus Itens</a></li>
+                             <li><a class="dropdown-item position-relative" href="{% url 'caixa_de_recompensas' %}">
+                                <i class="fas fa-box-open fa-fw me-2"></i>Caixa de Recompensas
+                                {% if recompensas_pendentes_count > 0 %}
+                                <span id="recompensa-counter" class="position-absolute translate-middle-y badge rounded-pill bg-danger">{{ recompensas_pendentes_count }}</span>
+                                {% endif %}
+                            </a></li>
                         </ul>
                     </li>
-                    <!-- ======================================================================= -->
-                    <!-- FIM DA ALTERAÇÃO -->
-                    <!-- ======================================================================= -->
-
-                    <!-- ======================================================================= -->
-                    <!-- INÍCIO DA ALTERAÇÃO: Dropdown "Gamificação" -->
-                    <!-- ======================================================================= -->
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            Gamificação
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'gamificacao:loja' %}"><i class="fas fa-store me-2"></i>Loja</a></li>
-                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem me-2"></i>Minha Coleção</a></li>
-                        </ul>
-                    </li>
-                    <!-- ======================================================================= -->
-                    <!-- FIM DA ALTERAÇÃO -->
-                    <!-- ======================================================================= -->
 
                     <li class="nav-item">
-                        <a class="nav-link" href="#">
+                        <a class="nav-link" href="#" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Fragmentos de Conhecimento">
                             <i class="fas fa-coins text-warning me-1"></i>
                             <span id="navbar-coin-balance">{{ saldo_moedas_usuario }}</span>
                         </a>
                     </li>
 
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
                             <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
                                 {% if borda_equipada_url %}<img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">{% endif %}
-                                {% if avatar_equipado_url %}<img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
-                                {% else %}<i class="fas fa-user-circle fs-5" style="position: absolute; inset: 0; width: 100%; height: 100%;"></i>{% endif %}
+                                {% if avatar_equipado_url %}
+                                    <img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
+                                {% else %}
+                                    <i class="fas fa-user-circle fs-4" style="color: rgba(255,255,255,0.8);"></i>
+                                {% endif %}
                             </div>
-                            Olá, {{ user.userprofile.nome }}
+                            <span class="d-none d-lg-inline">{{ user.userprofile.nome }}</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user me-2"></i>Meu Perfil</a></li>
-                            <!-- O link "Minha Coleção" foi movido para o dropdown "Gamificação" -->
-                            <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog me-2"></i>Editar Conta</a></li>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user-circle fa-fw me-2"></i>Meu Perfil</a></li>
+                            <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog fa-fw me-2"></i>Editar Conta</a></li>
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt me-2"></i>Sair</a></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt fa-fw me-2"></i>Sair</a></li>
                         </ul>
                     </li>
                     {% else %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}">Login</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link btn btn-primary text-white ms-2 px-3" href="{% url 'cadastro' %}" role="button">Cadastre-se</a>
-                    </li>
+                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item"><a class="nav-link btn btn-primary text-white ms-2 px-3" href="{% url 'cadastro' %}" role="button">Cadastre-se</a></li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
 
-    <main class="container my-5">
+    <main>
         {% block content %}{% endblock %}
     </main>
 
     <footer class="footer-custom mt-auto">
         <div class="container py-5">
             <div class="row">
-                <div class="col-lg-4 col-md-6 mb-4 mb-lg-0">
-                    <h5 class="fw-bold mb-3"><i class="fas fa-chart-line me-2"></i>Raio-X da Aprovaçao</h5>
-                    <p class="text-muted small">Estude de forma inteligente. Acompanhe seu progresso e conquiste sua aprovação.</p>
-                </div>
-                <div class="col-lg-2 col-md-6 mb-4 mb-lg-0">
-                    <h5 class="fw-bold mb-3">Navegação</h5>
-                    <ul class="list-unstyled">
-                        <li class="mb-2"><a href="{% url 'home' %}" class="footer-link">Início</a></li>
-                        <li class="mb-2"><a href="{% url 'pratica:listar_questoes' %}" class="footer-link">Praticar</a></li>
-                        {% if user.is_authenticated %}
-                        <li class="mb-2"><a href="{% url 'simulados:listar_simulados' %}" class="footer-link">Simulados</a></li>
-                        <li class="mb-2"><a href="{% url 'dashboard' %}" class="footer-link">Desempenho</a></li>
-                        {% endif %}
-                    </ul>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
-                    <h5 class="fw-bold mb-3">Sobre</h5>
-                    <p class="text-muted small">Plataforma desenvolvida para auxiliar estudantes na preparação para concursos públicos.</p>
-                </div>
-                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0">
-                    <h5 class="fw-bold mb-3">Conecte-se</h5>
-                    <div class="footer-social">
-                        <a href="#" class="footer-link me-3"><i class="fab fa-instagram fa-lg"></i></a>
-                        <a href="#" class="footer-link me-3"><i class="fab fa-facebook fa-lg"></i></a>
-                        <a href="#" class="footer-link"><i class="fab fa-youtube fa-lg"></i></a>
-                    </div>
-                </div>
+                <div class="col-lg-4 col-md-6 mb-4 mb-lg-0"><h5 class="fw-bold mb-3"><i class="fas fa-meteor me-2"></i>Raio-X da Aprovação</h5><p class="text-white-50 small">Sua jornada rumo à aprovação começa aqui.</p></div>
+                <div class="col-lg-2 col-md-6 mb-4 mb-lg-0"><h5 class="fw-bold mb-3">Navegação</h5><ul class="list-unstyled"><li class="mb-2"><a href="{% url 'home' %}" class="footer-link">Início</a></li><li class="mb-2"><a href="{% url 'pratica:listar_questoes' %}" class="footer-link">Praticar</a></li></ul></div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0"><h5 class="fw-bold mb-3">Sobre</h5><p class="text-white-50 small">Plataforma gamificada para auxiliar estudantes na preparação para concursos públicos.</p></div>
+                <div class="col-lg-3 col-md-6 mb-4 mb-lg-0"><h5 class="fw-bold mb-3">Conecte-se</h5><div class="footer-social"><a href="#" class="footer-link me-3"><i class="fab fa-instagram fa-lg"></i></a><a href="#" class="footer-link me-3"><i class="fab fa-facebook fa-lg"></i></a><a href="#" class="footer-link"><i class="fab fa-youtube fa-lg"></i></a></div></div>
             </div>
-            <div class="text-center pt-4 mt-4 border-top border-secondary">
-                <p class="text-muted small mb-0">&copy; {% now "Y" %} Raio-X da Aprovaçao. Todos os direitos reservados.</p>
-            </div>
+            <div class="text-center pt-4 mt-4 border-top" style="border-color: rgba(255,255,255,0.1) !important;"><p class="text-white-50 small mb-0">&copy; {% now "Y" %} Raio-X da Aprovação. Todos os direitos reservados.</p></div>
         </div>
     </footer>
 
-    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1100">
+    <!-- Toast Container para Notificações de Gamificação -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
         <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header"><strong class="me-auto" id="gamificationToastTitle"></strong><button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button></div>
+            <div class="toast-header"><strong class="me-auto" id="gamificationToastTitle"></strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div>
             <div class="toast-body d-flex align-items-center" id="gamificationToastBody"></div>
         </div>
     </div>
     
+    <!-- Modais Genéricos (usados em várias páginas) -->
     {% include 'gestao/includes/_modais_notificacoes.html' %}
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <!-- Scripts Essenciais -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{% static 'js/notificacoes.js' %}"></script>
     <script src="{% static 'js/gamification-effects.js' %}"></script>
 
     <script>
+        // Inicializa Tooltips do Bootstrap
         document.addEventListener('DOMContentLoaded', function() {
-            const alerts = document.querySelectorAll('.alert[role="alert"]');
-            alerts.forEach(function(alert) {
-                setTimeout(function() {
-                    const bsAlert = new bootstrap.Alert(alert);
-                    bsAlert.close();
-                }, 7000);
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
             });
         });
     </script>

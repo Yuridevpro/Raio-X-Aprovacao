@@ -1,5 +1,4 @@
-# usuarios/context_processors.py (função alterada)
-
+# usuarios/context_processors.py
 def avatar_equipado_processor(request):
     """
     Injeta as URLs do avatar/borda, saldo de moedas e contagem de

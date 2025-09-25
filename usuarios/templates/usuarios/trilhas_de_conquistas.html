@@ -6,35 +6,104 @@
 
 {% block head %}
 <style>
-    .trilha-card { border-left: 4px solid var(--cor-primaria); }
+    /* ======================================================================= */
+    /* ✅ INÍCIO DA ATUALIZAÇÃO: DESIGN RESPONSIVO E REFINADO
+    /* ======================================================================= */
+    .trilha-card {
+        border-left: 4px solid var(--cor-primaria);
+        overflow: hidden; /* Garante que os cantos arredondados sejam respeitados */
+    }
     
-    .sequencia-wrapper { position: relative; padding: 1.5rem; border: 1px solid var(--cor-borda); border-radius: var(--raio-borda); margin-bottom: 2rem; }
-    .sequencia-wrapper::before { content: 'SEQUÊNCIA DE CONQUISTAS'; position: absolute; top: -12px; left: 20px; background-color: #fff; padding: 0 10px; font-size: 0.8rem; font-weight: 600; color: var(--cor-secundaria); }
-    .sequencia-connector { position: absolute; left: 45px; top: 80px; bottom: 80px; width: 4px; background-color: #e9ecef; z-index: 1; }
+    .sequencia-wrapper {
+        position: relative;
+        padding: 1.5rem 1rem; /* Padding horizontal reduzido para mobile */
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        margin-bottom: 2rem;
+    }
+    .sequencia-wrapper::before {
+        content: 'SEQUÊNCIA DE CONQUISTAS';
+        position: absolute; top: -12px; left: 20px;
+        background-color: #fff; padding: 0 10px; font-size: 0.8rem;
+        font-weight: 600; color: var(--cor-secundaria);
+    }
     
-    .conquista-node { display: flex; align-items: center; padding: 1rem; border: 1px solid transparent; border-radius: 0.5rem; position: relative; background-color: #fff; z-index: 2; transition: all 0.3s ease; }
+    /* Conector da sequência para telas maiores */
+    .sequencia-connector {
+        position: absolute; left: 45px; top: 80px;
+        bottom: 80px; width: 4px; background-color: #e9ecef; z-index: 1;
+    }
+    
+    .conquista-node {
+        display: flex; align-items: center; padding: 1rem;
+        border: 1px solid transparent; border-radius: 0.5rem;
+        position: relative; background-color: #fff; z-index: 2;
+        transition: all 0.3s ease;
+    }
     .conquista-node:not(:last-child) { margin-bottom: 1.5rem; }
 
+    /* Estilos de Status */
     .conquista-node.unlocked { background-color: #f8f9fa; border-color: #dee2e6; }
     .conquista-node.available { border-color: var(--cor-info); box-shadow: 0 4px 15px rgba(3, 169, 244, 0.2); }
     .conquista-node.locked { background-color: #f8f9fa; border-color: #dee2e6; filter: grayscale(90%); opacity: 0.7; cursor: not-allowed; }
     .conquista-node.locked:hover { transform: none; box-shadow: none; }
     
-    .step-indicator { width: 30px; height: 30px; border-radius: 50%; background-color: #6c757d; color: white; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 1rem; z-index: 3; }
+    .step-indicator {
+        position: absolute; top: 10px; left: 10px; /* Movido para o canto */
+        width: 28px; height: 28px; border-radius: 50%;
+        background-color: #6c757d; color: white; font-weight: bold;
+        display: flex; align-items: center; justify-content: center;
+        flex-shrink: 0; z-index: 3;
+    }
     .unlocked .step-indicator { background-color: var(--cor-sucesso); }
     .available .step-indicator { background-color: var(--cor-info); }
 
-    .conquista-icon-wrapper { flex-shrink: 0; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 1.5rem; margin-right: 1rem; color: white; }
+    .conquista-icon-wrapper {
+        flex-shrink: 0; width: 50px; height: 50px; display: flex; align-items: center;
+        justify-content: center; border-radius: 50%; font-size: 1.5rem; margin-right: 1rem; color: white;
+    }
     .unlocked .conquista-icon-wrapper { opacity: 0.7; }
-    .available .conquista-icon-wrapper { background-color: var(--cor-info); color: white; }
+    .available .conquista-icon-wrapper { background-color: var(--cor-info); }
     .locked .conquista-icon-wrapper { background-color: #e9ecef; color: #6c757d; }
     
+    /* Garante que o texto quebre a linha corretamente */
+    .conquista-details {
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        word-break: break-word;
+    }
+
     .progress { height: 8px; }
     .conquista-recompensas { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ced4da; }
     .locked .conquista-recompensas { opacity: 0.6; }
     .recompensa-icon { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s ease; }
     .recompensa-icon:hover { transform: scale(1.15); z-index: 10; }
     .modal-recompensa-img { width: 150px; height: 150px; }
+
+    /* --- MEDIA QUERY PARA MOBILE --- */
+    @media (max-width: 767px) {
+        .sequencia-connector {
+            /* Conector vertical para mobile */
+            left: 50%; transform: translateX(-50%);
+            top: 40px; bottom: 40px; width: 4px;
+        }
+        .conquista-node {
+            /* Layout vertical no mobile */
+            flex-direction: column;
+            text-align: center;
+        }
+        .conquista-icon-wrapper {
+            margin-right: 0;
+            margin-bottom: 0.75rem; /* Espaço entre ícone e texto */
+        }
+        .step-indicator {
+            top: -10px; /* Posiciona o indicador sobre o card */
+            left: -10px;
+        }
+    }
+    /* ======================================================================= */
+    /* FIM DA ATUALIZAÇÃO
+    /* ======================================================================= */
 </style>
 {% endblock %}
 
@@ -58,17 +127,16 @@
         <div class="card-body p-lg-4 p-3">
             <p class="text-muted">{{ trilha.descricao }}</p>
             
-            <!-- Renderiza Grupos Sequenciais -->
             {% for sequencia in trilha.sequencias %}
             <div class="sequencia-wrapper">
-                <div class="sequencia-connector"></div>
+                <div class="sequencia-connector d-none d-md-block"></div> {# Conector horizontal só em telas maiores #}
+                <div class="sequencia-connector d-md-none"></div>      {# Conector vertical só em telas menores #}
                 {% for conquista in sequencia %}
                     {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=forloop.counter %}
                 {% endfor %}
             </div>
             {% endfor %}
 
-            <!-- Renderiza Conquistas Individuais -->
             {% for conquista in trilha.conquistas_individuais %}
                 {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=None %}
             {% endfor %}

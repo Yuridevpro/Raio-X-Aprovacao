@@ -2,6 +2,18 @@
 {% load pratica_extras %}
 
 <style>
+
+@media (max-width: 767.98px) {
+        /*
+          Este seletor mira especificamente no grupo de botões de Dificuldade.
+          Ele força os botões a se alinharem no centro do container,
+          corrigindo a quebra de layout em telas pequenas.
+        */
+        #form-filtros .btn-group[role="group"] {
+            justify-content: center;
+        }
+    }
+
     .form-wizard-container { max-width: 800px; margin: auto; }
     .filtro-feedback {
         background-color: #eef5ff;

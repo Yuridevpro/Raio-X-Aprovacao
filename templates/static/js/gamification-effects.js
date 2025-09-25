@@ -1,5 +1,3 @@
-// static/js/gamification-effects.js
-
 /**
  * ===================================================================
  * FUNÇÕES GLOBAIS DE FEEDBACK VISUAL
@@ -108,7 +106,6 @@ function triggerNewPendingRewardsNotification(rewards) {
 
     const title = `<i class="fas fa-gift text-primary fa-3x"></i><h2 class="h3 mt-3">Novos Prêmios Ganhos!</h2>`;
     
-    // Agrupa as recompensas por tipo para uma exibição organizada
     const groupedRewards = rewards.reduce((acc, reward) => {
         const tipo = reward.tipo || 'Outro';
         if (!acc[tipo]) acc[tipo] = [];
@@ -147,19 +144,17 @@ function triggerNewPendingRewardsNotification(rewards) {
 
 /**
  * Atualiza o saldo de moedas na barra de navegação com uma animação sutil.
- * Requer que a biblioteca Animate.css esteja disponível.
  * @param {number} newBalance - O novo saldo de moedas do usuário.
  */
 function updateNavbarCoinBalance(newBalance) {
     const balanceElement = document.getElementById('navbar-coin-balance');
     if (balanceElement) {
-        // Para a animação de contagem
         const startValue = parseInt(balanceElement.textContent.replace(/\D/g, ''), 10) || 0;
         const endValue = parseInt(newBalance, 10);
         
-        if (startValue === endValue) return; // Não anima se o valor for o mesmo
+        if (startValue === endValue) return;
 
-        const duration = 1000; // 1 segundo
+        const duration = 1000;
         let startTime = null;
 
         function animationStep(timestamp) {
@@ -173,12 +168,15 @@ function updateNavbarCoinBalance(newBalance) {
         }
         window.requestAnimationFrame(animationStep);
         
-        // Adiciona uma classe para uma animação de "flash" ao final
+        // A animação de "flash" requer Animate.css. Se não estiver usando, pode remover este bloco.
         setTimeout(() => {
-            balanceElement.classList.add('animate__animated', 'animate__flash');
-            balanceElement.addEventListener('animationend', () => {
-                balanceElement.classList.remove('animate__animated', 'animate__flash');
-            }, { once: true });
+            if (typeof balanceElement.classList.add === 'function') {
+                balanceElement.classList.add('animate__animated', 'animate__flash');
+                balanceElement.addEventListener('animationend', () => {
+                    balanceElement.classList.remove('animate__animated', 'animate__flash');
+                }, { once: true });
+            }
         }, duration);
     }
 }
+// ✅ CORREÇÃO: A chave '}' extra foi removida daqui.

@@ -1,22 +1,212 @@
+<!-- templates/home.html -->
 {% extends 'base.html' %}
-{% block title %}Bem-vindo ao Raio-X da Aprovaçao{% endblock %}
+{% load static %}
+
+{% block title %}A Ferramenta Definitiva para a Sua Aprovação{% endblock %}
+
+{% block head %}
+<style>
+    /* ======================================================================= */
+    /* ✅ INÍCIO DA ATUALIZAÇÃO: DESIGN COM TRANSIÇÃO SUAVE
+    /* ======================================================================= */
+
+    /* --- ESTILOS GERAIS PARA AS SEÇÕES --- */
+    section {
+        position: relative;
+        padding: 6rem 0;
+    }
+
+    /* --- SEÇÃO HERO --- */
+    .hero-section {
+        background: linear-gradient(135deg, rgba(26, 31, 61, 0.9) 0%, rgba(41, 47, 90, 0.95) 100%), url('{% static "img/background.jpg" %}');
+        background-size: cover;
+        background-position: center;
+        color: white;
+        padding: 8rem 0 12rem 0; /* Aumenta o padding inferior para dar espaço para o fade */
+        margin-bottom: -6rem; /* Puxa a seção de baixo para cima, completando o efeito */
+        text-align: center;
+
+        /* A MÁGICA ACONTECE AQUI: Efeito de fade na parte inferior */
+        -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+        mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+    }
+    .hero-section h1 {
+        font-family: 'Oxanium', sans-serif;
+        font-weight: 700;
+        font-size: 3.5rem;
+        color: var(--cor-dourada);
+        text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+    .hero-section .lead {
+        font-size: 1.25rem;
+        font-weight: 400;
+        opacity: 0.9;
+        max-width: 700px;
+        margin-left: auto;
+        margin-right: auto;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    /* --- SEÇÃO DE RECURSOS --- */
+    .features-section {
+        background-color: var(--cor-fundo-body);
+        padding: 8rem 0;
+    }
+    .feature-card {
+        border: none;
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-caixa);
+        transition: var(--transicao-padrao);
+        background-color: var(--cor-fundo-claro);
+    }
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .feature-icon {
+        font-size: 2.8rem;
+        width: 80px;
+        height: 80px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        background-image: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-escura));
+        color: white;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 20px rgba(141, 118, 198, 0.3);
+    }
+
+    /* --- SEÇÃO DE ESTATÍSTICAS --- */
+    .stats-section {
+        background-color: var(--cor-fundo-escuro);
+        color: white;
+        padding: 8rem 0;
+    }
+    .stats-section .section-title {
+        color: var(--cor-dourada);
+    }
+    .stat-item .display-3 {
+        font-family: 'Oxanium', sans-serif;
+        font-weight: 700;
+        color: var(--cor-dourada);
+    }
+    .stat-item .stat-label {
+        font-size: 1.15rem;
+        opacity: 0.8;
+    }
+    .stat-item .stat-icon {
+        color: var(--cor-primaria);
+        opacity: 0.7;
+    }
+
+    /* --- SEÇÃO GAMIFICAÇÃO --- */
+    .gamification-section {
+        background-color: var(--cor-fundo-claro);
+        padding: 8rem 0;
+    }
+    .gamification-section .list-unstyled i {
+        color: var(--cor-dourada);
+        width: 24px;
+    }
+
+    /* --- SEÇÃO CTA FINAL --- */
+    .cta-section {
+        background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-escura));
+        color: white;
+        padding: 6rem 0;
+    }
+    .cta-section h2 {
+        color: white;
+    }
+
+    /* ======================================================================= */
+    /* FIM DA ATUALIZAÇÃO
+    /* ======================================================================= */
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="px-4 py-5 my-5 text-center">
-    <h1 class="display-5 fw-bold">Sua Jornada Rumo à Aprovação Começa Aqui</h1>
-    <div class="col-lg-6 mx-auto">
-        <p class="lead mb-4">
-            Acesse nosso banco de dados com <strong>{{ total_questoes }}</strong> questões de concursos, filtre por disciplina, banca e ano, e acompanhe seu desempenho com estatísticas detalhadas.
-        </p>
-        <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-            {% if user.is_authenticated %}
-                <a href="{% url 'pratica:listar_questoes' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Começar a Praticar</a>
-                <a href="{% url 'dashboard' %}" type="button" class="btn btn-outline-secondary btn-lg px-4">Meu Desempenho</a>
-            {% else %}
-                <a href="{% url 'cadastro' %}" type="button" class="btn btn-primary btn-lg px-4 gap-3">Crie sua Conta Grátis</a>
-                <a href="{% url 'login' %}" type="button" class="btn btn-outline-secondary btn-lg px-4">Fazer Login</a>
-            {% endif %}
+<!-- Seção Hero -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-9">
+                <h1 class="display-3 mb-4">Sua Jornada Rumo à Aprovação Começa Aqui</h1>
+                <p class="lead mb-5">Domine um arsenal de <strong>{{ total_questoes|default:"milhares de" }}</strong> questões, filtre com precisão e analise seu desempenho com estatísticas detalhadas para acelerar sua jornada.</p>
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'pratica:listar_questoes' %}" class="btn btn-primary btn-lg px-5 py-3">Iniciar Treinamento</a>
+                        <a href="{% url 'dashboard' %}" class="btn btn-light btn-lg px-5 py-3">Meu Desempenho</a>
+                    {% else %}
+                        <a href="{% url 'cadastro' %}" class="btn btn-primary btn-lg px-5 py-3">Crie sua Conta Grátis</a>
+                        <a href="{% url 'login' %}" class="btn btn-outline-light btn-lg px-5 py-3">Fazer Login</a>
+                    {% endif %}
+                </div>
+            </div>
         </div>
     </div>
-</div>
+</section>
+
+<!-- Seção de Recursos -->
+<section class="features-section">
+    <div class="container">
+        <div class="text-center mb-5 pb-3">
+            <h2 class="h2">Uma Plataforma Completa</h2>
+            <p class="text-muted lead">Tudo o que você precisa para estudar de forma eficiente.</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            <div class="col-lg-3 col-md-6"><div class="card feature-card h-100 text-center p-4"><div class="feature-icon mx-auto"><i class="fas fa-pencil-alt"></i></div><h5 class="card-title h4">Pratique</h5><p class="card-text text-muted">Resolva milhares de questões com filtros avançados por disciplina, assunto, banca e mais.</p></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card feature-card h-100 text-center p-4"><div class="feature-icon mx-auto"><i class="fas fa-file-alt"></i></div><h5 class="card-title h4">Simule</h5><p class="card-text text-muted">Crie simulados personalizados ou resolva provas oficiais para testar seus conhecimentos.</p></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card feature-card h-100 text-center p-4"><div class="feature-icon mx-auto"><i class="fas fa-chart-pie"></i></div><h5 class="card-title h4">Analise</h5><p class="card-text text-muted">Acompanhe seu desempenho com gráficos detalhados, identificando pontos fortes e fracos.</p></div></div>
+            <div class="col-lg-3 col-md-6"><div class="card feature-card h-100 text-center p-4"><div class="feature-icon mx-auto"><i class="fas fa-trophy"></i></div><h5 class="card-title h4">Compita</h5><p class="card-text text-muted">Participe de rankings, desbloqueie conquistas e personalize seu perfil com recompensas.</p></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de Estatísticas -->
+<section class="stats-section">
+    <div class="container">
+        <div class="text-center mb-5 pb-3">
+            <h2 class="h2 section-title">Nossa Comunidade em Números</h2>
+        </div>
+        <div class="row text-center">
+            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-book-open fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_questoes|default:"250k+" }}</h3><p class="stat-label">Questões Cadastradas</p></div>
+            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-users fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_usuarios|default:"15k+" }}</h3><p class="stat-label">Usuários Ativos</p></div>
+            <div class="col-md-4 stat-item"><i class="fas fa-check-double fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_simulados_concluidos|default:"500k+" }}</h3><p class="stat-label">Simulados Realizados</p></div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de Gamificação -->
+<section class="gamification-section">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            
+            <div class="col-lg-6 ps-lg-5">
+                <h2 class="h2 mb-4">Estudar Nunca Foi Tão Recompensador</h2>
+                <p class="text-muted mb-4">Nossa plataforma transforma sua rotina de estudos em uma jornada engajante. Cada ação sua é recompensada:</p>
+                <ul class="list-unstyled">
+                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-star fa-fw me-3"></i><strong>Suba de Nível:</strong> Ganhe XP a cada questão resolvida.</li>
+                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-coins fa-fw me-3"></i><strong>Junte Moedas:</strong> Acumule "Fragmentos de Conhecimento".</li>
+                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-trophy fa-fw me-3"></i><strong>Desbloqueie Conquistas:</strong> Cumpra desafios e mostre suas medalhas.</li>
+                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-user-circle fa-fw me-3"></i><strong>Personalize seu Perfil:</strong> Adquira avatares e bordas exclusivos.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Seção de CTA Final -->
+<section class="cta-section text-center">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <h2 class="h2 mb-3">Pronto para Começar?</h2>
+                <p class="lead mb-4">Junte-se a milhares de estudantes e dê o próximo passo em direção à sua aprovação. O cadastro é rápido e gratuito.</p>
+                <a href="{% url 'cadastro' %}" class="btn btn-light btn-lg px-5 py-3">Criar Minha Conta Agora</a>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %}

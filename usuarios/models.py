@@ -1,5 +1,4 @@
 # usuarios/models.py
-
 from django.db import models
 from django.contrib.auth.models import User
 from questoes.models import Questao
@@ -76,35 +75,3 @@ class PasswordResetToken(models.Model):
     
     def __str__(self):
         return f"Token de Reset para {self.user.username}"
-
-def reenviar_ativacao(request):
-    if request.method == 'POST':
-        email = request.POST.get('email')
-        try:
-            user = User.objects.get(email=email)
-            if user.is_active:
-                messages.info(request, 'Esta conta já está ativa. Você pode fazer o login.')
-                return redirect('login')
-            
-            # Deleta qualquer token de ativação antigo para garantir que apenas o mais recente seja válido
-            Ativacao.objects.filter(user=user).delete()
-            
-            # Cria um novo token de ativação
-            ativacao = Ativacao.objects.create(user=user)
-            
-            # Envia o e-mail de confirmação
-            enviar_email_com_template(
-                request,
-                subject='Confirme seu Cadastro no Raio-X da Aprovação',
-                template_name='usuarios/email_confirmacao.html',
-                context={'user': user, 'token': ativacao.token},
-                recipient_list=[user.email]
-            )
-            
-            messages.success(request, 'Um novo e-mail de ativação foi enviado para o seu endereço. Verifique sua caixa de entrada e spam.')
-            return redirect('login')
-            
-        except User.DoesNotExist:
-            messages.error(request, 'Nenhum usuário inativo encontrado com este e-mail.')
-            return redirect('reenviar_ativacao')
-    return render(request, 'usuarios/reenviar_ativacao.html')

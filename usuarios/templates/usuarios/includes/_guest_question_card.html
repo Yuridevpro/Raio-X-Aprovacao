@@ -1,0 +1,53 @@
+<!-- usuarios/templates/usuarios/includes/_guest_question_card.html -->
+{% load pratica_extras %} {# ✅ CORREÇÃO: Carrega a biblioteca de filtros neste template #}
+
+<div class="card card-questao text-start mx-auto" style="max-width: 800px;" 
+     id="guest-question-card" data-gabarito="{{ questao.gabarito }}">
+    
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <span class="q-code">{{ questao.codigo }}</span>
+            <span class="ms-2">
+                <strong>{{ questao.disciplina.nome }}</strong> › {{ questao.assunto.nome }}
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="enunciado-formatado">{{ questao.enunciado|render_markdown|safe }}</div>
+        
+        <div class="alternativas mt-4" id="guest-alternativas">
+            {% for key, value in questao.get_alternativas_dict.items %}
+            <div class="alternativa-item">
+                <input class="form-check-input" type="radio" name="guest-alternativa" id="guest-q-{{ key }}" value="{{ key }}">
+                <label class="form-check-label" for="guest-q-{{ key }}">
+                    <span class="alternativa-letra">{{ key }}</span>
+                    <span class="alternativa-texto">{{ value }}</span>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-4">
+            <button type="button" class="btn btn-primary w-100 p-2" id="submit-guest-answer">
+                <i class="fas fa-check-circle me-2"></i>Responder
+            </button>
+        </div>
+
+        <div class="feedback mt-4" id="guest-feedback" style="display: none;">
+            <div class="alert"></div>
+        </div>
+    </div>
+
+    <div class="card-footer d-flex justify-content-center gap-2">
+        <button class="btn btn-outline-secondary btn-sm" id="show-explanation-locked" disabled>
+            <i class="fas fa-graduation-cap me-1"></i> Gabarito Comentado
+        </button>
+        <button class="btn btn-outline-primary btn-sm" id="show-comments-locked" disabled>
+            <i class="far fa-comment me-1"></i> Comentários
+        </button>
+        <button class="btn btn-outline-success btn-sm" id="next-question-locked" disabled>
+             Próxima Questão <i class="fas fa-arrow-right ms-1"></i>
+        </button>
+    </div>
+</div>

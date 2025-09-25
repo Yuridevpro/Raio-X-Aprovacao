@@ -1,5 +1,4 @@
 # pratica/views.py
-
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -18,14 +17,10 @@ from .models import RespostaUsuario, Comentario, FiltroSalvo, Notificacao
 from usuarios.models import UserProfile # Importação correta do UserProfile
 
 # Serviços e Funções
-from gamificacao.services import processar_resposta_gamificacao
+from gamificacao.services import processar_resposta_gamificacao, _avaliar_e_conceder_recompensas
 from questoes.utils import filtrar_e_paginar_questoes
+from gamificacao.models import Campanha
 
-
-# pratica/views.py
-
-
-from questoes.utils import filtrar_e_paginar_questoes
 
 @login_required
 def listar_questoes(request):
@@ -87,15 +82,6 @@ def listar_questoes(request):
     return render(request, 'pratica/listar_questoes.html', context)
 
 
-# =======================================================================
-# AS OUTRAS VIEWS PERMANECEM EXATAMENTE IGUAIS, POIS SÃO ÚNICAS DESTE APP
-# A view 'get_assuntos_por_disciplina' foi removida, pois agora está em 'questoes/views.py'
-# =======================================================================
-
-from gamificacao.services import processar_resposta_gamificacao
-
-# pratica/views.py
-
 @login_required
 @require_POST
 def verificar_resposta(request):
@@ -138,8 +124,6 @@ def verificar_resposta(request):
         print(f"Erro inesperado em verificar_resposta: {e}")
         return JsonResponse({'status': 'error', 'message': "Ocorreu um erro interno."}, status=500)
 
-    
-    
 @login_required
 @require_POST
 def favoritar_questao(request):
@@ -226,14 +210,6 @@ def carregar_comentarios(request, questao_id):
 
     return JsonResponse({'comentarios': comentarios_data})
 
-
-
-
-
-
-from gamificacao.services import _avaliar_e_conceder_recompensas
-from gamificacao.models import Campanha
-
 @login_required
 @require_POST
 def adicionar_comentario(request):
@@ -293,7 +269,6 @@ def adicionar_comentario(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-# --- INÍCIO DA NOVA VIEW PARA LIKE ---
 @login_required
 @require_POST
 def toggle_like_comentario(request):
@@ -418,26 +393,6 @@ def deletar_filtro(request):
         return JsonResponse({'status': 'success', 'message': 'Filtro deletado com sucesso!'})
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
-# pratica/views.py
-
-# pratica/views.py
-
-@login_required
-def get_assuntos_por_disciplina(request):
-    disciplina_ids = request.GET.getlist('disciplina_ids[]')
-    if not disciplina_ids:
-        return JsonResponse({'assuntos': []})
-
-    # --- LINHA ALTERADA ---
-    # Usamos .values() para pegar id, nome e o nome da disciplina relacionada
-    # A ordenação garante que os grupos no frontend fiquem corretos.
-    assuntos = Assunto.objects.filter(disciplina_id__in=disciplina_ids).values('id', 'nome', 'disciplina__nome').order_by('disciplina__nome', 'nome')
-    
-    return JsonResponse({'assuntos': list(assuntos)})
-
-# pratica/views.py
-
 
 
 @login_required

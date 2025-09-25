@@ -2,176 +2,167 @@
 {% extends 'base.html' %}
 {% load static %}
 {% load gamificacao_extras %}
-{% block title %}Loja de Recompensas{% endblock %}
+{% load colecao_extras %} 
+{% block title %}Arsenal Divino{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
 <style>
-    .loja-header { background: linear-gradient(135deg, var(--cor-primaria), #357ABD); color: white; border-radius: var(--raio-borda); }
-    .saldo-display { font-size: 2rem; font-weight: 700; }
-    .item-card { transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; }
-    .item-card:hover { transform: translateY(-5px); box-shadow: var(--sombra-caixa-hover); }
-    .item-card.owned { opacity: 0.6; pointer-events: none; }
-    .item-image { height: 180px; object-fit: cover; background-color: #f8f9fa; }
-    .preco-tag { font-weight: 600; color: var(--cor-primaria); }
-    .btn-comprar .fa-check { display: none; }
-    .btn-comprar.btn-success .fa-check { display: inline-block; }
-    .btn-comprar.btn-success .fa-coins { display: none; }
-    .rarity-badge { font-size: 0.7rem; font-weight: 700; padding: 0.2em 0.6em; border-radius: 50px; color: #fff; text-transform: uppercase; }
-    .rarity-COMUM { background-color: #6c757d; } .rarity-RARO { background-color: #0d6efd; } .rarity-EPICO { background-color: #6f42c1; } .rarity-LENDARIO { background-color: #fd7e14; } .rarity-MITICO { background: linear-gradient(45deg, #f7b733, #fc4a1a); }
+     /* Estilos específicos da página da loja (cabeçalho, etc.) */
+     .loja-header { background: linear-gradient(135deg, var(--cor-fundo-escuro), var(--cor-primaria-escura)); color: white; border-radius: var(--raio-borda); text-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 1px solid rgba(141, 118, 198, 0.3); }
+     .loja-header h1 { font-family: var(--fonte-display); color: var(--cor-dourada); text-shadow: 0 0 15px var(--cor-dourada); }
+     .loja-header .lead { color: rgba(255, 255, 255, 0.8); }
+     .saldo-display { font-family: var(--fonte-display); font-size: 2.5rem; font-weight: 700; color: var(--cor-dourada); text-shadow: 0 0 10px var(--cor-dourada); }
+     .preco-tag { font-family: var(--fonte-display); font-weight: 600; font-size: 1.1rem; color: var(--cor-dourada); text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
     <div class="loja-header p-4 p-md-5 text-center mb-5 shadow">
-        <i class="fas fa-store fa-3x mb-3"></i>
-        <h1 class="display-5">Loja de Recompensas</h1>
-        <p class="lead">Use seus Fragmentos de Conhecimento (FC) para adquirir itens exclusivos!</p>
-        <div class="d-inline-flex align-items-center bg-white text-dark p-2 px-4 rounded-pill shadow-sm">
-            <span class="me-3">Seu Saldo:</span>
+        <i class="fas fa-store-alt fa-3x mb-3" style="color: var(--cor-dourada);"></i>
+        <h1 class="display-5">Arsenal Divino</h1>
+        <p class="lead">Forje seu destino com artefatos celestiais usando seus Fragmentos de Conhecimento.</p>
+        <div class="d-inline-flex align-items-center bg-white bg-opacity-10 p-2 px-4 rounded-pill mt-3">
+            <span class="me-3 text-white-50">Seu Tesouro:</span>
             <span class="saldo-display" id="saldo-atual-display">
-                <i class="fas fa-coins text-warning me-2"></i>{{ saldo_atual }}
+                <i class="fas fa-coins me-2"></i>{{ saldo_atual }}
             </span>
         </div>
     </div>
 
     <!-- Filtros e Ordenação -->
-    <div class="card shadow-sm mb-4">
+    <div class="card shadow-sm mb-4" style="background-color: var(--cor-fundo-intermediario); border-color: rgba(141, 118, 198, 0.2);">
         <div class="card-body">
             <form method="GET" action="{% url 'gamificacao:loja' %}" class="row g-3 align-items-center">
-                <div class="col-md-3">
-                    <select name="tipo" class="form-select">
-                        <option value="">Todos os Tipos</option>
-                        {% for value, name in tipo_choices %}
-                            <option value="{{ value }}" {% if active_filters.tipo == value %}selected{% endif %}>{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="raridade" class="form-select">
-                        <option value="">Todas as Raridades</option>
-                        {% for value, name in raridade_choices %}
-                            <option value="{{ value }}" {% if active_filters.raridade == value %}selected{% endif %}>{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <select name="sort_by" class="form-select">
-                        {% for value, name in sort_options.items %}
-                            <option value="{{ value }}" {% if active_filters.sort_by == value %}selected{% endif %}>{{ name }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex">
-                    <button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button>
-                    <a href="{% url 'gamificacao:loja' %}" class="btn btn-outline-secondary">Limpar</a>
-                </div>
+                <div class="col-md-3"><select name="tipo" class="form-select"><option value="">Todos os Tipos</option>{% for value, name in tipo_choices %}<option value="{{ value }}" {% if active_filters.tipo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+                <div class="col-md-3"><select name="raridade" class="form-select"><option value="">Todas as Raridades</option>{% for value, name in raridade_choices %}<option value="{{ value }}" {% if active_filters.raridade == value %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+                <div class="col-md-3"><select name="sort_by" class="form-select">{% for value, name in sort_options.items %}<option value="{{ value }}" {% if active_filters.sort_by == value %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
+                <div class="col-md-3 d-flex"><button type="submit" class="btn btn-primary w-100 me-2">Filtrar</button><a href="{% url 'gamificacao:loja' %}" class="btn btn-outline-secondary">Limpar</a></div>
             </form>
         </div>
     </div>
 
     <!-- Listagem de Itens -->
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4">
+    <!-- ======================================================================= -->
+    <!-- ✅ ATUALIZAÇÃO: A grade agora é idêntica à da página de coleção -->
+    <!-- ======================================================================= -->
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="lista-itens-loja">
         {% for item in itens_loja %}
         <div class="col">
-            <!-- CORREÇÃO DA LÓGICA DE CLASSE -->
-            <div class="card h-100 item-card {% if item.ja_possui %}owned{% endif %}" id="item-card-{{ item.id }}-{{ item|class_name }}">
-                <img src="{{ item.imagem.url }}" class="card-img-top item-image" alt="{{ item.nome }}">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="card-title mb-1">{{ item.nome }}</h5>
-                        <span class="badge rarity-{{ item.raridade }}">{{ item.get_raridade_display }}</span>
-                    </div>
-                    <p class="card-text small text-muted">{{ item.descricao }}</p>
+            <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %}">
+                
+                <div class="card-img-container">
+                    <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+                    <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
                 </div>
-                <div class="card-footer d-flex justify-content-between align-items-center">
-                    <span class="preco-tag">
-                        <i class="fas fa-coins text-warning me-1"></i>{{ item.preco_moedas }}
-                    </span>
-                    <!-- CORREÇÃO DA LÓGICA DO BOTÃO -->
-                    {% if item.ja_possui %}
-                        <button class="btn btn-sm btn-success disabled">
-                            <i class="fas fa-check me-2"></i>Adquirido
-                        </button>
-                    {% else %}
-                        <button class="btn btn-sm btn-primary btn-comprar" 
-                                data-item-id="{{ item.id }}" 
-                                data-item-tipo="{{ item|class_name }}"
-                                data-item-preco="{{ item.preco_moedas }}">
-                            <i class="fas fa-coins me-2"></i>Comprar
-                        </button>
-                    {% endif %}
+                
+                <div class="card-body">
+                    <h5 class="card-title">{{ item.nome }}</h5>
+                    <p class="card-text small">{{ item.descricao|truncatechars:80 }}</p>
+                </div>
+                
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="preco-tag"><i class="fas fa-coins me-1"></i> {{ item.preco_moedas }}</span>
+                        {% if item.ja_possui %}
+                            <button class="btn btn-sm btn-success disabled"><i class="fas fa-check me-2"></i>Adquirido</button>
+                        {% else %}
+                            <button class="btn btn-sm btn-primary btn-comprar" data-item-id="{{ item.id }}" data-item-tipo="{{ item|class_name }}" data-item-preco="{{ item.preco_moedas }}">
+                                <i class="fas fa-shopping-cart me-2"></i>Comprar
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="col-12">
-            <div class="card card-body text-center py-5">
-                 <i class="fas fa-store-slash fa-3x text-muted mb-3"></i>
-                <h4 class="h5">Nenhum item encontrado</h4>
-                <p class="text-muted">Tente ajustar os filtros ou volte mais tarde!</p>
-            </div>
-        </div>
+        <div class="col-12"><div class="card card-body text-center py-5" style="background-color: var(--cor-fundo-intermediario);"><i class="fas fa-store-slash fa-3x text-muted mb-3"></i><h4 class="h5">Nenhum item encontrado</h4><p class="text-muted">Tente ajustar os filtros ou volte mais tarde!</p></div></div>
         {% endfor %}
     </div>
 
-    <!-- Paginação -->
-    <div class="mt-5">
-        {% include 'includes/_paginacao.html' with paginated_object=itens_loja %}
-    </div>
+    <div class="mt-5">{% include 'includes/_paginacao.html' with paginated_object=itens_loja %}</div>
 </div>
 {% endblock %}
 
 {% block scripts %}
-<script src="{% static 'js/gamification-effects.js' %}"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const saldoDisplay = document.getElementById('saldo-atual-display');
-    
-    document.querySelectorAll('.btn-comprar').forEach(button => {
-        button.addEventListener('click', function() {
-            const itemId = this.dataset.itemId;
-            const itemTipo = this.dataset.itemTipo;
-            const itemPreco = parseInt(this.dataset.itemPreco, 10);
-            const saldoAtual = parseInt(saldoDisplay.textContent.replace(/\D/g, ''), 10);
-
-            if (saldoAtual < itemPreco) {
-                showNotificationModal('Saldo Insuficiente', 'Você não tem Fragmentos de Conhecimento suficientes para comprar este item.', 'warning');
-                return;
-            }
-
-            showConfirmationModal(
-                'Confirmar Compra',
-                `Você tem certeza que deseja comprar este item por ${itemPreco} FC?`,
-                () => {
-                    fetch("{% url 'gamificacao:comprar_item' %}", {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                        body: JSON.stringify({ item_id: itemId, item_tipo: itemTipo })
-                    })
-                    .then(response => response.json())
-                    .then(result => {
-                        if (result.status === 'success') {
-                            saldoDisplay.innerHTML = `<i class="fas fa-coins text-warning me-2"></i>${result.novo_saldo}`;
-                            updateNavbarCoinBalance(result.novo_saldo);
-                            
-                            button.classList.remove('btn-primary');
-                            button.classList.add('btn-success', 'disabled');
-                            button.innerHTML = '<i class="fas fa-check me-2"></i>Adquirido';
-                            
-                            const card = document.getElementById(`item-card-${itemId}-${itemTipo}`);
-                            if (card) card.classList.add('owned');
-
-                            showNotificationModal('Compra Realizada!', result.message, 'success');
-                        } else {
-                            showNotificationModal('Erro na Compra', result.message, 'error');
-                        }
-                    })
-                    .catch(err => showNotificationModal('Erro de Rede', 'Não foi possível completar a compra. Tente novamente.', 'error'));
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
                 }
-            );
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    const itemContainer = document.getElementById('lista-itens-loja');
+    if (itemContainer) {
+        itemContainer.addEventListener('click', function(event) {
+            const button = event.target.closest('.btn-comprar');
+            if (button) {
+                const itemId = button.dataset.itemId;
+                const itemTipo = button.dataset.itemTipo;
+                const itemPreco = button.dataset.itemPreco;
+                const url = "{% url 'gamificacao:comprar_item' %}";
+
+                Swal.fire({
+                    title: 'Confirmar Compra',
+                    text: `Você tem certeza que deseja gastar ${itemPreco} moedas neste item?`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonColor: 'var(--cor-primaria)',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Sim, comprar!',
+                    cancelButtonText: 'Cancelar',
+                    background: 'var(--cor-fundo-intermediario)',
+                    color: 'var(--cor-texto-claro)'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(url, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': csrftoken
+                            },
+                            body: JSON.stringify({
+                                item_id: itemId,
+                                item_tipo: itemTipo
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                document.getElementById('saldo-atual-display').innerHTML = `<i class="fas fa-coins me-2"></i>${data.novo_saldo}`;
+                                button.classList.remove('btn-primary', 'btn-comprar');
+                                button.classList.add('btn-success', 'disabled');
+                                button.innerHTML = '<i class="fas fa-check me-2"></i>Adquirido';
+                                button.disabled = true;
+                                const card = button.closest('.item-card');
+                                if(card) card.classList.add('owned');
+                                Swal.fire('Sucesso!', data.message, 'success');
+                            } else {
+                                Swal.fire('Erro!', data.message, 'error');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire('Erro!', 'Não foi possível completar a compra.', 'error');
+                        });
+                    }
+                });
+            }
         });
-    });
+    }
 });
 </script>
 {% endblock %}

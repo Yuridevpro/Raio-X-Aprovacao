@@ -1,74 +1,51 @@
 <!-- usuarios/templates/usuarios/includes/_conquista_node.html -->
-{% if conquista.status != 'hidden' %}
-    <div class="conquista-node {{ conquista.status }}" 
-         {% if conquista.status == 'locked' %}
-         data-bs-toggle="tooltip" 
-         data-bs-placement="top" 
-         title="Desbloqueie a etapa anterior para liberar esta conquista."
-         {% endif %}>
-        
-        <!-- Indicador de Passo ou Ícone de Status -->
-        {% if step %}
-            <div class="step-indicator">
-                {% if conquista.status == 'unlocked' %}
-                    <i class="fas fa-check"></i>
-                {% else %}
-                    {{ step }}
-                {% endif %}
-            </div>
-        {% endif %}
+{% load colecao_extras %}
+<div class="conquista-node {{ conquista.status }}">
+    {% if step %}
+        <div class="step-indicator">{{ step }}</div>
+    {% endif %}
 
-        <!-- Ícone da Conquista -->
-        <div class="conquista-icon-wrapper" style="background-color: {{ conquista.cor }};">
-            {% if conquista.status == 'locked' %}
-                <i class="fas fa-lock"></i>
-            {% else %}
-                <i class="{{ conquista.icone }}"></i>
-            {% endif %}
-        </div>
+    <div class="conquista-icon-wrapper" style="background-color: {{ conquista.cor }};">
+        <i class="{{ conquista.icone }}"></i>
+    </div>
 
-        <!-- Detalhes e Progresso -->
-        <div class="w-100">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h6 class="fw-bold mb-1">{{ conquista.nome }}</h6>
-                    <p class="small text-muted mb-0">{{ conquista.descricao }}</p>
-                </div>
-                {% if conquista.status == 'unlocked' %}
-                    <span class="badge bg-success-subtle text-success-emphasis ms-2">Concluído</span>
-                {% elif conquista.status == 'available' %}
-                    <span class="badge bg-primary-subtle text-primary-emphasis ms-2">Em Andamento</span>
-                {% endif %}
-            </div>
+    <div class="flex-grow-1">
+        {% if conquista.status == 'hidden' %}
+            <h6 class="fw-bold mb-1">Conquista Secreta</h6>
+            <p class="small text-muted mb-0">Continue sua jornada para revelar esta conquista.</p>
+        {% else %}
+            <h6 class="fw-bold mb-1">{{ conquista.nome }}</h6>
+            <p class="small text-muted mb-0">{{ conquista.descricao }}</p>
 
-            <!-- Barra de Progresso -->
             {% if conquista.status == 'available' and conquista.progresso %}
-            <div class="mt-2">
-                <div class="d-flex justify-content-between align-items-center small text-muted mb-1">
-                    <span>Progresso</span>
-                    <span>{{ conquista.progresso.atual }} / {{ conquista.progresso.meta }}</span>
+            <div class="d-flex align-items-center mt-2">
+                <div class="progress flex-grow-1 me-2" title="{{ conquista.progresso.percentual }}%">
+                    <div class="progress-bar" style="width: {{ conquista.progresso.percentual }}%;"></div>
                 </div>
-                <div class="progress" title="{{ conquista.progresso.percentual }}%">
-                    <div class="progress-bar" role="progressbar" style="width: {{ conquista.progresso.percentual }}%;" aria-valuenow="{{ conquista.progresso.percentual }}" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
+                <small class="text-muted fw-bold">{{ conquista.progresso.atual }}/{{ conquista.progresso.meta }}</small>
             </div>
             {% endif %}
 
-            <!-- Recompensas -->
-            {% if conquista.recompensas_detalhadas or conquista.recompensas.xp or conquista.recompensas.moedas %}
-            <div class="conquista-recompensas d-flex align-items-center gap-2 flex-wrap">
-                <small class="text-muted fw-bold me-2">Recompensas:</small>
-                {% if conquista.recompensas.xp %}<span class="badge bg-primary-soft text-primary"><i class="fas fa-star me-1"></i> {{ conquista.recompensas.xp }} XP</span>{% endif %}
-                {% if conquista.recompensas.moedas %}<span class="badge bg-warning-soft text-warning"><i class="fas fa-coins me-1"></i> {{ conquista.recompensas.moedas }} Moedas</span>{% endif %}
+            {% if conquista.recompensas_detalhadas %}
+            <div class="conquista-recompensas d-flex align-items-center gap-2">
+                {% if conquista.recompensas.xp > 0 %}
+                    <span class="badge bg-warning-soft text-warning"><i class="fas fa-star me-1"></i> {{ conquista.recompensas.xp }} XP</span>
+                {% endif %}
+                {% if conquista.recompensas.moedas > 0 %}
+                    <span class="badge bg-primary-soft text-primary"><i class="fas fa-coins me-1"></i> {{ conquista.recompensas.moedas }} Moedas</span>
+                {% endif %}
                 {% for recompensa in conquista.recompensas_detalhadas %}
-                <img src="{{ recompensa.imagem.url }}" class="recompensa-icon"
-                     data-bs-toggle="modal" data-bs-target="#recompensaModal"
-                     data-nome="{{ recompensa.nome }}" data-descricao="{{ recompensa.descricao }}"
-                     data-raridade="{{ recompensa.get_raridade_display }}" data-raridade-classe="rarity-{{ recompensa.raridade|lower }}"
-                     data-imagem="{{ recompensa.imagem.url }}" title="{{ recompensa.nome }}">
+                    <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" 
+                         data-bs-toggle="modal" 
+                         data-bs-target="#recompensaModal"
+                         data-nome="{{ recompensa.nome }}"
+                         data-descricao="{{ recompensa.descricao }}"
+                         data-raridade="{{ recompensa.get_raridade_display }}"
+                         data-raridade-classe="{% rarity_class recompensa.raridade %}"
+                         data-imagem="{{ recompensa.imagem.url }}">
                 {% endfor %}
             </div>
             {% endif %}
-        </div>
+        {% endif %}
     </div>
-{% endif %}
+</div>
