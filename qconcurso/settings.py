@@ -60,10 +60,10 @@ INSTALLED_APPS = [
 
 SITE_ID = 1
 
+
 # =======================================================================
 # ✅ INÍCIO DA ADIÇÃO: Configurações do Django Bleach
 # =======================================================================
-# Define quais tags HTML são permitidas.
 BLEACH_ALLOWED_TAGS = ['p', 'b', 'i', 'u', 'strong', 'em', 'strike', 'ul', 'ol', 'li', 'blockquote', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'br']
 
 # Define quais atributos são permitidos em cada tag (nenhum neste caso, para segurança máxima)
@@ -74,6 +74,9 @@ BLEACH_STRIP_TAGS = True
 
 # Não comenta o HTML inválido, apenas remove.
 BLEACH_STRIP_COMMENTS = True
+# =======================================================================
+# FIM DA ADIÇÃO
+# =======================================================================
 
 
 # --- MIDDLEWARE ---

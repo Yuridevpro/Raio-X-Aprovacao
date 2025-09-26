@@ -185,6 +185,9 @@
                 </a>
             </div>
 
+            {{ form.enunciado.value|default_if_none:""|json_script:"enunciado-data" }}
+            {{ form.explicacao.value|default_if_none:""|json_script:"explicacao-data" }}
+
             <form method="POST" enctype="multipart/form-data" novalidate>
                 {% csrf_token %}
                 <div class="main-card">
@@ -238,7 +241,8 @@
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label">{{ form.enunciado.label }}</label>
-                                    {{ form.enunciado }}{{ form.enunciado.errors }}
+                                    {{ form.enunciado }}
+                                    {{ form.enunciado.errors }}
                                 </div>
                              </div>
                         </div>
@@ -265,7 +269,8 @@
                             <h5 class="form-section-title">Justificativa do Gabarito</h5>
                             <div>
                                 <label class="form-label">{{ form.explicacao.label }}</label>
-                                {{ form.explicacao }}{{ form.explicacao.errors }}
+                                {{ form.explicacao }}
+                                {{ form.explicacao.errors }}
                             </div>
                         </div>
                     </div>
@@ -284,82 +289,171 @@
 {% endblock %}
 
 {% block scripts %}
-{{ form.instance.enunciado|json_script:"initial-enunciado-data" }}
-{{ form.instance.explicacao|json_script:"initial-explicacao-data" }}
-
 <script type="module">
     import { Editor } from 'https://esm.sh/@tiptap/core';
     import StarterKit from 'https://esm.sh/@tiptap/starter-kit';
-    import Underline from 'https://esm.sh/@tiptap/extension-underline';
     import Placeholder from 'https://esm.sh/@tiptap/extension-placeholder';
-    import Blockquote from 'https://esm.sh/@tiptap/extension-blockquote';
-    window.TipTap = { Editor, StarterKit, Underline, Placeholder, Blockquote };
+    // ✅ CORREÇÃO: Removidas as importações duplicadas de Underline e Blockquote
+    window.TipTap = { Editor, StarterKit, Placeholder };
 </script>
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // ... (outras funções de inicialização permanecem inalteradas) ...
-    let tomSelectInstances = {}; function initTomSelects() { const tomSelectConfig = { create: false, sortField: { field: "text", direction: "asc" } }; document.querySelectorAll('form select').forEach(select => { const name = select.getAttribute('name'); if (name) { tomSelectInstances[name] = new TomSelect(select, tomSelectConfig); } }); }
-    function handleIneditaToggle() { const ineditaCheckbox = document.querySelector('input[name="is_inedita"]'); const bancaFieldWrapper = document.getElementById('banca-field-wrapper'); if (!ineditaCheckbox || !bancaFieldWrapper) return; const toggleField = () => { const isChecked = ineditaCheckbox.checked; bancaFieldWrapper.classList.toggle('field-disabled', isChecked); const tomSelectBanca = tomSelectInstances['banca']; if (tomSelectBanca) { isChecked ? (tomSelectBanca.clear(), tomSelectBanca.disable()) : tomSelectBanca.enable(); } }; ineditaCheckbox.addEventListener('change', toggleField); toggleField(); }
-    function handleCustomFileInput() { const uploader = document.getElementById('image-uploader'); const fileInput = document.querySelector('input[name="imagem_enunciado"]'); const previewContainer = document.getElementById('image-preview-container'); const previewImage = document.getElementById('image-preview'); const removeBtn = document.getElementById('remove-image-btn'); const uploaderContent = uploader.querySelector('.image-uploader-content'); if (!uploader || !fileInput) return; uploader.addEventListener('click', () => fileInput.click()); uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('dragover'); }); uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover')); uploader.addEventListener('drop', (e) => { e.preventDefault(); uploader.classList.remove('dragover'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); } }); fileInput.addEventListener('change', function() { const file = this.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { previewImage.src = e.target.result; previewContainer.style.display = 'block'; uploaderContent.style.display = 'none'; }; reader.readAsDataURL(file); } }); removeBtn.addEventListener('click', () => { fileInput.value = ''; previewImage.src = '#'; previewContainer.style.display = 'none'; uploaderContent.style.display = 'block'; }); }
-    function initTiptapEditors() { if (!window.TipTap || !window.TipTap.Editor) { console.error("Tiptap não foi carregado."); return; } const { Editor, StarterKit, Underline, Placeholder, Blockquote } = window.TipTap; const createEditor = (fieldName, placeholderText, initialContentDataId) => { const textarea = document.querySelector(`textarea[name="${fieldName}"]`); if (!textarea) return null; const initialContentElement = document.getElementById(initialContentDataId); const initialContent = initialContentElement ? JSON.parse(initialContentElement.textContent) : ''; const editorWrapper = document.createElement('div'); editorWrapper.className = 'tiptap-editor-wrapper'; const toolbar = document.createElement('div'); toolbar.className = 'tiptap-toolbar'; toolbar.innerHTML = ` <button type="button" data-command="toggleHeading" data-level="2" title="Título"><i class="fas fa-heading"></i></button> <button type="button" data-command="toggleBold" title="Negrito"><i class="fas fa-bold"></i></button> <button type="button" data-command="toggleItalic" title="Itálico"><i class="fas fa-italic"></i></button> <button type="button" data-command="toggleUnderline" title="Sublinhado"><i class="fas fa-underline"></i></button> <button type="button" data-command="toggleBlockquote" title="Citação"><i class="fas fa-quote-right"></i></button> <button type="button" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button> <button type="button" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button> `; const editorElement = document.createElement('div'); editorElement.className = 'ProseMirror tiptap'; editorWrapper.appendChild(toolbar); editorWrapper.appendChild(editorElement); textarea.style.display = 'none'; textarea.parentNode.insertBefore(editorWrapper, textarea); const editor = new Editor({ element: editorElement, extensions: [ StarterKit, Underline, Blockquote, Placeholder.configure({ placeholder: placeholderText }) ], content: initialContent, onUpdate: ({ editor }) => { textarea.value = editor.getHTML(); }, }); toolbar.querySelectorAll('button[data-command]').forEach(button => { button.addEventListener('click', () => { const command = button.dataset.command; const level = button.dataset.level; const commands = { toggleHeading: () => editor.chain().focus().toggleHeading({ level: parseInt(level) }).run(), toggleBold: () => editor.chain().focus().toggleBold().run(), toggleItalic: () => editor.chain().focus().toggleItalic().run(), toggleUnderline: () => editor.chain().focus().toggleUnderline().run(), toggleBlockquote: () => editor.chain().focus().toggleBlockquote().run(), toggleBulletList: () => editor.chain().focus().toggleBulletList().run(), toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(), }; if (commands[command]) commands[command](); }); editor.on('transaction', () => { const command = button.dataset.command; const level = button.dataset.level; let isActive = false; if (command === 'toggleHeading') { isActive = editor.isActive('heading', { level: parseInt(level) }); } else { isActive = editor.isActive(command.replace('toggle', '').toLowerCase()); } button.classList.toggle('active', isActive); }); }); return editor; }; createEditor('enunciado', 'Digite o enunciado da questão...', 'initial-enunciado-data'); createEditor('explicacao', 'Digite a explicação detalhada da alternativa correta...', 'initial-explicacao-data'); }
-    function handleDisciplinaChange() { const disciplinaSelect = document.querySelector('select[name="disciplina"]'); const assuntoSelect = document.querySelector('select[name="assunto"]'); if (!disciplinaSelect || !assuntoSelect) return; disciplinaSelect.addEventListener('change', async () => { const disciplinaId = disciplinaSelect.value; const tsAssunto = tomSelectInstances['assunto']; tsAssunto.clear(); tsAssunto.clearOptions(); if (!disciplinaId) { tsAssunto.disable(); return; } try { const response = await fetch(`/questoes/api/get-assuntos/${disciplinaId}/`); const data = await response.json(); data.forEach(item => { tsAssunto.addOption({ value: item.id, text: item.nome }); }); tsAssunto.enable(); } catch (err) { console.error("Erro ao carregar assuntos:", err); } }); const tsAssunto = tomSelectInstances['assunto']; if (!disciplinaSelect.value) { tsAssunto.disable(); } else { tsAssunto.enable(); } }
-    
-    // =======================================================================
-    // 5. VERSÃO CORRIGIDA: LÓGICA DE PREENCHIMENTO DE ALTERNATIVAS
-    // =======================================================================
+
+    // (O código para TomSelect, "Questão Inédita", Upload, Bulk Alternatives, etc., permanece o mesmo)
+    let tomSelectInstances = {};
+    function initTomSelects() {
+        const tomSelectConfig = { create: false, sortField: { field: "text", direction: "asc" } };
+        document.querySelectorAll('form select').forEach(select => {
+            const name = select.getAttribute('name');
+            if (name) { tomSelectInstances[name] = new TomSelect(select, tomSelectConfig); }
+        });
+    }
+
+    function handleIneditaToggle() {
+        const ineditaCheckbox = document.querySelector('input[name="is_inedita"]');
+        const bancaFieldWrapper = document.getElementById('banca-field-wrapper');
+        if (!ineditaCheckbox || !bancaFieldWrapper) return;
+        const toggleField = () => {
+            const isChecked = ineditaCheckbox.checked;
+            bancaFieldWrapper.classList.toggle('field-disabled', isChecked);
+            const tomSelectBanca = tomSelectInstances['banca'];
+            if (tomSelectBanca) {
+                if (isChecked) { tomSelectBanca.clear(); tomSelectBanca.disable(); } else { tomSelectBanca.enable(); }
+            }
+        };
+        ineditaCheckbox.addEventListener('change', toggleField);
+        toggleField();
+    }
+
+    function handleCustomFileInput() {
+        const uploader = document.getElementById('image-uploader');
+        const fileInput = document.querySelector('input[name="imagem_enunciado"]');
+        const previewContainer = document.getElementById('image-preview-container');
+        const previewImage = document.getElementById('image-preview');
+        const removeBtn = document.getElementById('remove-image-btn');
+        const uploaderContent = uploader.querySelector('.image-uploader-content');
+        if (!uploader || !fileInput) return;
+        uploader.addEventListener('click', () => fileInput.click());
+        uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('dragover'); });
+        uploader.addEventListener('dragleave', () => uploader.classList.remove('dragover'));
+        uploader.addEventListener('drop', (e) => { e.preventDefault(); uploader.classList.remove('dragover'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; fileInput.dispatchEvent(new Event('change')); } });
+        fileInput.addEventListener('change', function() { const file = this.files[0]; if (file) { const reader = new FileReader(); reader.onload = (e) => { previewImage.src = e.target.result; previewContainer.style.display = 'block'; uploaderContent.style.display = 'none'; }; reader.readAsDataURL(file); } });
+        removeBtn.addEventListener('click', () => { fileInput.value = ''; previewImage.src = '#'; previewContainer.style.display = 'none'; uploaderContent.style.display = 'block'; });
+    }
+
     function handleBulkAlternatives() {
         const bulkTextarea = document.getElementById('bulk-alternativas');
         if (!bulkTextarea) return;
+        const alternativeFields = { 'A': document.querySelector('textarea[name="alternativa_a"]'), 'B': document.querySelector('textarea[name="alternativa_b"]'), 'C': document.querySelector('textarea[name="alternativa_c"]'), 'D': document.querySelector('textarea[name="alternativa_d"]'), 'E': document.querySelector('textarea[name="alternativa_e"]'), };
+        bulkTextarea.addEventListener('input', (event) => { const text = event.target.value; const foundAlternatives = {}; const chunks = text.split(/\n(?=\s*(?:\(?\d+[.)]?\s*)?[A-Ea-e]\b)/); for (const chunk of chunks) { if (!chunk.trim()) continue; const match = chunk.match(/^\s*(?:\(?\d+[.)]?\s*)?([A-Ea-e])\s*[.)-]?\s*([\s\S]*)$/); if (match) { const letter = match[1].toUpperCase(); const content = match[2].trim(); foundAlternatives[letter] = content; } } for (const letter in alternativeFields) { if (alternativeFields[letter]) { alternativeFields[letter].value = foundAlternatives[letter] || ''; } } });
+    }
 
-        const alternativeFields = {
-            'A': document.querySelector('textarea[name="alternativa_a"]'),
-            'B': document.querySelector('textarea[name="alternativa_b"]'),
-            'C': document.querySelector('textarea[name="alternativa_c"]'),
-            'D': document.querySelector('textarea[name="alternativa_d"]'),
-            'E': document.querySelector('textarea[name="alternativa_e"]'),
-        };
+    function handleDisciplinaChange() {
+        const disciplinaSelect = document.querySelector('select[name="disciplina"]');
+        const assuntoSelect = document.querySelector('select[name="assunto"]');
+        if (!disciplinaSelect || !assuntoSelect) return;
+        disciplinaSelect.addEventListener('change', async () => { const disciplinaId = disciplinaSelect.value; const tsAssunto = tomSelectInstances['assunto']; tsAssunto.clear(); tsAssunto.clearOptions(); if (!disciplinaId) { tsAssunto.disable(); return; } try { const response = await fetch(`/questoes/api/get-assuntos/${disciplinaId}/`); const data = await response.json(); data.forEach(item => { tsAssunto.addOption({ value: item.id, text: item.nome }); }); tsAssunto.enable(); } catch (err) { console.error("Erro ao carregar assuntos:", err); } });
+        const tsAssunto = tomSelectInstances['assunto']; if (!disciplinaSelect.value) { tsAssunto.disable(); } else { tsAssunto.enable(); }
+    }
 
-        bulkTextarea.addEventListener('input', (event) => {
-            const text = event.target.value;
+    // =======================================================================
+    // 4. INICIALIZAÇÃO DOS EDITORES TIPTAP (COM A CORREÇÃO FINAL)
+    // =======================================================================
+    function initTiptapEditors() {
+        if (!window.TipTap || !window.TipTap.Editor) {
+            console.error("Tiptap não foi carregado.");
+            return;
+        }
 
-            // Limpa todos os campos para garantir que não haja lixo de colagens anteriores.
-            Object.values(alternativeFields).forEach(field => {
-                if (field) field.value = '';
+        const { Editor, StarterKit, Placeholder } = window.TipTap;
+
+        const createEditor = (fieldName, placeholderText, dataId) => {
+            const textarea = document.querySelector(`textarea[name="${fieldName}"]`);
+            if (!textarea) return null;
+
+            const dataElement = document.getElementById(dataId);
+            const initialContent = dataElement ? JSON.parse(dataElement.textContent) : '';
+
+            const editorWrapper = document.createElement('div');
+            editorWrapper.className = 'tiptap-editor-wrapper';
+            
+            const toolbar = document.createElement('div');
+            toolbar.className = 'tiptap-toolbar';
+            // ✅ CORREÇÃO: O botão 'H' agora usa 'toggleHeading' com level 3 para <h3>
+            toolbar.innerHTML = `
+                <button type="button" data-command="toggleHeading" data-level="3" title="Título">H</button>
+                <button type="button" data-command="toggleBold" title="Negrito"><i class="fas fa-bold"></i></button>
+                <button type="button" data-command="toggleItalic" title="Itálico"><i class="fas fa-italic"></i></button>
+                <button type="button" data-command="toggleUnderline" title="Sublinhado"><i class="fas fa-underline"></i></button>
+                <button type="button" data-command="toggleBlockquote" title="Citação"><i class="fas fa-quote-right"></i></button>
+                <button type="button" data-command="toggleBulletList" title="Lista"><i class="fas fa-list-ul"></i></button>
+                <button type="button" data-command="toggleOrderedList" title="Lista Numerada"><i class="fas fa-list-ol"></i></button>
+            `;
+            
+            const editorElement = document.createElement('div');
+            editorElement.className = 'ProseMirror tiptap';
+
+            editorWrapper.appendChild(toolbar);
+            editorWrapper.appendChild(editorElement);
+
+            textarea.style.display = 'none';
+            textarea.parentNode.insertBefore(editorWrapper, textarea);
+
+            const editor = new Editor({
+                element: editorElement,
+                // =======================================================================
+                // ✅ INÍCIO DA CORREÇÃO: Simplificando as extensões
+                // Apenas StarterKit e Placeholder são necessários.
+                // =======================================================================
+                extensions: [
+                    StarterKit,
+                    Placeholder.configure({ placeholder: placeholderText }),
+                ],
+                // =======================================================================
+                // FIM DA CORREÇÃO
+                // =======================================================================
+                content: initialContent,
+                onUpdate: ({ editor }) => {
+                    textarea.value = editor.getHTML();
+                },
             });
 
-            // =======================================================================
-            // ✅ INÍCIO DA CORREÇÃO: Nova Estratégia com Regex
-            // 1. A regex divide o texto em blocos que começam com um marcador de alternativa.
-            //    O `(?=...)` é um "lookahead" que garante que o marcador não seja consumido.
-            //    O `\b` (word boundary) garante que 'A' seja tratado como uma palavra,
-            //    e não como a letra 'a' em 'banana'.
-            // =======================================================================
-            const splitRegex = /(?=^\s*(?:\(?\d*[.)]?\s*)?[A-Ea-e]\b[.)-]?)/im;
-            const chunks = text.split(splitRegex).filter(chunk => chunk.trim() !== '');
+            toolbar.querySelectorAll('button[data-command]').forEach(button => {
+                button.addEventListener('click', () => {
+                    const command = button.dataset.command;
+                    const level = button.dataset.level;
+                    const commands = {
+                        toggleHeading: () => editor.chain().focus().toggleHeading({ level: parseInt(level, 10) }).run(),
+                        toggleBold: () => editor.chain().focus().toggleBold().run(),
+                        toggleItalic: () => editor.chain().focus().toggleItalic().run(),
+                        toggleUnderline: () => editor.chain().focus().toggleUnderline().run(),
+                        toggleBlockquote: () => editor.chain().focus().toggleBlockquote().run(),
+                        toggleBulletList: () => editor.chain().focus().toggleBulletList().run(),
+                        toggleOrderedList: () => editor.chain().focus().toggleOrderedList().run(),
+                    };
+                    if (commands[command]) commands[command]();
+                });
 
-            // 2. Itera sobre cada bloco encontrado.
-            for (const chunk of chunks) {
-                // Regex para extrair a letra e o conteúdo de cada bloco.
-                const extractRegex = /^\s*(?:\(?\d*[.)]?\s*)?([A-Ea-e])\b[.)-]?\s*([\s\S]*)$/i;
-                const match = chunk.match(extractRegex);
-
-                if (match) {
-                    const letter = match[1].toUpperCase();
-                    // O `trim()` remove espaços em branco e quebras de linha no início e no fim do conteúdo.
-                    const content = match[2].trim();
-
-                    // Preenche o campo correspondente.
-                    if (alternativeFields[letter]) {
-                        alternativeFields[letter].value = content;
+                editor.on('transaction', () => {
+                    const command = button.dataset.command;
+                    const level = button.dataset.level;
+                    let isActive = false;
+                    if (command === 'toggleHeading') {
+                        isActive = editor.isActive('heading', { level: parseInt(level, 10) });
+                    } else {
+                        const commandName = command.replace('toggle', '').charAt(0).toLowerCase() + command.slice(7);
+                        isActive = editor.isActive(commandName);
                     }
-                }
-            }
-            // =======================================================================
-            // FIM DA CORREÇÃO
-            // =======================================================================
-        });
+                    button.classList.toggle('active', isActive);
+                });
+            });
+            return editor;
+        };
+
+        createEditor('enunciado', 'Digite o enunciado da questão...', 'enunciado-data');
+        createEditor('explicacao', 'Digite a explicação detalhada da alternativa correta...', 'explicacao-data');
     }
 
     // CHAMADAS DE INICIALIZAÇÃO

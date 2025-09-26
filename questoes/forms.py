@@ -5,11 +5,30 @@ from .models import Questao, Disciplina, Assunto
 import json
 from django.contrib.auth.models import User
 import bleach # ✅ ADICIONE ESTA IMPORTAÇÃO
+import html
+
 
 
 # =======================================================================
 # FORMULÁRIO BASE PARA QUESTÕES (COM A CORREÇÃO DEFINITIVA)
 # =======================================================================
+# questoes/forms.py
+
+from django import forms
+from .models import Questao, Disciplina, Assunto 
+import json
+from django.contrib.auth.models import User
+import bleach # ✅ ADICIONADO
+
+# questoes/forms.py
+
+from django import forms
+from .models import Questao, Disciplina, Assunto 
+import json
+from django.contrib.auth.models import User
+
+# As importações de bleach e html não são mais necessárias aqui
+
 class BaseQuestaoForm(forms.ModelForm):
     """
     Formulário base com a lógica principal para criar e editar uma questão,
@@ -27,6 +46,9 @@ class BaseQuestaoForm(forms.ModelForm):
             'disciplina', 'assunto', 'banca', 'instituicao', 'ano', 
             'imagem_enunciado', 'enunciado', 'gabarito', 'explicacao', 'is_inedita'
         )
+        # =======================================================================
+        # ✅ INÍCIO DA CORREÇÃO: Voltando para Textarea padrão
+        # =======================================================================
         widgets = {
             'disciplina': forms.Select(attrs={'class': 'form-select'}),
             'assunto': forms.Select(attrs={'class': 'form-select'}),
@@ -39,6 +61,9 @@ class BaseQuestaoForm(forms.ModelForm):
             'explicacao': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
             'is_inedita': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -49,26 +74,6 @@ class BaseQuestaoForm(forms.ModelForm):
             self.fields['alternativa_c'].initial = alternativas_dict.get('C', '')
             self.fields['alternativa_d'].initial = alternativas_dict.get('D', '')
             self.fields['alternativa_e'].initial = alternativas_dict.get('E', '')
-
-    # =============================================================================
-    # ✅ INÍCIO DA CORREÇÃO: Limpeza de campos específicos (clean_<fieldname>)
-    # Esta é a forma correta no Django de manipular e validar um campo individual.
-    # =============================================================================
-    def clean_enunciado(self):
-        # Pega o HTML bruto diretamente dos dados do POST, antes do escape do Django.
-        raw_html = self.data.get('enunciado', '')
-        # Limpa o HTML usando as regras do bleach definidas no settings.py
-        safe_html = bleach.clean(raw_html)
-        return safe_html
-
-    def clean_explicacao(self):
-        # Mesma lógica para o campo de explicação.
-        raw_html = self.data.get('explicacao', '')
-        safe_html = bleach.clean(raw_html)
-        return safe_html
-    # =============================================================================
-    # FIM DA CORREÇÃO
-    # =============================================================================
 
     def clean(self):
         cleaned_data = super().clean()
@@ -81,8 +86,6 @@ class BaseQuestaoForm(forms.ModelForm):
         return cleaned_data
             
     def save(self, commit=True):
-        # A limpeza de HTML foi movida para os métodos clean_* acima,
-        # então aqui apenas montamos o dicionário de alternativas.
         alternativas_dict = {
             'A': self.cleaned_data['alternativa_a'],
             'B': self.cleaned_data['alternativa_b'],
@@ -95,14 +98,10 @@ class BaseQuestaoForm(forms.ModelForm):
 
         self.instance.alternativas = alternativas_dict
         
-        # O self.cleaned_data['enunciado'] e ['explicacao'] já contêm o HTML seguro
-        # e serão salvos corretamente pela chamada super().save()
+        # A lógica de clean_enunciado e clean_explicacao não é mais necessária.
         return super().save(commit)
-# =======================================================================
-# NENHUMA ALTERAÇÃO NECESSÁRIA ABAIXO
-# As classes a seguir herdam o comportamento corrigido da BaseQuestaoForm
-# =======================================================================
-
+    
+    
 class AdminQuestaoForm(BaseQuestaoForm):
     pass
 

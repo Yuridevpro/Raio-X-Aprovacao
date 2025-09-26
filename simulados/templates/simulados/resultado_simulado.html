@@ -1,7 +1,7 @@
 <!-- templates/simulados/resultado_simulado.html -->
 {% extends 'base.html' %}
 {% load static %}
-{% load pratica_extras %}
+{% load pratica_extras %} <!-- ✅ GARANTA QUE O TEMPLATETAG ESTÁ CARREGADO -->
 
 {% block title %}Resultado do Simulado{% endblock %}
 
@@ -172,8 +172,7 @@
                 <strong>Ano:</strong> {{ item.questao.ano|default:"N/A" }}
             </div>
             <div class="enunciado-formatado mb-4">
-                <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
-                {{ item.questao.enunciado|safe }} 
+                {{ item.questao.enunciado|render_markdown|safe }} 
             </div>
             <div class="alternativas-container">
                 {% for letra, texto in item.questao.get_alternativas_dict.items %}
@@ -182,8 +181,7 @@
                     {% if letra == item.resposta_usuario and not item.foi_correta %}incorreta{% endif %}">
                     
                     <span class="alternativa-letra">{{ letra }})</span>
-                    <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
-                    <span class="alternativa-texto">{{ texto|safe }}</span>
+                    <span class="alternativa-texto">{{ texto }}</span>
 
                     {% if letra == item.questao.gabarito %}
                         <i class="fas fa-check-circle text-success status-icon" title="Alternativa Correta"></i>
@@ -201,7 +199,7 @@
                 </button>
                 <div class="collapse mt-2" id="explicacao-{{ item.questao.id }}">
                     <div class="explicacao-container p-3">
-                        <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
+                        <!-- ✅ CORREÇÃO AQUI -->
                         {{ item.explicacao_html|safe }}
                     </div>
                 </div>

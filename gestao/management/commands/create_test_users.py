@@ -2,56 +2,46 @@
 
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
-# IMPORTANTE: Importe seu modelo UserProfile. Ajuste o caminho se necessário.
-# Se o seu modelo de perfil está no app 'usuarios', o import abaixo está correto.
 from usuarios.models import UserProfile 
+from faker import Faker
 import random
 
 class Command(BaseCommand):
-    help = 'Deleta usuários de teste antigos e cria 20 novos usuários para testes.'
+    help = 'Limpa e cria uma base diversificada de usuários de teste (Comuns, Staff, Superuser).'
 
     def handle(self, *args, **options):
+        fake = Faker('pt_BR')
+        
         # --- 1. DELETAR USUÁRIOS DE TESTE ANTIGOS ---
-        # Procura por usuários cujo nome começa com 'testuser' e que NÃO são superusuários.
-        self.stdout.write(self.style.WARNING('Deletando usuários de teste antigos...'))
-        
-        old_test_users = User.objects.filter(
-            username__startswith='testuser', 
-            is_superuser=False
-        )
+        self.stdout.write(self.style.WARNING('Limpando usuários de teste antigos...'))
+        old_test_users = User.objects.filter(username__startswith='test_')
         count, _ = old_test_users.delete()
-        
         self.stdout.write(self.style.SUCCESS(f'{count} usuários de teste antigos foram deletados.'))
 
-        # --- 2. CRIAR NOVOS USUÁRIOS DE TESTE ---
-        self.stdout.write(self.style.NOTICE('Criando 20 novos usuários de teste...'))
+        # --- 2. CRIAR USUÁRIOS DE TESTE ---
+        self.stdout.write(self.style.NOTICE('Criando uma nova base de usuários de teste...'))
         
-        first_names = ["Ana", "Bruno", "Carla", "Daniel", "Elisa", "Fernando", "Gabriela", "Hugo"]
-        last_names = ["Silva", "Souza", "Costa", "Santos", "Oliveira", "Pereira", "Rodrigues", "Almeida"]
+        # SUPERUSUÁRIOS
+        for i in range(3):
+            username = f'test_su_{i+1}'
+            user = User.objects.create_superuser(username, f'{username}@example.com', 'password123')
+            UserProfile.objects.create(user=user, nome=fake.first_name(), sobrenome=fake.last_name())
+        self.stdout.write(self.style.SUCCESS('-> 3 Superusuários criados (ex: test_su_1)'))
 
-        for i in range(20):
-            # Gera dados aleatórios simples
-            first_name = random.choice(first_names)
-            last_name = random.choice(last_names)
-            username = f'testuser{i + 1}'
-            email = f'testuser{i+1}@example.com'
-            password = 'password123'
+        # EQUIPE (STAFF)
+        for i in range(5):
+            username = f'test_staff_{i+1}'
+            user = User.objects.create_user(username, f'{username}@example.com', 'password123', is_staff=True)
+            UserProfile.objects.create(user=user, nome=fake.first_name(), sobrenome=fake.last_name())
+        self.stdout.write(self.style.SUCCESS('-> 5 Membros da Equipe criados (ex: test_staff_1)'))
 
-            # Cria o objeto User. Usamos create_user para garantir que a senha seja hasheada.
-            user = User.objects.create_user(
-                username=username,
-                email=email,
-                password=password
-            )
-            
-            # Cria o UserProfile relacionado, que é crucial para o seu sistema.
-            UserProfile.objects.create(
-                user=user,
-                nome=f'{first_name} {last_name}'
-            )
-
+        # USUÁRIOS COMUNS
+        for i in range(25):
+            username = f'test_user_{i+1}'
+            user = User.objects.create_user(username, f'{username}@example.com', 'password123')
+            UserProfile.objects.create(user=user, nome=fake.first_name(), sobrenome=fake.last_name())
+        self.stdout.write(self.style.SUCCESS('-> 25 Usuários Comuns criados (ex: test_user_1)'))
+        
         self.stdout.write(self.style.SUCCESS('----------------------------------------------------'))
-        self.stdout.write(self.style.SUCCESS('20 novos usuários de teste criados com sucesso!'))
-        self.stdout.write(self.style.SUCCESS('Usuários criados: de testuser1 a testuser20'))
-        self.stdout.write(self.style.SUCCESS('A senha para todos é: password123'))
+        self.stdout.write(self.style.NOTICE('A senha para todos os usuários é: password123'))
         self.stdout.write(self.style.SUCCESS('----------------------------------------------------'))

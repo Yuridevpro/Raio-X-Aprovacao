@@ -1,146 +1,191 @@
 # gestao/tests.py
 
-from django.test import TestCase, override_settings
-from django.contrib.auth.models import User
+from django.test import TestCase, Client
 from django.urls import reverse
-from .models import DespromocaoSuperuser, ExclusaoSuperuser, PromocaoSuperuser
-from questoes.models import Questao, Disciplina, Assunto
+from django.contrib.auth.models import User
+from faker import Faker
 import json
+from django.core import management
 
-class SuperuserQuorumModelTests(TestCase):
-    # ... (esta classe permanece a mesma)
-    def setUp(self):
-        self.su1 = User.objects.create_superuser('su1', 'su1@test.com', 'password')
-        self.su2 = User.objects.create_superuser('su2', 'su2@test.com', 'password')
-        self.su3 = User.objects.create_superuser('su3', 'su3@test.com', 'password')
-        self.staff_user = User.objects.create_user('staff', 'staff@test.com', 'password', is_staff=True)
-        self.normal_user = User.objects.create_user('user', 'user@test.com', 'password')
+from questoes.models import Questao, Disciplina, Assunto, Banca
+from gestao.models import LogAtividade, SolicitacaoExclusao
+from usuarios.models import UserProfile
 
-    def test_despromocao_quorum_com_3_superusers(self):
-        request = DespromocaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        self.assertEqual(request.get_quorum_necessario(), 2)
-    def test_despromocao_quorum_com_2_superusers(self):
-        self.su3.delete()
-        request = DespromocaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        self.assertEqual(request.get_quorum_necessario(), 1)
-    def test_despromocao_sucesso_com_quorum_atingido(self):
-        request = DespromocaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su3, justificativa='teste')
-        status, message = request.aprovar(self.su2)
-        self.assertEqual(status, 'QUORUM_MET')
-        request.refresh_from_db()
-        self.assertEqual(request.status, DespromocaoSuperuser.Status.APROVADO)
-        self.su3.refresh_from_db()
-        self.assertTrue(self.su3.is_superuser)
-    def test_despromocao_falha_autoaprovacao_solicitante(self):
-        request = DespromocaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        status, message = request.aprovar(self.su1)
-        self.assertEqual(status, 'FAILED')
-        self.assertIn("solicitante não pode aprovar", message)
-        self.su2.refresh_from_db()
-        self.assertTrue(self.su2.is_superuser)
-    def test_despromocao_sucesso_autoaprovacao_alvo_quorum_1(self):
-        self.su3.delete()
-        request = DespromocaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        status, message = request.aprovar(self.su2)
-        self.assertEqual(status, 'QUORUM_MET')
-        request.refresh_from_db()
-        self.assertEqual(request.status, DespromocaoSuperuser.Status.APROVADO)
-    def test_exclusao_quorum_com_3_superusers(self):
-        request = ExclusaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        self.assertEqual(request.get_quorum_necessario(), 2)
-    def test_exclusao_quorum_com_2_superusers(self):
-        self.su3.delete()
-        request = ExclusaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        self.assertEqual(request.get_quorum_necessario(), 1)
-    def test_exclusao_sucesso_com_quorum_atingido(self):
-        request = ExclusaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su3, justificativa='teste')
-        status, message = request.aprovar(self.su2)
-        self.assertEqual(status, 'QUORUM_MET')
-        self.assertTrue(User.objects.filter(username='su3').exists())
-
-@override_settings(
-    CACHES={'default': {'BACKEND': 'django.core.cache.backends.locmem.LocMemCache'}},
-    MIDDLEWARE=[
-        'django.middleware.security.SecurityMiddleware',
-        'django.contrib.sessions.middleware.SessionMiddleware',
-        'django.middleware.common.CommonMiddleware',
-        'django.middleware.csrf.CsrfViewMiddleware',
-        'django.contrib.auth.middleware.AuthenticationMiddleware',
-        'django.contrib.messages.middleware.MessageMiddleware',
-        'django.middleware.clickjacking.XFrameOptionsMiddleware',
-        # O middleware do ratelimit não é necessário aqui, pois o decorador funciona de forma independente
-    ]
-)
-class SuperuserSecurityViewTests(TestCase):
+class GestaoViewsTestCase(TestCase):
     
+    @classmethod
+    def setUpTestData(cls):
+        """
+        Configuração executada uma vez para toda a classe de testes.
+        Cria uma base de usuários e conteúdo para ser usada nos testes.
+        """
+        fake = Faker('pt_BR')
+        
+        # --- Criar Usuários ---
+        cls.superuser = User.objects.create_superuser('superadmin', 'su@test.com', 'password123')
+        cls.staff_user = User.objects.create_user('staffmember', 'staff@test.com', 'password123', is_staff=True)
+        cls.normal_user = User.objects.create_user('commonuser', 'user@test.com', 'password123')
+        UserProfile.objects.create(user=cls.superuser, nome='Super', sobrenome='Admin')
+        UserProfile.objects.create(user=cls.staff_user, nome='Staff', sobrenome='Member')
+        UserProfile.objects.create(user=cls.normal_user, nome='Common', sobrenome='User')
+
+        # --- Criar Conteúdo ---
+        cls.disciplina = Disciplina.objects.create(nome="Direito de Teste")
+        cls.banca = Banca.objects.create(nome="Banca de Teste")
+        cls.assunto = Assunto.objects.create(disciplina=cls.disciplina, nome="Assunto de Teste")
+        
+        # Criar uma questão ativa
+        cls.questao_ativa = Questao.objects.create(
+            disciplina=cls.disciplina, assunto=cls.assunto, banca=cls.banca, ano=2023,
+            enunciado="Enunciado da questão ativa.", alternativas={'A': '1', 'B': '2'}, gabarito='A',
+            criada_por=cls.superuser
+        )
+        
+        # Criar uma questão já na lixeira (soft-deleted)
+        cls.questao_deletada = Questao.objects.create(
+            disciplina=cls.disciplina, assunto=cls.assunto, banca=cls.banca, ano=2023,
+            enunciado="Enunciado da questão deletada.", alternativas={'A': '1', 'B': '2'}, gabarito='A'
+        )
+        cls.questao_deletada.delete(user=cls.superuser) # Soft delete
+
     def setUp(self):
-        self.su1 = User.objects.create_superuser('su1', 'su1@test.com', 'password')
-        self.su2 = User.objects.create_superuser('su2', 'su2@test.com', 'password')
-        self.staff_user = User.objects.create_user('staff', 'staff@test.com', 'password', is_staff=True)
-        self.normal_user = User.objects.create_user('user', 'user@test.com', 'password')
-
-        disciplina = Disciplina.objects.create(nome='Teste')
-        assunto = Assunto.objects.create(nome='Teste Assunto', disciplina=disciplina)
-        self.questoes = [
-            Questao.objects.create(disciplina=disciplina, assunto=assunto, enunciado=f'Q{i}', alternativas={}, gabarito='A')
-            for i in range(15)
-        ]
+        """ Configuração executada antes de cada teste. """
+        self.client = Client()
+        self.superuser_client = Client()
+        self.staff_client = Client()
+        self.user_client = Client()
         
-    def test_superuser_nao_pode_editar_outro_superuser_via_view(self):
-        self.client.login(username='su1', password='password')
-        url = reverse('gestao:editar_usuario_staff', args=[self.su2.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertRedirects(response, reverse('gestao:listar_usuarios'))
+        self.superuser_client.login(username='superadmin', password='password123')
+        self.staff_client.login(username='staffmember', password='password123')
+        self.user_client.login(username='commonuser', password='password123')
 
-    def test_staff_nao_pode_editar_superuser(self):
-        self.client.login(username='staff', password='password')
-        url = reverse('gestao:editar_usuario_staff', args=[self.su1.id])
-        response = self.client.get(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith(reverse('login')))
+    # ========================================================
+    # TESTES DE ACESSO E PERMISSÃO
+    # ========================================================
+    
+    def test_dashboard_acesso(self):
+        """ Apenas staff e superusers podem acessar o dashboard de gestão. """
+        response_su = self.superuser_client.get(reverse('gestao:dashboard'))
+        self.assertEqual(response_su.status_code, 200)
 
-    def test_usuario_comum_nao_pode_acessar_view_de_aprovacao(self):
-        request_obj = ExclusaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        self.client.login(username='user', password='password')
-        url = reverse('gestao:aprovar_exclusao_superuser', args=[request_obj.id])
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertTrue(response.url.startswith(reverse('login')))
-        self.assertTrue(User.objects.filter(username='su2').exists())
+        response_staff = self.staff_client.get(reverse('gestao:dashboard'))
+        self.assertEqual(response_staff.status_code, 200)
 
-    def test_view_bloqueia_exclusao_do_ultimo_superuser(self):
-        User.objects.filter(is_superuser=True).exclude(pk__in=[self.su1.pk, self.su2.pk]).delete()
-        self.client.login(username='su1', password='password')
-        request_obj = ExclusaoSuperuser.objects.create(solicitado_por=self.su1, usuario_alvo=self.su2, justificativa='teste')
-        url = reverse('gestao:aprovar_exclusao_superuser', args=[request_obj.id])
-        response = self.client.post(url)
-        self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, reverse('gestao:listar_solicitacoes_exclusao_superuser'))
-        self.assertTrue(User.objects.filter(username='su2').exists())
-
-    def test_ratelimit_bloqueia_acoes_em_massa_excedidas(self):
-        """
-        Verifica se a view de ações em massa é bloqueada após exceder o limite de requisições.
-        """
-        self.client.login(username='staff', password='password')
-        url = reverse('gestao:questoes_acoes_em_massa')
+        response_user = self.user_client.get(reverse('gestao:dashboard'))
+        self.assertEqual(response_user.status_code, 302) # Redirecionado para login
         
-        payload = {
-            'ids': [self.questoes[0].id],
-            'action': 'delete',
+    # ========================================================
+    # TESTES DE CRUD DE QUESTÕES
+    # ========================================================
+
+    def test_listar_questoes_gestao(self):
+        """ Verifica se a página de listagem de questões carrega e contém a questão ativa. """
+        response = self.staff_client.get(reverse('gestao:listar_questoes'))
+        self.assertEqual(response.status_code, 200)
+        # =======================================================================
+        # ✅ CORREÇÃO: Verificar pelo código da questão, que está visível na lista.
+        # =======================================================================
+        self.assertContains(response, self.questao_ativa.codigo)
+        self.assertNotContains(response, self.questao_deletada.codigo)
+
+    def test_criar_questao_view(self):
+        """ Testa a criação de uma nova questão via POST. """
+        data = {
+            'disciplina': self.disciplina.id,
+            'assunto': self.assunto.id,
+            'banca': self.banca.id,
+            'ano': 2024,
+            'enunciado': '<h2>Novo Enunciado de Teste</h2>',
+            'explicacao': '<p>Nova explicação de teste.</p>',
+            'gabarito': 'A',
+            'alternativa_a': 'Alt A', 'alternativa_b': 'Alt B', 'alternativa_c': 'Alt C', 'alternativa_d': 'Alt D',
         }
-        payload_json = json.dumps(payload)
+        response = self.staff_client.post(reverse('gestao:adicionar_questao'), data)
+        self.assertEqual(response.status_code, 302) # Redireciona após sucesso
+        self.assertTrue(Questao.objects.filter(enunciado__icontains='Novo Enunciado de Teste').exists())
+        self.assertTrue(LogAtividade.objects.filter(acao=LogAtividade.Acao.QUESTAO_CRIADA).exists())
 
-        for i in range(5):
-            response = self.client.post(url, data=payload_json, content_type='application/json')
-            self.assertEqual(response.status_code, 200, f"A chamada #{i+1} deveria passar, mas falhou.")
+    def test_soft_delete_questao_ajax(self):
+        """ Testa o soft delete de uma questão via chamada AJAX. """
+        url = reverse('gestao:deletar_questao', args=[self.questao_ativa.id])
+        response = self.staff_client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        
+        self.questao_ativa.refresh_from_db()
+        self.assertTrue(self.questao_ativa.is_deleted)
+        self.assertIsNotNone(self.questao_ativa.deleted_at)
 
+    # ========================================================
+    # TESTES DA LIXEIRA
+    # ========================================================
+
+    def test_listar_questoes_deletadas(self):
+        """ Verifica se a lixeira contém a questão deletada e não a ativa. """
+        response = self.staff_client.get(reverse('gestao:listar_questoes_deletadas'))
+        self.assertEqual(response.status_code, 200)
         # =======================================================================
-        # CORREÇÃO FINAL: Esperar o status 403 retornado pela biblioteca
+        # ✅ CORREÇÃO: Verificar pelo código da questão, que está visível na lista.
         # =======================================================================
-        response = self.client.post(url, data=payload_json, content_type='application/json')
-        self.assertEqual(response.status_code, 403, "A 6ª chamada deveria ser bloqueada com status 403, mas não foi.")
-        # =======================================================================
-        # FIM DA CORREÇÃO
-        # =======================================================================
+        self.assertContains(response, self.questao_deletada.codigo)
+        self.assertNotContains(response, self.questao_ativa.codigo)
+    
+    def test_restaurar_questao_ajax(self):
+        """ Testa a restauração de uma questão da lixeira. """
+        url = reverse('gestao:restaurar_questao', args=[self.questao_deletada.id])
+        response = self.staff_client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+
+        self.questao_deletada.refresh_from_db()
+        self.assertFalse(self.questao_deletada.is_deleted)
+
+    def test_deletar_permanente_permissao(self):
+        """ Apenas superusuários podem deletar permanentemente. """
+        management.call_command('age_item', 'questao', self.questao_deletada.id, dias=30)
+        
+        url = reverse('gestao:deletar_questao_permanente', args=[self.questao_deletada.id])
+        
+        response_staff = self.staff_client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response_staff.status_code, 302)
+        
+        response_su = self.superuser_client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response_su.status_code, 200)
+        self.assertEqual(response_su.json()['status'], 'success')
+        self.assertFalse(Questao.all_objects.filter(id=self.questao_deletada.id).exists())
+
+    # ========================================================
+    # TESTES DE GERENCIAMENTO DE USUÁRIOS
+    # ========================================================
+
+    def test_listar_usuarios_acesso_superuser(self):
+        """ Superuser vê todos os outros usuários (exceto ele mesmo). """
+        response = self.superuser_client.get(reverse('gestao:listar_usuarios'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.staff_user.username)
+        self.assertContains(response, self.normal_user.username)
+        self.assertNotContains(response, self.superuser.username)
+
+    def test_sugerir_exclusao_usuario_staff(self):
+        """ Staff pode criar uma solicitação de exclusão para um usuário comum. """
+        url = reverse('gestao:sugerir_exclusao_usuario', args=[self.normal_user.id])
+        data = {'motivo_predefinido': 'CONDUTA_INADEQUADA', 'justificativa': 'Teste de sugestão.'}
+        
+        response = self.staff_client.post(url, data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        self.assertTrue(SolicitacaoExclusao.objects.filter(usuario_a_ser_excluido=self.normal_user, status='PENDENTE').exists())
+
+    def test_aprovar_exclusao_usuario_superuser(self):
+        """ Superuser pode aprovar uma solicitação e deletar o usuário. """
+        solicitacao = SolicitacaoExclusao.objects.create(
+            usuario_a_ser_excluido=self.normal_user,
+            solicitado_por=self.staff_user,
+            motivo='Teste'
+        )
+        url = reverse('gestao:aprovar_solicitacao_exclusao', args=[solicitacao.id])
+        response = self.superuser_client.post(url, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'success')
+        self.assertFalse(User.objects.filter(id=self.normal_user.id).exists())

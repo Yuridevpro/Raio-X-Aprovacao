@@ -83,6 +83,8 @@ def listar_questoes(request):
 
 
 
+# pratica/views.py
+
 @login_required
 @require_POST
 def verificar_resposta(request):
@@ -108,9 +110,11 @@ def verificar_resposta(request):
             nova_conquista_data = {'nome': conquista.nome, 'icone': conquista.icone, 'cor': conquista.cor}
 
         # =======================================================================
-        # ✅ INÍCIO DA CORREÇÃO: Apenas pegamos o HTML do banco de dados
+        # ✅ INÍCIO DA CORREÇÃO: Usando a biblioteca markdown para converter
         # =======================================================================
-        explicacao_html = questao.explicacao or ""
+        explicacao_html = markdown.markdown(
+            questao.explicacao, extensions=['extra', 'fenced_code', 'tables']
+        ) if questao.explicacao else ""
         # =======================================================================
         # FIM DA CORREÇÃO
         # =======================================================================
