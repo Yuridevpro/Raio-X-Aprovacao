@@ -14,6 +14,21 @@
      .loja-header .lead { color: rgba(255, 255, 255, 0.8); }
      .saldo-display { font-family: var(--fonte-display); font-size: 2.5rem; font-weight: 700; color: var(--cor-dourada); text-shadow: 0 0 10px var(--cor-dourada); }
      .preco-tag { font-family: var(--fonte-display); font-weight: 600; font-size: 1.1rem; color: var(--cor-dourada); text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
+     
+     /* ======================================================================= */
+     /* ✅ INÍCIO DA CORREÇÃO: Estilos para o placeholder de item não encontrado */
+     /* ======================================================================= */
+     .empty-store-card {
+        background-color: var(--cor-fundo-intermediario) !important;
+        color: rgba(255, 255, 255, 0.5) !important; /* Cor do texto mais clara */
+     }
+     .empty-store-card .fa-store-slash {
+        color: rgba(255, 255, 255, 0.3) !important; /* Cor do ícone mais clara */
+     }
+     /* ======================================================================= */
+     /* FIM DA CORREÇÃO */
+     /* ======================================================================= */
+
 </style>
 {% endblock %}
 
@@ -44,16 +59,25 @@
     </div>
 
     <!-- Listagem de Itens -->
-    <!-- ======================================================================= -->
-    <!-- ✅ ATUALIZAÇÃO: A grade agora é idêntica à da página de coleção -->
-    <!-- ======================================================================= -->
     <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="lista-itens-loja">
         {% for item in itens_loja %}
         <div class="col">
             <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %}">
                 
                 <div class="card-img-container">
-                    <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+                    <!-- =========================================================== -->
+                    <!-- ✅ INÍCIO DA CORREÇÃO: Verificação da imagem -->
+                    <!-- =========================================================== -->
+                    {% if item.imagem %}
+                        <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+                    {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
+                            <i class="fas fa-image fa-3x text-white-50"></i>
+                        </div>
+                    {% endif %}
+                    <!-- =========================================================== -->
+                    <!-- FIM DA CORREÇÃO -->
+                    <!-- =========================================================== -->
                     <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
                 </div>
                 
@@ -77,7 +101,14 @@
             </div>
         </div>
         {% empty %}
-        <div class="col-12"><div class="card card-body text-center py-5" style="background-color: var(--cor-fundo-intermediario);"><i class="fas fa-store-slash fa-3x text-muted mb-3"></i><h4 class="h5">Nenhum item encontrado</h4><p class="text-muted">Tente ajustar os filtros ou volte mais tarde!</p></div></div>
+        <div class="col-12">
+            <!-- ✅ CORREÇÃO: Adicionada a classe 'empty-store-card' para estilização -->
+            <div class="card card-body text-center py-5 empty-store-card">
+                <i class="fas fa-store-slash fa-3x mb-3"></i>
+                <h4 class="h5">Nenhum item encontrado</h4>
+                <p>Tente ajustar os filtros ou volte mais tarde!</p>
+            </div>
+        </div>
         {% endfor %}
     </div>
 

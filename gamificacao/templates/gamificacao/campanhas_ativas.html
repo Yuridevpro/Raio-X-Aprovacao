@@ -149,6 +149,7 @@
                                 {% if grupo.xp_extra > 0 %}<span class="badge fs-6 bg-primary-soft"><i class="fas fa-star me-1"></i> {{ grupo.xp_extra }} XP</span>{% endif %}
                                 {% if grupo.moedas_extras > 0 %}<span class="badge fs-6 bg-warning-soft"><i class="fas fa-coins me-1"></i> {{ grupo.moedas_extras }} FC</span>{% endif %}
                                 {% for recompensa in grupo.recompensas_detalhadas %}
+                                {% if recompensa.imagem %}
                                     <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" 
                                          title="{{ recompensa.nome }} ({{ recompensa.get_raridade_display }})" 
                                          data-bs-toggle="modal" 
@@ -158,6 +159,7 @@
                                          data-raridade="{{ recompensa.get_raridade_display }}"
                                          data-raridade-classe="rarity-{{ recompensa.raridade|lower }}"
                                          data-imagem="{{ recompensa.imagem.url }}">
+                                         {% endif %}
                                 {% endfor %}
                             </div>
                         </div>

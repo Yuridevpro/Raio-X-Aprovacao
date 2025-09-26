@@ -10,7 +10,14 @@
     <div class="card h-100 collection-card {% rarity_class item.raridade %} {% if item.id in desbloqueados_ids %}unlocked{% else %}locked{% endif %}">
         
         <div class="card-img-container">
-            <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+            {% if item.imagem %}
+                <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
+            {% else %}
+                <!-- 2. Se não houver imagem, mostramos um placeholder genérico -->
+                <div class="card-img-top d-flex align-items-center justify-content-center bg-light">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+            {% endif %}
             <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
         </div>
 

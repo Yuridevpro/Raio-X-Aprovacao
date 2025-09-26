@@ -35,6 +35,7 @@
                     <span class="badge bg-primary-soft text-primary"><i class="fas fa-coins me-1"></i> {{ conquista.recompensas.moedas }} Moedas</span>
                 {% endif %}
                 {% for recompensa in conquista.recompensas_detalhadas %}
+                {% if recompensa.imagem %}
                     <img src="{{ recompensa.imagem.url }}" class="recompensa-icon" 
                          data-bs-toggle="modal" 
                          data-bs-target="#recompensaModal"
@@ -43,6 +44,8 @@
                          data-raridade="{{ recompensa.get_raridade_display }}"
                          data-raridade-classe="{% rarity_class recompensa.raridade %}"
                          data-imagem="{{ recompensa.imagem.url }}">
+                         {% endif %}
+
                 {% endfor %}
             </div>
             {% endif %}
