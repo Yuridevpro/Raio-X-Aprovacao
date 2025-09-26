@@ -412,6 +412,7 @@ def formatar_tempo_gasto(total_seconds):
         
     return ", ".join(parts)
 
+
 @login_required
 def resultado_simulado(request, sessao_id):
     sessao = get_object_or_404(SessaoSimulado, id=sessao_id, usuario=request.user)
@@ -422,7 +423,6 @@ def resultado_simulado(request, sessao_id):
 
     eventos_gamificacao = request.session.pop('eventos_gamificacao_simulado', None)
     
-    # A lista de recompensas já vem serializada da view 'finalizar_simulado'
     novas_recompensas_json = []
     if eventos_gamificacao and eventos_gamificacao.get('novas_recompensas'):
         novas_recompensas_json = eventos_gamificacao['novas_recompensas']
@@ -452,12 +452,7 @@ def resultado_simulado(request, sessao_id):
             desempenho_disciplina[disciplina]['acertos'] += 1
     
     desempenho_final = [
-        {
-            'disciplina': disc,
-            'acertos': data['acertos'],
-            'total': data['total'],
-            'percentual': (data['acertos'] / data['total'] * 100) if data['total'] > 0 else 0
-        }
+        { 'disciplina': disc, 'acertos': data['acertos'], 'total': data['total'], 'percentual': (data['acertos'] / data['total'] * 100) if data['total'] > 0 else 0 }
         for disc, data in desempenho_disciplina.items()
     ]
     
@@ -465,12 +460,19 @@ def resultado_simulado(request, sessao_id):
     revisao_detalhada = []
     for i, questao in enumerate(questoes_simulado.order_by('id'), 1):
         resposta = mapa_respostas.get(questao.id)
+        
+        # =======================================================================
+        # ✅ INÍCIO DA CORREÇÃO: Apenas pegamos o HTML do banco de dados
+        # =======================================================================
         revisao_detalhada.append({
             'numero': i, 'questao': questao,
             'resposta_usuario': resposta.alternativa_selecionada if resposta else None,
             'foi_correta': resposta.foi_correta if resposta else False,
-            'explicacao_html': markdown.markdown(questao.explicacao) if questao.explicacao else ""
+            'explicacao_html': questao.explicacao or ""
         })
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
     
     context = {
         'sessao': sessao,

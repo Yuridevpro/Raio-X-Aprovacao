@@ -172,7 +172,8 @@
                 <strong>Ano:</strong> {{ item.questao.ano|default:"N/A" }}
             </div>
             <div class="enunciado-formatado mb-4">
-                {{ item.questao.enunciado|render_markdown|safe }} 
+                <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
+                {{ item.questao.enunciado|safe }} 
             </div>
             <div class="alternativas-container">
                 {% for letra, texto in item.questao.get_alternativas_dict.items %}
@@ -181,7 +182,8 @@
                     {% if letra == item.resposta_usuario and not item.foi_correta %}incorreta{% endif %}">
                     
                     <span class="alternativa-letra">{{ letra }})</span>
-                    <span class="alternativa-texto">{{ texto|render_markdown|safe }}</span>
+                    <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
+                    <span class="alternativa-texto">{{ texto|safe }}</span>
 
                     {% if letra == item.questao.gabarito %}
                         <i class="fas fa-check-circle text-success status-icon" title="Alternativa Correta"></i>
@@ -199,6 +201,7 @@
                 </button>
                 <div class="collapse mt-2" id="explicacao-{{ item.questao.id }}">
                     <div class="explicacao-container p-3">
+                        <!-- ✅ CORREÇÃO AQUI: Usando |safe pois o conteúdo já é HTML -->
                         {{ item.explicacao_html|safe }}
                     </div>
                 </div>
@@ -222,11 +225,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    /**
-     * ===================================================================
-     * FUNÇÃO DE ANIMAÇÃO DE CONTAGEM CORRIGIDA
-     * ===================================================================
-     */
     function animateCountUp(element) {
         const isFloat = element.dataset.animate === 'float';
         const rawValue = element.textContent.replace('%', '').replace(',', '.').trim();
@@ -235,7 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isNaN(finalValue)) return;
 
         let startValue = 0;
-        const duration = 1500; // 1.5 segundos
+        const duration = 1500;
         let startTime = null;
 
         function animationStep(timestamp) {
@@ -252,7 +250,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (progress < 1) {
                 requestAnimationFrame(animationStep);
             } else {
-                // Garante que o valor final seja exato
                 if (isFloat) {
                     element.textContent = finalValue.toFixed(1).replace('.', ',') + '%';
                 } else {
@@ -263,17 +260,13 @@ document.addEventListener('DOMContentLoaded', function() {
         requestAnimationFrame(animationStep);
     }
     
-    // Aplica a animação apenas aos elementos marcados com data-animate
     document.querySelectorAll('.stat-value[data-animate]').forEach(animateCountUp);
 
-    // ===================================================================
-    // LÓGICA DE NOTIFICAÇÕES (Inalterada)
-    // ===================================================================
     const eventosDataElement = document.getElementById('eventos-gamificacao-data');
     const eventos = eventosDataElement ? JSON.parse(eventosDataElement.textContent) : null;
     const novasRecompensas = (eventos && eventos.novas_recompensas) ? eventos.novas_recompensas : [];
     
-    let delay = 1500; // Delay para esperar a animação de contagem
+    let delay = 1500;
 
     if (eventos) {
         if (eventos.moedas_ganhas > 0) {

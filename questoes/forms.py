@@ -4,10 +4,11 @@ from django import forms
 from .models import Questao, Disciplina, Assunto 
 import json
 from django.contrib.auth.models import User
+import bleach # ✅ ADICIONE ESTA IMPORTAÇÃO
 
 
 # =======================================================================
-# FORMULÁRIO BASE PARA QUESTÕES (COM ALTERAÇÕES)
+# FORMULÁRIO BASE PARA QUESTÕES (COM A CORREÇÃO DEFINITIVA)
 # =======================================================================
 class BaseQuestaoForm(forms.ModelForm):
     """
@@ -18,11 +19,6 @@ class BaseQuestaoForm(forms.ModelForm):
     alternativa_b = forms.CharField(label="Alternativa B", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
     alternativa_c = forms.CharField(label="Alternativa C", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
     alternativa_d = forms.CharField(label="Alternativa D", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=True)
-    
-    # =============================================================================
-    # MUDANÇA 1: O campo 'alternativa_e' agora é OPCIONAL.
-    # Alteramos 'required=True' para 'required=False'.
-    # =============================================================================
     alternativa_e = forms.CharField(label="Alternativa E", widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 2}), required=False)
 
     class Meta:
@@ -55,9 +51,25 @@ class BaseQuestaoForm(forms.ModelForm):
             self.fields['alternativa_e'].initial = alternativas_dict.get('E', '')
 
     # =============================================================================
-    # MUDANÇA 2: Adição do método 'clean' para validação inteligente.
-    # Se o gabarito for 'E', o campo da alternativa 'E' se torna obrigatório.
+    # ✅ INÍCIO DA CORREÇÃO: Limpeza de campos específicos (clean_<fieldname>)
+    # Esta é a forma correta no Django de manipular e validar um campo individual.
     # =============================================================================
+    def clean_enunciado(self):
+        # Pega o HTML bruto diretamente dos dados do POST, antes do escape do Django.
+        raw_html = self.data.get('enunciado', '')
+        # Limpa o HTML usando as regras do bleach definidas no settings.py
+        safe_html = bleach.clean(raw_html)
+        return safe_html
+
+    def clean_explicacao(self):
+        # Mesma lógica para o campo de explicação.
+        raw_html = self.data.get('explicacao', '')
+        safe_html = bleach.clean(raw_html)
+        return safe_html
+    # =============================================================================
+    # FIM DA CORREÇÃO
+    # =============================================================================
+
     def clean(self):
         cleaned_data = super().clean()
         gabarito = cleaned_data.get("gabarito")
@@ -68,12 +80,9 @@ class BaseQuestaoForm(forms.ModelForm):
         
         return cleaned_data
             
-    # =============================================================================
-    # MUDANÇA 3: Lógica de salvamento ajustada.
-    # O dicionário 'alternativas' agora adiciona a alternativa 'E' somente se
-    # ela tiver sido preenchida pelo usuário.
-    # =============================================================================
     def save(self, commit=True):
+        # A limpeza de HTML foi movida para os métodos clean_* acima,
+        # então aqui apenas montamos o dicionário de alternativas.
         alternativas_dict = {
             'A': self.cleaned_data['alternativa_a'],
             'B': self.cleaned_data['alternativa_b'],
@@ -81,18 +90,14 @@ class BaseQuestaoForm(forms.ModelForm):
             'D': self.cleaned_data['alternativa_d'],
         }
         
-        # Adiciona a alternativa 'E' ao dicionário SOMENTE se ela foi preenchida
         if self.cleaned_data.get('alternativa_e'):
             alternativas_dict['E'] = self.cleaned_data['alternativa_e']
 
-        # A instância do modelo recebe o dicionário montado
         self.instance.alternativas = alternativas_dict
         
-        # O método original do ModelForm é chamado para finalizar o salvamento.
-        # Note que não precisamos mais do json.dumps(), pois o JSONField do Django
-        # lida com a conversão de dicionário para JSON automaticamente.
+        # O self.cleaned_data['enunciado'] e ['explicacao'] já contêm o HTML seguro
+        # e serão salvos corretamente pela chamada super().save()
         return super().save(commit)
-
 # =======================================================================
 # NENHUMA ALTERAÇÃO NECESSÁRIA ABAIXO
 # As classes a seguir herdam o comportamento corrigido da BaseQuestaoForm

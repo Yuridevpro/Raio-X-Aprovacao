@@ -82,6 +82,7 @@ def listar_questoes(request):
     return render(request, 'pratica/listar_questoes.html', context)
 
 
+
 @login_required
 @require_POST
 def verificar_resposta(request):
@@ -106,7 +107,13 @@ def verificar_resposta(request):
             conquista = gamificacao_eventos['nova_conquista']
             nova_conquista_data = {'nome': conquista.nome, 'icone': conquista.icone, 'cor': conquista.cor}
 
-        explicacao_html = markdown.markdown(questao.explicacao) if questao.explicacao else ""
+        # =======================================================================
+        # ✅ INÍCIO DA CORREÇÃO: Apenas pegamos o HTML do banco de dados
+        # =======================================================================
+        explicacao_html = questao.explicacao or ""
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
         
         return JsonResponse({
             'status': 'success',
@@ -118,7 +125,7 @@ def verificar_resposta(request):
             'meta_completa_info': gamificacao_eventos.get('meta_completa_info'),
             'xp_ganho': gamificacao_eventos.get('xp_ganho', 0),
             'bonus_ativo': gamificacao_eventos.get('bonus_ativo', False),
-            'motivo_bloqueio': gamificacao_eventos.get('motivo_bloqueio') # <-- LINHA ADICIONADA
+            'motivo_bloqueio': gamificacao_eventos.get('motivo_bloqueio')
         })
     except Exception as e:
         print(f"Erro inesperado em verificar_resposta: {e}")

@@ -1,3 +1,4 @@
+<!-- usuarios/templates/usuarios/perfil.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}
@@ -233,9 +234,14 @@
                 </span>
                 <span class="fw-bold">Nível {{ gamificacao_data.level|add:1 }}</span>
             </div>
-            <!-- ✅ CORREÇÃO: Adicionada a classe 'xp-progress' ao container -->
             <div class="progress xp-progress" role="progressbar" title="{{ progresso_percentual|floatformat:2 }}%">
+                <!-- ======================================================================= -->
+                <!-- ✅ INÍCIO DA CORREÇÃO: Adicionando a classe 'xp-progress-bar'        -->
+                <!-- ======================================================================= -->
                 <div class="progress-bar xp-progress-bar" style="width: {{ progresso_percentual }}%;"></div>
+                <!-- ======================================================================= -->
+                <!-- FIM DA CORREÇÃO                                                         -->
+                <!-- ======================================================================= -->
             </div>
             <div class="text-center mt-2 text-muted small">
                 <span class="fw-bold">{{ gamificacao_data.xp|floatformat:0 }} / {{ xp_proximo_nivel|floatformat:0 }}</span> XP

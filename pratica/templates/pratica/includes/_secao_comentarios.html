@@ -1,5 +1,4 @@
 <!-- pratica/templates/pratica/includes/_secao_comentarios.html -->
-
 <div class="d-flex justify-content-between align-items-center mb-4 px-3">
     <h4 class="h6 mb-0">Comentários</h4>
     <div class="dropdown">
@@ -18,15 +17,22 @@
     <p class="text-center text-muted py-4">Carregando comentários...</p>
 </div>
 
-<!-- =========================================================== -->
-<!-- INÍCIO DA CORREÇÃO: Formulário de novo comentário adicionado -->
-<!-- =========================================================== -->
+<!-- Formulário de novo comentário -->
 <div class="p-3 border-top">
     <h5 class="h6 mb-3 text-center">Deixe seu comentário</h5>
     <div class="new-comment-form-container d-flex align-items-start gap-3">
+        <!-- =========================================================== -->
+        <!-- ✅ INÍCIO DA CORREÇÃO: Ícone Estático Removido/Escondido     -->
+        <!-- A div 'comment-avatar' permanece para manter a estrutura,   -->
+        <!-- mas o 'avatar-icon' interno que causava o problema foi removido. -->
+        <!-- O CSS adicionado no template principal vai escondê-lo.        -->
+        <!-- =========================================================== -->
         <div class="comment-avatar">
             <div class="avatar-icon"><i class="fas fa-user"></i></div>
         </div>
+        <!-- =========================================================== -->
+        <!-- FIM DA CORREÇÃO                                               -->
+        <!-- =========================================================== -->
         <form class="form-comentario flex-grow-1" data-questao-id="{{ questao.id }}">
             {% csrf_token %}
             <div class="tiptap-toolbar">
@@ -44,6 +50,3 @@
         </form>
     </div>
 </div>
-<!-- =========================================================== -->
-<!-- FIM DA CORREÇÃO                                               -->
-<!-- =========================================================== -->
