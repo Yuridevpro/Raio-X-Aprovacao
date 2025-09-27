@@ -2,10 +2,24 @@
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-# =======================================================================
-# INÍCIO DA CORREÇÃO: Importando o módulo de threading
-# =======================================================================
 import threading
+
+# =======================================================================
+# INÍCIO DA CORREÇÃO: Classe de Thread com log para depuração
+# =======================================================================
+class EmailThread(threading.Thread):
+    def __init__(self, email):
+        self.email = email
+        threading.Thread.__init__(self)
+
+    def run(self):
+        try:
+            self.email.send()
+            print(f"Email para {self.email.to} enviado com sucesso em segundo plano.")
+        except Exception as e:
+            # Esta mensagem aparecerá nos logs do Render se algo der errado!
+            print(f"ERRO ao enviar e-mail em segundo plano para {self.email.to}: {e}")
+
 # =======================================================================
 # FIM DA CORREÇÃO
 # =======================================================================
@@ -13,7 +27,7 @@ import threading
 def enviar_email_com_template(request, subject, template_name, context, recipient_list):
     """
     Renderiza um template HTML e o envia como um e-mail em uma thread separada
-    para não bloquear a requisição principal.
+    para não bloquear a requisição principal. Agora com logging.
     """
     context['host'] = request.get_host()
     
@@ -27,13 +41,5 @@ def enviar_email_com_template(request, subject, template_name, context, recipien
     )
     email.attach_alternative(html_content, "text/html")
 
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Lógica de envio em segundo plano
-    # =======================================================================
-    # Em vez de chamar email.send() diretamente, criamos uma thread para fazer isso.
-    # A função principal retorna imediatamente, e o e-mail é enviado em paralelo.
-    thread = threading.Thread(target=email.send)
-    thread.start()
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
+    # Inicia a thread com a nossa nova classe
+    EmailThread(email).start()
