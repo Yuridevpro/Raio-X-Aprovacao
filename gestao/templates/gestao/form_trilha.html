@@ -7,7 +7,7 @@
 <style>
     /* Estilos para o Seletor de Ícones */
     #iconPickerModal .modal-body { max-height: 60vh; overflow-y: auto; }
-    #iconGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 0.5rem; }
+    #iconGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(60px, 1fr)); gap: 0.5rem; }
     .icon-item { display: flex; align-items: center; justify-content: center; height: 60px; border: 1px solid #dee2e6; border-radius: 0.25rem; font-size: 1.5rem; cursor: pointer; transition: all 0.2s ease; }
     .icon-item:hover { background-color: var(--cor-primaria); color: white; transform: scale(1.1); }
     #iconPreview { font-size: 1.5rem; min-width: 40px; text-align: center; }
@@ -55,9 +55,20 @@
                 <div class="mb-3">
                     <label class="form-label d-flex justify-content-between">
                         {{ form.ordem.label }}
-                        <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.ordem.help_text }}"></i>
                     </label>
                     {{ form.ordem }}
+                    <!-- ======================================================================= -->
+                    <!-- INÍCIO DA ALTERAÇÃO: Bloco para exibir o erro de validação -->
+                    <!-- ======================================================================= -->
+                    {% if form.ordem.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.ordem.errors.0 }}
+                        </div>
+                    {% endif %}
+                    <!-- ======================================================================= -->
+                    <!-- FIM DA ALTERAÇÃO -->
+                    <!-- ======================================================================= -->
+                    <div class="form-text">{{ form.ordem.help_text|safe }}</div>
                 </div>
 
                 <div class="mt-4 d-flex justify-content-center">
@@ -95,6 +106,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializa todos os tooltips na página
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    const ordemInput = document.getElementById('{{ form.ordem.id_for_label }}');
+    const instanciaId = "{{ instancia_id|default:'' }}";
+
+    // Apenas preenche o campo se for um formulário de CRIAÇÃO (sem instância)
+    if (ordemInput && !instanciaId) {
+        ordemInput.value = "{{ proxima_ordem_sugerida }}";
+    }
 
     // Lógica do Seletor de Ícones (sem alterações)
     const iconPickerModal = document.getElementById('iconPickerModal');

@@ -2,9 +2,13 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
+
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <style>
+    .serie-card {
+        border-left: 4px solid var(--cor-primaria);
+    }
     .conquista-card {
         transition: all 0.2s ease-in-out;
         border-left-width: 4px;
@@ -15,24 +19,29 @@
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
     }
     .conquista-icon {
-        font-size: 1.75rem;
-        width: 50px;
-        height: 50px;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
-        color: white;
+        font-size: 1.75rem; width: 50px; height: 50px;
+        flex-shrink: 0; display: flex; align-items: center;
+        justify-content: center; border-radius: 50%; color: white;
     }
-    .secreta-badge {
-        font-size: 0.7rem;
-        font-weight: bold;
-        padding: 0.25em 0.5em;
-        background-color: var(--bs-secondary-bg-subtle);
-        color: var(--bs-secondary-text-emphasis);
-        border-radius: 0.25rem;
-        border: 1px solid var(--bs-secondary-border-subtle);
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+    .timeline::before {
+        content: ''; position: absolute; left: 10px; top: 10px;
+        bottom: 10px; width: 2px; background-color: #e9ecef;
+    }
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1rem;
+    }
+    .timeline-item::before {
+        content: ''; position: absolute; left: -25px; top: 10px;
+        width: 12px; height: 12px; border-radius: 50%;
+        background-color: #adb5bd; border: 2px solid white;
+    }
+    .timeline-item.completed::before {
+        background-color: var(--cor-primaria);
     }
 </style>
 {% endblock %}
@@ -46,54 +55,105 @@
             <a href="{% url 'gestao:listar_trilhas' %}" class="btn btn-sm btn-outline-secondary mb-2"><i class="fas fa-arrow-left me-2"></i>Voltar para Trilhas</a>
             <h2 class="h3 mb-0">{{ titulo }}</h2>
         </div>
-        <a href="{% url 'gestao:criar_conquista' trilha_id=trilha.id %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Nova Conquista</a>
+        <div class="btn-group">
+            <button type="button" class="btn btn-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fas fa-plus me-2"></i>Adicionar Conquista
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="{% url 'gestao:criar_conquista_individual' trilha_id=trilha.id %}"><i class="fas fa-star fa-fw me-2"></i>Conquista Individual</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#addSerieModal"><i class="fas fa-stream fa-fw me-2"></i>Nova Série de Conquistas</a></li>
+            </ul>
+        </div>
     </div>
 
     {% include 'gestao/includes/_messages.html' %}
 
+    <!-- Séries de Conquistas -->
+    <h4 class="mb-3">Séries de Conquistas</h4>
+    {% for serie in series %}
+    <div class="card shadow-sm mb-4 serie-card">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#collapse-serie-{{ serie.id }}" role="button" style="cursor: pointer;">
+            <h5 class="mb-0">{{ serie.nome }}</h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-primary-soft text-primary">{{ serie.conquistas.count }} Conquista(s)</span>
+                <!-- Ações da Série -->
+                <div class="dropdown" onclick="event.stopPropagation();">
+                    <button class="btn btn-sm btn-outline-secondary py-0 px-2" type="button" data-bs-toggle="dropdown"><i class="fas fa-ellipsis-v"></i></button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-edit fa-fw me-2"></i>Gerenciar Série</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <button type="button" class="dropdown-item text-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_serie' serie.id %}" data-item-name="{{ serie.nome }}">
+                                <i class="fas fa-trash fa-fw me-2"></i>Excluir Série
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="collapse show" id="collapse-serie-{{ serie.id }}">
+            <div class="card-body">
+                <div class="timeline">
+                    {% for conquista in serie.conquistas.all %}
+                    <div class="timeline-item completed">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1 fw-bold">{{ conquista.ordem_na_serie }}. {{ conquista.nome }}</h6>
+                                <p class="small text-muted mb-0">{{ conquista.descricao|truncatewords:20 }}</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                {% if forloop.last %}
+                                <a href="{% url 'gestao:criar_conquista_sequencial' serie_id=serie.id previous_conquista_id=conquista.id %}" class="btn btn-sm btn-outline-success" title="Adicionar Próxima na Sequência"><i class="fas fa-plus"></i></a>
+                                {% endif %}
+                                <a href="{% url 'gestao:editar_conquista' conquista_id=conquista.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_conquista' conquista.id %}" data-item-name="{{ conquista.nome }}" title="Excluir"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">Nenhuma conquista nesta série. <a href="{% url 'gestao:criar_primeira_conquista_serie' serie_id=serie.id %}">Adicione a primeira!</a></p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="card card-body text-center p-4 bg-light mb-4">
+        <p class="text-muted mb-0">Nenhuma série de conquistas criada para esta trilha.</p>
+    </div>
+    {% endfor %}
+
+    <!-- Conquistas Individuais -->
+    <h4 class="mb-3 mt-5">Conquistas Individuais</h4>
     <div class="row g-4">
-        {% for conquista in paginated_object %}
+        {% for conquista in conquistas_individuais %}
         <div class="col-lg-4 col-md-6">
             <div class="card shadow-sm h-100 conquista-card" style="border-left-color: {{ conquista.cor }};">
                 <div class="card-body d-flex flex-column">
                     <div class="d-flex align-items-start mb-3">
-                        <div class="conquista-icon me-3" style="background-color: {{ conquista.cor }};">
-                            <i class="{{ conquista.icone|default:'fas fa-trophy' }}"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h5 class="card-title mb-1">{{ conquista.nome }}</h5>
-                            {% if conquista.is_secreta %}
-                                <span class="secreta-badge"><i class="fas fa-user-secret me-1"></i>SECRETA</span>
-                            {% endif %}
-                        </div>
+                        <div class="conquista-icon me-3" style="background-color: {{ conquista.cor }};"><i class="{{ conquista.icone|default:'fas fa-trophy' }}"></i></div>
+                        <div class="flex-grow-1"><h5 class="card-title mb-1">{{ conquista.nome }}</h5></div>
                     </div>
                     <p class="card-text small text-muted flex-grow-1">{{ conquista.descricao|truncatewords:25 }}</p>
                     <div class="mt-auto d-flex justify-content-end gap-2 border-top pt-3">
-                        <a href="{% url 'gestao:editar_conquista' trilha_id=trilha.id conquista_id=conquista.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
-                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_conquista' conquista.id %}" data-item-name="{{ conquista.nome }}" title="Excluir">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <a href="{% url 'gestao:editar_conquista' conquista_id=conquista.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_conquista' conquista.id %}" data-item-name="{{ conquista.nome }}" title="Excluir"><i class="fas fa-trash"></i></button>
                     </div>
                 </div>
             </div>
         </div>
         {% empty %}
-        <div class="col-12">
-            <div class="card card-body text-center p-5">
-                <h5 class="text-muted">Nenhuma conquista nesta trilha ainda.</h5>
-                <p class="text-muted">Crie a primeira conquista para começar a engajar os usuários.</p>
-                <div class="mt-3">
-                    <a href="{% url 'gestao:criar_conquista' trilha_id=trilha.id %}" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Criar Primeira Conquista</a>
-                </div>
-            </div>
-        </div>
+        <div class="col-12"><div class="card card-body text-center p-4 bg-light"><p class="text-muted mb-0">Nenhuma conquista individual criada para esta trilha.</p></div></div>
         {% endfor %}
     </div>
-
-    <!-- ADIÇÃO: Componente de paginação -->
+    
     <div class="mt-4">
         {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
     </div>
 </div>
+
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% include 'gestao/includes/_modal_criar_serie.html' with trilha=trilha form=serie_form %}
+
 {% endblock %}

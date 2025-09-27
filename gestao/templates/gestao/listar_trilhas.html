@@ -51,7 +51,16 @@
                         </div>
                         <div class="flex-grow-1">
                             <h5 class="card-title mb-1">{{ trilha.nome }}</h5>
-                            <span class="badge bg-primary-soft text-primary">{{ trilha.num_conquistas }} Conquista(s)</span>
+                            <!-- ======================================================================= -->
+                            <!-- INÍCIO DA ADIÇÃO: Badge para exibir a ordem -->
+                            <!-- ======================================================================= -->
+                            <div class="d-flex flex-wrap gap-2">
+                                <span class="badge bg-primary-soft text-primary">{{ trilha.num_conquistas }} Conquista(s)</span>
+                                <span class="badge bg-secondary-subtle text-secondary-emphasis">Ordem: {{ trilha.ordem }}</span>
+                            </div>
+                            <!-- ======================================================================= -->
+                            <!-- FIM DA ADIÇÃO -->
+                            <!-- ======================================================================= -->
                         </div>
                     </div>
                     <p class="card-text small text-muted flex-grow-1">{{ trilha.descricao|truncatewords:25 }}</p>

@@ -13,7 +13,8 @@ from questoes.models import Disciplina, Assunto, Banca # Usado no contexto_json
 from django.core.exceptions import ValidationError
 from simulados.models import Simulado # Adicione esta importação no topo
 from questoes.models import Disciplina, Assunto, Banca 
-
+from django.db import transaction
+from django.db.models import JSONField, Max
 # =======================================================================
 # MODELO DE CONFIGURAÇÕES GLOBAIS DA GAMIFICAÇÃO
 # =======================================================================
@@ -342,11 +343,26 @@ class Condicao(models.Model):
 # =======================================================================
 # MODELOS DE TRILHAS E CONQUISTAS (AJUSTADOS)
 # =======================================================================
+# gamificacao/models.py
+
 class TrilhaDeConquistas(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(help_text="Descreva o objetivo geral desta trilha de conquistas.")
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-graduation-cap' (classe do Font Awesome)")
-    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem de exibição das trilhas (menor primeiro).")
+    # =======================================================================
+    # INÍCIO DA ALTERAÇÃO: Adicionando `unique=True`
+    # Isso cria uma restrição no banco de dados que impede valores duplicados
+    # para o campo 'ordem'.
+    # =======================================================================
+    ordem = models.PositiveIntegerField(
+        default=0, 
+        unique=True, 
+        verbose_name="Ordem de Exibição",
+        help_text="Define a ordem de exibição das trilhas (menor primeiro). Cada trilha deve ter uma ordem única."
+    )
+    # =======================================================================
+    # FIM DA ALTERAÇÃO
+    # =======================================================================
 
     class Meta: 
         ordering = ['ordem', 'nome']
@@ -355,21 +371,89 @@ class TrilhaDeConquistas(models.Model):
     def __str__(self): 
         return self.nome
 
+# gamificacao/models.py
+class SerieDeConquistas(models.Model):
+    """
+    Agrupamento para conquistas que seguem uma progressão linear (Ex: Bronze, Prata, Ouro).
+    """
+    nome = models.CharField(max_length=150, unique=True, verbose_name="Nome da Série")
+    trilha = models.ForeignKey('TrilhaDeConquistas', on_delete=models.CASCADE, related_name='series')
+    descricao = models.TextField(blank=True, verbose_name="Descrição da Série")
+    ordem = models.PositiveIntegerField(default=0, help_text="Define a ordem de exibição das séries dentro da trilha.")
+
+    class Meta:
+        ordering = ['ordem', 'nome']
+        verbose_name = "Série de Conquistas"
+        verbose_name_plural = "Séries de Conquistas"
+
+    def __str__(self):
+        return self.nome
+
+# =======================================================================
+# MODELO MODIFICADO: Conquista
+# =======================================================================
+# gamificacao/models.py
 class Conquista(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(help_text="Explique o que o usuário precisa fazer para ganhar esta conquista.")
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-fire' (classes do Font Awesome)")
     cor = models.CharField(max_length=20, default='gold', help_text="Cor do ícone (ex: 'gold', '#FFD700')")
-    trilha = models.ForeignKey(TrilhaDeConquistas, on_delete=models.CASCADE, related_name='conquistas', null=True, blank=True)
+    
+    # LINHA CORRIGIDA: Adicionado null=True, blank=True para permitir a migração
+    trilha = models.ForeignKey('TrilhaDeConquistas', on_delete=models.CASCADE, related_name='conquistas', null=True, blank=True)
+    
     is_secreta = models.BooleanField(default=False, verbose_name="É uma Conquista Secreta?", help_text="Se marcado, não aparecerá na trilha até ser desbloqueada.")
+    
+    # --- NOVOS CAMPOS PARA O SISTEMA DE SÉRIES ---
+    serie = models.ForeignKey(SerieDeConquistas, on_delete=models.PROTECT, null=True, blank=True, related_name='conquistas', verbose_name="Série")
+    ordem_na_serie = models.PositiveIntegerField(default=0, db_index=True)
+    sequencia_automatica = models.BooleanField(default=False, editable=False) # Flag interna de controle
+
     pre_requisitos = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='desbloqueia', verbose_name="Pré-requisitos")
     recompensas = JSONField(default=dict, blank=True, verbose_name="Recompensas Diretas", help_text="JSON com as recompensas concedidas. Ex: {\"xp\": 100, \"moedas\": 50, \"avatares\": [1, 2]}")
     
     class Meta: 
-        ordering = ['trilha__ordem', 'nome']
+        ordering = ['trilha__ordem', 'serie__ordem', 'ordem_na_serie', 'nome']
         
     def __str__(self): 
         return self.nome
+    
+    @transaction.atomic
+    def save(self, *args, **kwargs):
+        # Lógica para garantir a integridade da série ao salvar
+        if self.serie and not self.pk: # Apenas na criação de uma nova conquista em série
+            maior_ordem = self.serie.conquistas.aggregate(max_ordem=Max('ordem_na_serie'))['max_ordem'] or 0
+            self.ordem_na_serie = maior_ordem + 1
+        
+        super().save(*args, **kwargs)
+
+        # Garante que o pré-requisito seja definido corretamente APÓS salvar
+        if self.serie and self.ordem_na_serie > 1:
+            try:
+                conquista_anterior = Conquista.objects.get(serie=self.serie, ordem_na_serie=self.ordem_na_serie - 1)
+                self.pre_requisitos.set([conquista_anterior])
+            except Conquista.DoesNotExist:
+                # Lida com a possibilidade de uma quebra na sequência, embora a lógica deva prevenir isso
+                self.pre_requisitos.clear()
+
+    @transaction.atomic
+    def delete(self, *args, **kwargs):
+        serie_a_reordenar = self.serie
+        ordem_excluida = self.ordem_na_serie
+        
+        super().delete(*args, **kwargs)
+        
+        # Se a conquista pertencia a uma série, reordena as subsequentes
+        if serie_a_reordenar and ordem_excluida > 0:
+            conquistas_posteriores = Conquista.objects.filter(
+                serie=serie_a_reordenar, 
+                ordem_na_serie__gt=ordem_excluida
+            ).order_by('ordem_na_serie')
+            
+            for i, conquista in enumerate(conquistas_posteriores):
+                nova_ordem = ordem_excluida + i
+                conquista.ordem_na_serie = nova_ordem
+                conquista.save() # Salva para acionar a lógica de pré-requisitos no .save()
 
 class ConquistaUsuario(models.Model):
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='conquistas_usuario')

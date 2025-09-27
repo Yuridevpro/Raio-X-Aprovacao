@@ -43,6 +43,22 @@
         <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha_id=trilha.id %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar para a Trilha</a>
     </div>
 
+    <!-- ======================================================================= -->
+    <!-- INÍCIO DA ADIÇÃO: Bloco de Alerta Contextual para Séries -->
+    <!-- ======================================================================= -->
+    {% if serie %}
+    <div class="alert alert-info d-flex align-items-center" role="alert">
+        <i class="fas fa-stream me-3 fs-4"></i>
+        <div>
+            Você está adicionando ou editando uma conquista dentro da série <strong>"{{ serie.nome }}"</strong>.
+            O pré-requisito sequencial será gerenciado automaticamente.
+        </div>
+    </div>
+    {% endif %}
+    <!-- ======================================================================= -->
+    <!-- FIM DA ADIÇÃO -->
+    <!-- ======================================================================= -->
+
     <form method="POST">
         {% csrf_token %}
         <div class="row g-4">
@@ -52,6 +68,16 @@
                     <div class="card-header"><h5 class="mb-0">Dados Gerais</h5></div>
                     <div class="card-body p-4">
                         {{ form_conquista.non_field_errors }}
+
+                        <!-- =========================================================== -->
+                        <!-- INÍCIO DA ADIÇÃO: Campos ocultos para trilha e série        -->
+                        <!-- =========================================================== -->
+                        {{ form_conquista.trilha }}
+                        {{ form_conquista.serie }}
+                        <!-- =========================================================== -->
+                        <!-- FIM DA ADIÇÃO                                               -->
+                        <!-- =========================================================== -->
+
                         <div class="mb-3"><label class="form-label">{{ form_conquista.nome.label }}</label>{{ form_conquista.nome }}{{ form_conquista.nome.errors }}</div>
                         <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}{{ form_conquista.descricao.errors }}</div>
                         
@@ -85,24 +111,9 @@
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_xp.label }}</label>{{ form_conquista.recompensa_xp }}</div>
                             <div class="col-md-6 mb-3"><label class="form-label">{{ form_conquista.recompensa_moedas.label }}</label>{{ form_conquista.recompensa_moedas }}</div>
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">{{ form_conquista.recompensa_avatares.label }}</label>
-                            {{ form_conquista.recompensa_avatares }}
-                            <div class="reward-picker-preview" id="preview-avatares"></div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="avatares" data-target-select-id="id_recompensa_avatares">Selecionar Avatares</button>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">{{ form_conquista.recompensa_bordas.label }}</label>
-                            {{ form_conquista.recompensa_bordas }}
-                            <div class="reward-picker-preview" id="preview-bordas"></div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="bordas" data-target-select-id="id_recompensa_bordas">Selecionar Bordas</button>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">{{ form_conquista.recompensa_banners.label }}</label>
-                            {{ form_conquista.recompensa_banners }}
-                            <div class="reward-picker-preview" id="preview-banners"></div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="banners" data-target-select-id="id_recompensa_banners">Selecionar Banners</button>
-                        </div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_avatares.label }}</label>{{ form_conquista.recompensa_avatares }}<div class="reward-picker-preview" id="preview-avatares"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="avatares" data-target-select-id="id_recompensa_avatares">Selecionar Avatares</button></div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_bordas.label }}</label>{{ form_conquista.recompensa_bordas }}<div class="reward-picker-preview" id="preview-bordas"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="bordas" data-target-select-id="id_recompensa_bordas">Selecionar Bordas</button></div>
+                        <div class="mb-3"><label class="form-label">{{ form_conquista.recompensa_banners.label }}</label>{{ form_conquista.recompensa_banners }}<div class="reward-picker-preview" id="preview-banners"></div><button type="button" class="btn btn-outline-secondary btn-sm mt-2 btn-reward-picker" data-target-modal-type="banners" data-target-select-id="id_recompensa_banners">Selecionar Banners</button></div>
                     </div>
                 </div>
             </div>
@@ -114,38 +125,10 @@
                     <div class="card-body p-4">
                         <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS.</p>
                         <div id="condicao-formset-container">
-                            <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;">
-                                <label class="form-label small text-muted">Variável</label>
-                                <label class="form-label small text-muted">Operador</label>
-                                <label class="form-label small text-muted">Valor</label>
-                                <label></label> <!-- Espaço para o botão de deletar -->
-                            </div>
+                            <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;"><label class="form-label small text-muted">Variável</label><label class="form-label small text-muted">Operador</label><label class="form-label small text-muted">Valor</label><label></label></div>
                             {{ formset_condicao.management_form }}
                             {% for form in formset_condicao.forms %}
-                                <div class="formset-row">
-                                    <div class="formset-row-wrapper">
-                                        <div class="formset-row-inner">
-                                            {{ form.id }}
-                                            {{ form.variavel }}
-                                            {{ form.operador }}
-                                            {{ form.valor }}
-                                            <!-- ALTERAÇÃO INÍCIO: Botão de exclusão manual -->
-                                            <div class="delete-checkbox-wrapper">
-                                                {{ form.DELETE }} <!-- Campo oculto original do Django -->
-                                                <button type="button" class="btn btn-sm btn-link p-0 manual-delete-btn" title="Remover Condição">
-                                                    <i class="fas fa-trash text-danger"></i>
-                                                </button>
-                                            </div>
-                                            <!-- ALTERAÇÃO FIM: Botão de exclusão manual -->
-                                        </div>
-                                        <div class="context-field">
-                                            {{ form.disciplina_contexto }}
-                                            {{ form.banca_contexto }}
-                                            {{ form.assunto_contexto }}
-                                            {{ form.dificuldade_contexto }}
-                                        </div>
-                                    </div>
-                                </div>
+                                <div class="formset-row"><div class="formset-row-wrapper"><div class="formset-row-inner">{{ form.id }}{{ form.variavel }}{{ form.operador }}{{ form.valor }}<div class="delete-checkbox-wrapper">{{ form.DELETE }}<button type="button" class="btn btn-sm btn-link p-0 manual-delete-btn" title="Remover Condição"><i class="fas fa-trash text-danger"></i></button></div></div><div class="context-field">{{ form.disciplina_contexto }}{{ form.banca_contexto }}{{ form.assunto_contexto }}{{ form.dificuldade_contexto }}</div></div></div>
                             {% endfor %}
                         </div>
                     </div>
@@ -201,12 +184,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // =======================================================================
     // SEÇÃO 1: INICIALIZAÇÃO E FUNÇÕES AUXILIARES
     // =======================================================================
-
-    /**
-     * Inicializa a biblioteca TomSelect em todos os elementos elegíveis
-     * dentro de um container específico. Evita reinicializações.
-     * @param {HTMLElement} container O elemento pai para procurar por selects.
-     */
     function initializeTomSelectIn(container) {
         container.querySelectorAll('.tom-select-single:not(.ts-hidden-accessible)').forEach(el => {
             if (!el.tomselect) new TomSelect(el, { placeholder: 'Selecione...' });
@@ -267,7 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- Execução da Lógica Principal ---
-
     const mainFormContainer = document.querySelector('.col-lg-7');
     if (mainFormContainer) {
         initializeTomSelectIn(mainFormContainer);
@@ -277,8 +253,6 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeTomSelectIn(this);
     });
 
-    // ALTERAÇÃO INÍCIO: Simplificando a inicialização do formset
-    // Removemos deleteText e deleteCssClass, pois agora controlamos o botão manualmente.
     $('#condicao-formset-container .formset-row').formset({
         prefix: '{{ formset_condicao.prefix }}',
         addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
@@ -288,30 +262,21 @@ document.addEventListener('DOMContentLoaded', function() {
             handleContextFields();
         }
     });
-    // ALTERAÇÃO FIM
 
-    // ALTERAÇÃO INÍCIO: Lógica para o botão de exclusão manual
     const formsetContainer = document.getElementById('condicao-formset-container');
-    // Usamos um 'event listener' delegado que funciona para as linhas existentes e para as novas
     formsetContainer.addEventListener('click', function(e) {
-        // Verifica se o clique foi no nosso botão de deletar ou em seu ícone
         const deleteBtn = e.target.closest('.manual-delete-btn');
-        if (!deleteBtn) return; // Se não foi, não faz nada
-
+        if (!deleteBtn) return;
         e.preventDefault();
-
         const formsetRow = deleteBtn.closest('.formset-row');
         if (formsetRow) {
             const deleteCheckbox = formsetRow.querySelector('input[type="checkbox"][name$="-DELETE"]');
             if (deleteCheckbox) {
-                // Marca o checkbox para que o Django saiba que deve deletar este item
                 deleteCheckbox.checked = true;
-                // Esconde a linha para o usuário
                 formsetRow.style.display = 'none';
             }
         }
     });
-    // ALTERAÇÃO FIM
 
     handleContextFields();
 

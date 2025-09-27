@@ -1,0 +1,37 @@
+<!-- gestao/templates/gestao/includes/_card_conquista.html -->
+<div class="card shadow-sm h-100 conquista-card" style="border-left-color: {{ conquista.cor }};">
+    <div class="card-body d-flex flex-column">
+        <div class="d-flex align-items-start mb-3">
+            <div class="conquista-icon me-3" style="background-color: {{ conquista.cor }};">
+                <i class="{{ conquista.icone|default:'fas fa-trophy' }}"></i>
+            </div>
+            <div class="flex-grow-1">
+                <h5 class="card-title mb-1">{{ conquista.nome }}</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <!-- =========================================================== -->
+                    <!-- INÍCIO DA ADIÇÃO: Badge de Passo na Sequência -->
+                    <!-- =========================================================== -->
+                    {% if is_sequencia %}
+                    <span class="step-badge">PASSO {{ step }}</span>
+                    {% endif %}
+                    <!-- =========================================================== -->
+                    <!-- FIM DA ADIÇÃO -->
+                    <!-- =========================================================== -->
+                    {% if conquista.is_secreta %}
+                        <span class="secreta-badge"><i class="fas fa-user-secret me-1"></i>SECRETA</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <p class="card-text small text-muted flex-grow-1">{{ conquista.descricao|truncatewords:25 }}</p>
+        <div class="mt-auto d-flex justify-content-end gap-2 border-top pt-3">
+            <a href="{% url 'gestao:criar_conquista' trilha_id=trilha.id %}?pre_req={{ conquista.id }}" class="btn btn-sm btn-success" title="Criar a próxima conquista desta sequência">
+                <i class="fas fa-plus"></i> Sequencial
+            </a>
+             <a href="{% url 'gestao:editar_conquista' trilha_id=trilha.id conquista_id=conquista.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+             <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_conquista' conquista.id %}" data-item-name="{{ conquista.nome }}" title="Excluir">
+                 <i class="fas fa-trash"></i>
+             </button>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,47 @@
+<!-- gestao/templates/gestao/includes/_modal_criar_serie.html -->
+<div class="modal fade" id="addSerieModal" tabindex="-1" aria-labelledby="addSerieModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addSerieModalLabel">Criar Nova Série de Conquistas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form method="POST" action="{% url 'gestao:criar_serie' trilha_id=trilha.id %}">
+            {% csrf_token %}
+            <div class="modal-body">
+                <p class="text-muted small">Uma série agrupa conquistas com progressão sequencial (Ex: Mestre das Questões: Bronze, Prata, Ouro). Após criar a série, você será direcionado para adicionar a primeira conquista.</p>
+                
+                <div class="mb-3">
+                    <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                    {{ form.nome }}
+                    {% if form.nome.errors %}
+                        <div class="invalid-feedback d-block">{{ form.nome.errors.as_text }}</div>
+                    {% endif %}
+                    <div class="form-text">{{ form.nome.help_text }}</div>
+                </div>
+  
+                <div class="mb-3">
+                    <label for="{{ form.descricao.id_for_label }}" class="form-label">{{ form.descricao.label }}</label>
+                    {{ form.descricao }}
+                    {% if form.descricao.errors %}
+                        <div class="invalid-feedback d-block">{{ form.descricao.errors.as_text }}</div>
+                    {% endif %}
+                </div>
+  
+                 <div class="mb-3">
+                    <label for="{{ form.ordem.id_for_label }}" class="form-label">{{ form.ordem.label }}</label>
+                    {{ form.ordem }}
+                    {% if form.ordem.errors %}
+                        <div class="invalid-feedback d-block">{{ form.ordem.errors.as_text }}</div>
+                    {% endif %}
+                    <div class="form-text">{{ form.ordem.help_text }}</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Criar e Adicionar 1ª Conquista</button>
+            </div>
+        </form>
+      </div>
+    </div>
+  </div>

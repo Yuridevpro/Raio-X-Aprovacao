@@ -11,6 +11,7 @@ import json
 from django.http import JsonResponse
 from django.db import transaction
 from django.views.decorators.http import require_POST
+from django.db.models import Max
 
 # Utils e Services
 from questoes.utils import paginar_itens

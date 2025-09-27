@@ -6,13 +6,14 @@ from django.forms import inlineformset_factory
 from .models import SolicitacaoExclusao
 from gamificacao.models import (
     Conquista, GamificationSettings, Campanha, Avatar, Borda, Banner,
-    TrilhaDeConquistas, TipoDesbloqueio, VariavelDoJogo, Condicao
+    TrilhaDeConquistas, TipoDesbloqueio, VariavelDoJogo, Condicao, SerieDeConquistas
 )
 from simulados.models import Simulado, StatusSimulado, NivelDificuldade
 from questoes.models import Questao, Disciplina, Banca, Assunto, Instituicao
 import json
 from gamificacao.services import _obter_valor_variavel 
 import inspect
+from django.db.models import Max
 
 # =======================================================================
 # FORMULÁRIOS DE CONFIGURAÇÃO E GESTÃO GERAL
@@ -220,8 +221,13 @@ class BannerForm(RecompensaBaseForm):
 # FORMULÁRIOS DE TRILHAS, CONQUISTAS E CONDIÇÕES
 # =======================================================================
 
+# gestao/forms.py
+
 class TrilhaDeConquistasForm(forms.ModelForm):
-    """ Formulário para criar e editar Trilhas de Conquistas. """
+    """
+    Formulário para criar e editar Trilhas de Conquistas, com validação
+    para garantir que o campo 'ordem' seja sempre único.
+    """
     class Meta:
         model = TrilhaDeConquistas
         fields = ['nome', 'descricao', 'icone', 'ordem']
@@ -234,48 +240,119 @@ class TrilhaDeConquistasForm(forms.ModelForm):
         help_texts = {
             'nome': 'O nome da categoria principal de conquistas. Ex: "Jornada do Conhecimento", "Mestre dos Simulados".',
             'icone': 'Use uma classe do Font Awesome para representar a trilha visualmente. Ex: "fas fa-road".',
-            'ordem': 'Um número menor aparecerá primeiro na lista de trilhas.',
+        }
+    
+    def clean_ordem(self):
+        """
+        Validação customizada para o campo 'ordem'.
+        Verifica se a ordem já está em uso por outra trilha.
+        """
+        ordem = self.cleaned_data.get('ordem')
+        
+        # Cria a consulta base para verificar duplicatas
+        queryset = TrilhaDeConquistas.objects.filter(ordem=ordem)
+        
+        # Se estiver editando uma trilha existente (self.instance.pk existe),
+        # devemos excluí-la da verificação para que ela não conflite consigo mesma.
+        if self.instance and self.instance.pk:
+            queryset = queryset.exclude(pk=self.instance.pk)
+        
+        # Se, após as exclusões, ainda existir alguma trilha com essa ordem, é um erro.
+        if queryset.exists():
+            trilha_existente = queryset.first()
+            
+            # Busca a próxima ordem livre para sugerir uma solução ao admin
+            max_ordem = TrilhaDeConquistas.objects.all().aggregate(Max('ordem'))['ordem__max'] or 0
+            proxima_ordem_sugerida = max_ordem + 1
+
+            # Levanta o erro de validação com uma mensagem clara e útil
+            raise forms.ValidationError(
+                f"A ordem '{ordem}' já está em uso pela trilha '{trilha_existente.nome}'. "
+                f"Por favor, utilize um número diferente. A próxima ordem livre sugerida é {proxima_ordem_sugerida}."
+            )
+            
+        return ordem
+
+class SerieDeConquistasForm(forms.ModelForm):
+    """ Formulário para criar e editar Séries de Conquistas. """
+    class Meta:
+        model = SerieDeConquistas
+        fields = ['nome', 'descricao', 'ordem']
+        widgets = {
+            'nome': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'ordem': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+        help_texts = {
+            'nome': 'O nome do agrupamento. Ex: "Jornada do Conhecimento", "Mestre dos Simulados".',
+            'ordem': 'Um número menor aparecerá primeiro na lista de séries da trilha.',
         }
 
-# gestao/forms.py
-
-# gestao/forms.py
+# =======================================================================
+# FORMULÁRIO MODIFICADO: ConquistaForm
+# =======================================================================
 class ConquistaForm(forms.ModelForm):
     """ Formulário principal para criar e editar uma Conquista. """
     recompensa_xp = forms.IntegerField(label="XP Extra", required=False, widget=forms.NumberInput(attrs={'class': 'form-control'}))
     recompensa_moedas = forms.IntegerField(label="Moedas Extras", required=False, widget=forms.NumberInput(attrs={'class': 'form-control'}))
-    # =======================================================================
-    # INÍCIO DA ALTERAÇÃO: Ocultando os selects padrão
-    # =======================================================================
     recompensa_avatares = forms.ModelMultipleChoiceField(queryset=Avatar.objects.all(), required=False, label="Avatares", widget=forms.SelectMultiple(attrs={'class': 'd-none'}))
     recompensa_bordas = forms.ModelMultipleChoiceField(queryset=Borda.objects.all(), required=False, label="Bordas", widget=forms.SelectMultiple(attrs={'class': 'd-none'}))
     recompensa_banners = forms.ModelMultipleChoiceField(queryset=Banner.objects.all(), required=False, label="Banners", widget=forms.SelectMultiple(attrs={'class': 'd-none'}))
-    # =======================================================================
-    # FIM DA ALTERAÇÃO
-    # =======================================================================
-
+    
     class Meta:
         model = Conquista
-        fields = ['nome', 'descricao', 'icone', 'cor', 'is_secreta', 'pre_requisitos']
+        fields = ['nome', 'descricao', 'icone', 'cor', 'is_secreta', 'pre_requisitos', 'trilha', 'serie']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
             'icone': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ex: fas fa-fire'}),
-            # Alterado para um input de texto simples para funcionar com o color picker JS
             'cor': forms.TextInput(attrs={'class': 'form-control form-control-color-text', 'type': 'text'}),
             'is_secreta': forms.CheckboxInput(attrs={'class': 'form-check-input', 'role': 'switch'}),
             'pre_requisitos': forms.SelectMultiple(attrs={'class': 'form-select tom-select-multiple'}),
+            'trilha': forms.HiddenInput(), # Oculto, será gerenciado pela view
+            'serie': forms.HiddenInput(),  # Oculto, será gerenciado pela view
         }
         help_texts = { 'is_secreta': 'Se marcado, a conquista não será visível para o usuário até que ele a desbloqueie.', 'pre_requisitos': 'O usuário precisa ter desbloqueado todas as conquistas selecionadas aqui ANTES de poder ganhar esta.'}
 
     def __init__(self, *args, **kwargs):
-        trilha = kwargs.pop('trilha', None)
+        # Parâmetros de contexto passados pela view
+        self.trilha = kwargs.pop('trilha', None)
+        self.serie = kwargs.pop('serie', None)
+        self.previous_conquista = kwargs.pop('previous_conquista', None)
+
         super().__init__(*args, **kwargs)
-        if not self.instance.pk and not self.initial.get('cor'): self.initial['cor'] = '#0D6EFD'
-        if trilha:
-            queryset = Conquista.objects.filter(trilha=trilha)
-            if self.instance and self.instance.pk: queryset = queryset.exclude(pk=self.instance.pk)
+
+        # 1. Configura o queryset dos pré-requisitos para mostrar apenas conquistas da mesma trilha
+        if self.trilha:
+            queryset = Conquista.objects.filter(trilha=self.trilha, serie__isnull=True) # Apenas individuais
+            if self.instance and self.instance.pk: 
+                queryset = queryset.exclude(pk=self.instance.pk)
             self.fields['pre_requisitos'].queryset = queryset
+        
+        # 2. Lógica para o fluxo de criação sequencial
+        if self.serie:
+            # Preenche os campos ocultos com os valores corretos
+            self.fields['trilha'].initial = self.serie.trilha_id
+            self.fields['serie'].initial = self.serie.id
+            
+            if self.previous_conquista:
+                # É uma nova conquista na sequência
+                self.instance.sequencia_automatica = True
+                self.fields['pre_requisitos'].queryset = Conquista.objects.filter(pk=self.previous_conquista.pk)
+                self.fields['pre_requisitos'].initial = [self.previous_conquista.pk]
+                self.fields['pre_requisitos'].disabled = True
+                self.fields['pre_requisitos'].help_text = "Pré-requisito definido automaticamente pela sequência da série."
+                
+                # Herda as condições para facilitar
+                condicoes_herdadas = self.previous_conquista.condicoes.all()
+                self.initial['condicoes'] = condicoes_herdadas
+
+        # 3. Lógica para edição de uma conquista já em série
+        elif self.instance.pk and self.instance.serie:
+            self.fields['pre_requisitos'].disabled = True
+            self.fields['pre_requisitos'].help_text = "Pré-requisito definido automaticamente pela sequência da série."
+
+        # 4. Popula os campos de recompensa se a instância já existir
         if self.instance and self.instance.pk and self.instance.recompensas:
             recompensas = self.instance.recompensas
             self.fields['recompensa_xp'].initial = recompensas.get('xp')
@@ -283,6 +360,22 @@ class ConquistaForm(forms.ModelForm):
             self.fields['recompensa_avatares'].initial = Avatar.objects.filter(id__in=recompensas.get('avatares', []))
             self.fields['recompensa_bordas'].initial = Borda.objects.filter(id__in=recompensas.get('bordas', []))
             self.fields['recompensa_banners'].initial = Banner.objects.filter(id__in=recompensas.get('banners', []))
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        
+        # Garante que trilha e série sejam salvas corretamente a partir do contexto
+        if self.serie:
+            instance.serie = self.serie
+            instance.trilha = self.serie.trilha
+        elif self.trilha:
+            instance.trilha = self.trilha
+            
+        if commit:
+            instance.save()
+            self.save_m2m() # Salva o ManyToMany de pré-requisitos
+        
+        return instance
 
 class CondicaoForm(forms.ModelForm):
     """ Formulário para uma única condição, com campos de contexto e widgets padronizados. """

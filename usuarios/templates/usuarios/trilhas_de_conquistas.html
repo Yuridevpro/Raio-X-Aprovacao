@@ -6,104 +6,220 @@
 
 {% block head %}
 <style>
-    /* ======================================================================= */
-    /* ✅ INÍCIO DA ATUALIZAÇÃO: DESIGN RESPONSIVO E REFINADO
-    /* ======================================================================= */
-    .trilha-card {
-        border-left: 4px solid var(--cor-primaria);
-        overflow: hidden; /* Garante que os cantos arredondados sejam respeitados */
+    :root {
+        --connector-color: #e9ecef;
     }
-    
-    .sequencia-wrapper {
+
+    .filter-container {
+        background-color: var(--cor-fundo-body);
+        padding-bottom: 1rem;
+        z-index: 100;
+    }
+    .accordion-item {
+        border: 1px solid var(--cor-borda);
+        margin-bottom: 2rem;
+        border-radius: var(--raio-borda) !important;
+        overflow: visible;
         position: relative;
-        padding: 1.5rem 1rem; /* Padding horizontal reduzido para mobile */
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .accordion-button {
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .accordion-button:not(.collapsed) {
+        color: var(--cor-primaria);
+        background-color: #eef5ff;
+        box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .125);
+    }
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(74, 144, 226, 0.25);
+    }
+
+    .sequencia-wrapper, .individuais-wrapper {
+        position: relative;
+        padding: 2rem 1rem 1rem 1rem;
         border: 1px solid var(--cor-borda);
         border-radius: var(--raio-borda);
         margin-bottom: 2rem;
+        background: linear-gradient(145deg, #ffffff, #f8f9fa);
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     }
-    .sequencia-wrapper::before {
-        content: 'SEQUÊNCIA DE CONQUISTAS';
-        position: absolute; top: -12px; left: 20px;
-        background-color: #fff; padding: 0 10px; font-size: 0.8rem;
-        font-weight: 600; color: var(--cor-secundaria);
+    .sequencia-wrapper::before, .individuais-wrapper::before {
+        content: attr(data-title);
+        position: absolute;
+        top: -12px;
+        left: 20px;
+        background-color: #fff;
+        padding: 0 10px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--cor-secundaria);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-radius: 4px;
+        z-index: 3;
     }
-    
-    /* Conector da sequência para telas maiores */
-    .sequencia-connector {
-        position: absolute; left: 45px; top: 80px;
-        bottom: 80px; width: 4px; background-color: #e9ecef; z-index: 1;
-    }
-    
-    .conquista-node {
-        display: flex; align-items: center; padding: 1rem;
-        border: 1px solid transparent; border-radius: 0.5rem;
-        position: relative; background-color: #fff; z-index: 2;
-        transition: all 0.3s ease;
-    }
-    .conquista-node:not(:last-child) { margin-bottom: 1.5rem; }
 
-    /* Estilos de Status */
-    .conquista-node.unlocked { background-color: #f8f9fa; border-color: #dee2e6; }
-    .conquista-node.available { border-color: var(--cor-info); box-shadow: 0 4px 15px rgba(3, 169, 244, 0.2); }
-    .conquista-node.locked { background-color: #f8f9fa; border-color: #dee2e6; filter: grayscale(90%); opacity: 0.7; cursor: not-allowed; }
-    .conquista-node.locked:hover { transform: none; box-shadow: none; }
-    
-    .step-indicator {
-        position: absolute; top: 10px; left: 10px; /* Movido para o canto */
-        width: 28px; height: 28px; border-radius: 50%;
-        background-color: #6c757d; color: white; font-weight: bold;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0; z-index: 3;
+    .sequencia-descricao, .individuais-descricao {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+        margin-top: -0.25rem;
     }
-    .unlocked .step-indicator { background-color: var(--cor-sucesso); }
-    .available .step-indicator { background-color: var(--cor-info); }
+
+    .sequencia-svg {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 1;
+    }
+    .sequencia-list {
+        position: relative;
+        z-index: 2;
+    }
+
+    .conquista-entry {
+        margin-bottom: 1.25rem;
+    }
+
+    .conquista-node {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border: 1px solid transparent;
+        border-radius: 0.75rem;
+        position: relative;
+        background-color: #fff;
+        z-index: 2;
+        transition: all 0.25s ease, transform 0.25s ease;
+        box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    }
+    .conquista-node.unlocked {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+    }
+    .conquista-node.available {
+        border-color: var(--cor-info);
+        box-shadow: 0 6px 20px rgba(3, 169, 244, 0.08);
+        transform: translateY(-2px);
+    }
+    .conquista-node.locked {
+        background-color: #f8f9fa;
+        border-color: #dee2e6;
+        filter: grayscale(90%);
+        opacity: 0.85;
+        cursor: not-allowed;
+    }
+
+    .step-indicator {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: #6c757d;
+        color: white;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: background-color 0.3s ease;
+        z-index: 3;
+    }
+    .conquista-node.unlocked .step-indicator {
+        background-color: var(--cor-sucesso);
+    }
+    .conquista-node.available .step-indicator {
+        background-color: var(--cor-info);
+    }
 
     .conquista-icon-wrapper {
-        flex-shrink: 0; width: 50px; height: 50px; display: flex; align-items: center;
-        justify-content: center; border-radius: 50%; font-size: 1.5rem; margin-right: 1rem; color: white;
+        flex-shrink: 0;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 1.25rem;
+        color: white;
+        transition: transform 0.25s ease, opacity 0.25s ease;
+        z-index: 3;
     }
-    .unlocked .conquista-icon-wrapper { opacity: 0.7; }
-    .available .conquista-icon-wrapper { background-color: var(--cor-info); }
-    .locked .conquista-icon-wrapper { background-color: #e9ecef; color: #6c757d; }
-    
-    /* Garante que o texto quebre a linha corretamente */
+    .conquista-node.unlocked .conquista-icon-wrapper {
+        opacity: 0.8;
+    }
+    .conquista-node.available .conquista-icon-wrapper {
+        transform: scale(1.04);
+    }
+    .conquista-node.locked .conquista-icon-wrapper {
+        background-color: #e9ecef;
+        color: #6c757d;
+    }
+
     .conquista-details {
         overflow-wrap: break-word;
-        word-wrap: break-word;
         word-break: break-word;
     }
+    .progress {
+        height: 8px;
+    }
+    .conquista-recompensas {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px dashed #ced4da;
+    }
+    .recompensa-icon {
+        width: 35px;
+        height: 35px;
+        border-radius: 50%;
+        border: 2px solid white;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        cursor: pointer;
+        transition: transform 0.15s ease;
+    }
+    .recompensa-icon:hover {
+        transform: scale(1.12);
+        z-index: 10;
+    }
 
-    .progress { height: 8px; }
-    .conquista-recompensas { margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px dashed #ced4da; }
-    .locked .conquista-recompensas { opacity: 0.6; }
-    .recompensa-icon { width: 35px; height: 35px; border-radius: 50%; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); cursor: pointer; transition: transform 0.2s ease; }
-    .recompensa-icon:hover { transform: scale(1.15); z-index: 10; }
-    .modal-recompensa-img { width: 150px; height: 150px; }
+    .unlock-conditions ul {
+        padding-left: 0;
+        list-style-position: inside;
+    }
+    .unlock-conditions li {
+        padding: 2px 0;
+    }
 
-    /* --- MEDIA QUERY PARA MOBILE --- */
+    .modal-recompensa-img {
+        width: 150px;
+        height: 150px;
+    }
+
     @media (max-width: 767px) {
-        .sequencia-connector {
-            /* Conector vertical para mobile */
-            left: 50%; transform: translateX(-50%);
-            top: 40px; bottom: 40px; width: 4px;
-        }
         .conquista-node {
-            /* Layout vertical no mobile */
             flex-direction: column;
             text-align: center;
+            gap: 0.5rem;
         }
-        .conquista-icon-wrapper {
-            margin-right: 0;
-            margin-bottom: 0.75rem; /* Espaço entre ícone e texto */
+        .conquista-node .conquista-details {
+            width: 100%;
         }
-        .step-indicator {
-            top: -10px; /* Posiciona o indicador sobre o card */
-            left: -10px;
+        .sequencia-svg path {
+            stroke-width: 3;
         }
     }
-    /* ======================================================================= */
-    /* FIM DA ATUALIZAÇÃO
-    /* ======================================================================= */
+
+    .sequencia-svg path {
+        stroke: var(--connector-color);
+        stroke-width: 4;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+    }
 </style>
 {% endblock %}
 
@@ -114,47 +230,95 @@
             <h2 class="h3 mb-0">Minha Coleção</h2>
             <p class="text-muted">Acompanhe seu progresso e veja as próximas conquistas a serem desbloqueadas.</p>
         </div>
-        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil</a>
+        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Voltar ao Perfil
+        </a>
     </div>
 
-    {% include 'usuarios/includes/_colecao_submenu.html' with active_tab=active_tab %}
+    {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='trilhas_de_conquistas' %}
 
-    {% for trilha in trilhas %}
-    <div class="card shadow-sm mb-4 trilha-card">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="{{ trilha.icone }} me-2 text-primary"></i>{{ trilha.nome }}</h5>
+    <div class="filter-container">
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" id="trilhaSearchInput" class="form-control" placeholder="Buscar por nome da trilha ou conquista...">
         </div>
-        <div class="card-body p-lg-4 p-3">
-            <p class="text-muted">{{ trilha.descricao }}</p>
-            
-            {% for sequencia in trilha.sequencias %}
-            <div class="sequencia-wrapper">
-                <div class="sequencia-connector d-none d-md-block"></div> {# Conector horizontal só em telas maiores #}
-                <div class="sequencia-connector d-md-none"></div>      {# Conector vertical só em telas menores #}
-                {% for conquista in sequencia %}
-                    {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=forloop.counter %}
-                {% endfor %}
+    </div>
+    
+    <div class="accordion" id="trilhasAccordion">
+        {% for trilha in trilhas %}
+        <div class="accordion-item" data-trilha-nome="{{ trilha.nome|lower }}">
+            <h2 class="accordion-header" id="heading-{{ trilha.id }}">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ trilha.id }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse-{{ trilha.id }}">
+                    <i class="{{ trilha.icone }} me-2"></i>{{ trilha.nome }}
+                </button>
+            </h2>
+            <div id="collapse-{{ trilha.id }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="heading-{{ trilha.id }}" data-bs-parent="#trilhasAccordion">
+                <div class="accordion-body p-lg-4 p-3">
+                    <p class="text-muted border-bottom pb-3 mb-4">{{ trilha.descricao }}</p>
+                    
+                    {% for serie in trilha.sequencias_com_titulo %}
+                    <div class="sequencia-wrapper" data-title="SÉRIE: {{ serie.titulo|upper }}">
+                        {% if serie.descricao %}
+                            <p class="sequencia-descricao">{{ serie.descricao }}</p>
+                        {% endif %}
+                        <svg class="sequencia-svg" preserveAspectRatio="none" aria-hidden="true"></svg>
+
+                        <div class="sequencia-list">
+                            {% for conquista in serie.conquistas %}
+                            <div class="conquista-entry" data-conquista-nome="{{ conquista.nome|lower }}">
+                                {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=forloop.counter %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+        
+                    {% if trilha.conquistas_individuais %}
+                        <div class="individuais-wrapper" data-title="CONQUISTAS INDIVIDUAIS">
+                            {% if trilha.descricao_individuais %}
+                                <p class="individuais-descricao">{{ trilha.descricao_individuais }}</p>
+                            {% endif %}
+                            <div class="row g-3 conquistas-individuais-grid">
+                            {% for conquista in trilha.conquistas_individuais %}
+                                <div class="col-12" data-conquista-nome="{{ conquista.nome|lower }}">
+                                     {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=None %}
+                                </div>
+                            {% endfor %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endfor %}
-
-            {% for conquista in trilha.conquistas_individuais %}
-                {% include 'usuarios/includes/_conquista_node.html' with conquista=conquista step=None %}
-            {% endfor %}
         </div>
+        {% empty %}
+        <div class="card card-body text-center py-5">
+            <i class="fas fa-road fa-3x text-muted mb-3"></i>
+            <h4 class="h5">Nenhuma trilha de conquistas disponível</h4>
+            <p class="text-muted">Fique de olho! Novas jornadas serão adicionadas em breve.</p>
+        </div>
+        {% endfor %}
     </div>
-    {% empty %}
-    <div class="card card-body text-center py-5">
-        <i class="fas fa-road fa-3x text-muted mb-3"></i>
-        <h4 class="h5">Nenhuma trilha de conquistas disponível</h4>
-        <p class="text-muted">Fique de olho! Novas jornadas serão adicionadas em breve.</p>
+    <div id="noResultsMessage" class="card card-body text-center py-5" style="display: none;">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h4 class="h5">Nenhuma trilha encontrada</h4>
+        <p class="text-muted">Tente um termo de busca diferente.</p>
     </div>
-    {% endfor %}
 </div>
 
-<!-- Modal Reutilizável para Recompensas -->
 <div class="modal fade" id="recompensaModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content"><div class="modal-header border-0"><h5 class="modal-title" id="recompensaModalLabel">Detalhes da Recompensa</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body text-center"><img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa"><h4 id="modalNome" class="fw-bold"></h4><p id="modalDescricao" class="text-muted"></p><span id="modalRaridade" class="badge"></span></div></div>
+        <div class="modal-content">
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="recompensaModalLabel">Detalhes da Recompensa</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="" id="modalImagem" class="modal-recompensa-img rounded-circle mb-3" alt="Recompensa">
+                <h4 id="modalNome" class="fw-bold"></h4>
+                <p id="modalDescricao" class="text-muted"></p>
+                <span id="modalRaridade" class="badge"></span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -183,6 +347,138 @@ document.addEventListener('DOMContentLoaded', function () {
       recompensaModal.querySelector('#modalImagem').src = imagem;
       recompensaModal.querySelector('#modalRaridade').className = 'badge ' + raridadeClasse;
     });
+  }
+
+  /* -------------------------
+     Funções para desenhar SVG
+     ------------------------- */
+  function drawConnectorForWrapper(wrapper) {
+    const svg = wrapper.querySelector('.sequencia-svg');
+    if (!svg) return;
+
+    // =======================================================================
+    // INÍCIO DA CORREÇÃO: Verifica se há um filtro ativo
+    // =======================================================================
+    const searchInput = document.getElementById('trilhaSearchInput');
+    const isFiltering = searchInput && searchInput.value.trim() !== '';
+
+    // Se estiver filtrando, limpa o SVG e para a execução
+    if (isFiltering) {
+        svg.innerHTML = '';
+        return;
+    }
+    // =======================================================================
+    // FIM DA CORREÇÃO
+    // =======================================================================
+
+    const nodes = Array.from(wrapper.querySelectorAll('.conquista-entry .conquista-node'))
+                      .filter(n => window.getComputedStyle(n).display !== 'none');
+
+    if (!nodes || nodes.length < 2) {
+      svg.innerHTML = '';
+      return;
+    }
+
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const width = Math.max(1, Math.floor(wrapperRect.width));
+    const height = Math.max(1, Math.floor(wrapperRect.height));
+
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    const points = [];
+    nodes.forEach(node => {
+      const icon = node.querySelector('.conquista-icon-wrapper') || node.querySelector('.step-indicator') || node;
+      const rect = icon.getBoundingClientRect();
+      const cx = rect.left - wrapperRect.left + rect.width / 2;
+      const cy = rect.top - wrapperRect.top + rect.height / 2;
+      points.push({ x: cx, y: cy });
+    });
+
+    let d = '';
+    points.forEach((p, i) => {
+      if (i === 0) d += `M ${p.x} ${p.y}`;
+      else d += ` L ${p.x} ${p.y}`;
+    });
+
+    svg.innerHTML = `<path d="${d}" fill="none" stroke="var(--connector-color)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>`;
+  }
+
+  function redrawAllConnectors() {
+    const wrappers = document.querySelectorAll('.sequencia-wrapper');
+    wrappers.forEach(wrap => drawConnectorForWrapper(wrap));
+  }
+
+  let redrawTimeout = null;
+  function scheduleRedraw(delay = 120) {
+    if (redrawTimeout) clearTimeout(redrawTimeout);
+    redrawTimeout = setTimeout(() => {
+      redrawAllConnectors();
+      redrawTimeout = null;
+    }, delay);
+  }
+
+  window.addEventListener('resize', function () {
+    scheduleRedraw(120);
+  });
+
+  const trilhasAccordion = document.getElementById('trilhasAccordion');
+  if (trilhasAccordion) {
+    trilhasAccordion.addEventListener('shown.bs.collapse', function () { scheduleRedraw(40); });
+    trilhasAccordion.addEventListener('hidden.bs.collapse', function () { scheduleRedraw(40); });
+  }
+
+  scheduleRedraw(80);
+
+  /* -------------------------
+     Busca / filtro
+     ------------------------- */
+  const searchInput = document.getElementById('trilhaSearchInput');
+  const accordion = document.getElementById('trilhasAccordion');
+  const allTrilhas = accordion ? Array.from(accordion.querySelectorAll('.accordion-item')) : [];
+  const noResultsMessage = document.getElementById('noResultsMessage');
+
+  if (searchInput) {
+      searchInput.addEventListener('input', function() {
+          const searchTerm = this.value.toLowerCase().trim();
+          let visibleTrilhasCount = 0;
+
+          allTrilhas.forEach(trilhaItem => {
+              const trilhaNome = trilhaItem.dataset.trilhaNome || '';
+              const conquistas = trilhaItem.querySelectorAll('[data-conquista-nome]');
+              let isTrilhaVisible = false;
+
+              if (searchTerm === '' || trilhaNome.includes(searchTerm)) {
+                  isTrilhaVisible = true;
+                  conquistas.forEach(conq => conq.style.display = '');
+              } else {
+                  let visibleConquistasCount = 0;
+                  conquistas.forEach(conq => {
+                      const conqNome = (conq.dataset.conquistaNome || '').toLowerCase();
+                      if (conqNome.includes(searchTerm)) {
+                          conq.style.display = '';
+                          visibleConquistasCount++;
+                      } else {
+                          conq.style.display = 'none';
+                      }
+                  });
+
+                  if (visibleConquistasCount > 0) {
+                      isTrilhaVisible = true;
+                  }
+              }
+              
+              trilhaItem.style.display = isTrilhaVisible ? '' : 'none';
+              if (isTrilhaVisible) visibleTrilhasCount++;
+          });
+
+          if(noResultsMessage) {
+              noResultsMessage.style.display = visibleTrilhasCount === 0 ? 'block' : 'none';
+          }
+
+          scheduleRedraw(40);
+      });
   }
 });
 </script>

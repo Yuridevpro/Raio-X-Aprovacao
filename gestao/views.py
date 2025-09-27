@@ -33,7 +33,7 @@ import markdown
 from django.db.models import F, Value, Case, When, CharField
 from django.db.models.functions import Concat
 from django.conf import settings
-
+from django.db.models import JSONField, Max
 
 # -----------------------------------------------------------------------
 # 3. Importações de Outros Apps do Projeto
@@ -43,10 +43,11 @@ from gamificacao.models import (
     Avatar, AvatarUsuario, Banner, BannerUsuario, Borda, BordaUsuario, Campanha, 
     Conquista, ConquistaUsuario, GamificationSettings, MetaDiariaUsuario, 
     ProfileGamificacao, RankingMensal, RankingSemanal, RecompensaPendente, 
-    RecompensaUsuario, TarefaAgendadaLog, TrilhaDeConquistas,
+    RecompensaUsuario, TarefaAgendadaLog, TrilhaDeConquistas, SerieDeConquistas,
     # NOVOS MODELOS DA ARQUITETURA DATA-DRIVEN
     VariavelDoJogo, Condicao
 )
+
 
 # App 'pratica'
 from pratica.models import Comentario, Notificacao
@@ -73,6 +74,7 @@ from .forms import (
     TrilhaDeConquistasForm, ConquistaForm, CondicaoFormSet, VariavelDoJogoForm,
     AvatarForm, BordaForm, BannerForm, CampanhaForm, 
     GamificationSettingsForm, ConcessaoManualForm,
+    SerieDeConquistasForm,
     
     # Formulários de Simulados
     SimuladoForm, SimuladoMetaForm, SimuladoWizardForm,
@@ -2123,30 +2125,56 @@ def api_contar_questoes_filtro(request):
         return JsonResponse({'status': 'error', 'message': 'Filtros inválidos.'}, status=400)
     
     
+# gestao/views.py
+
+# gestao/views.py
+
+# gestao/views.py
+
+# gestao/views.py
+
+# gestao/views.py
+
 @user_passes_test(is_staff_member)
 @login_required
 def gerenciar_conquistas_da_trilha(request, trilha_id):
     """
-    Exibe todas as conquistas de uma trilha específica, agora com paginação.
+    Exibe todas as conquistas e séries de uma trilha específica, agrupadas.
+    Agora, calcula a próxima ordem disponível para uma nova série.
     """
     trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
-    conquistas_list = trilha.conquistas.all().order_by('nome')
     
-    # Adicionando paginação
-    page_obj, page_numbers, per_page = paginar_itens(request, conquistas_list, items_per_page=9) # 9 cards por página
+    series_da_trilha = trilha.series.prefetch_related(
+        Prefetch('conquistas', queryset=Conquista.objects.order_by('ordem_na_serie'))
+    ).order_by('ordem', 'nome')
+
+    conquistas_individuais_list = trilha.conquistas.filter(serie__isnull=True).order_by('nome')
     
+    page_obj, page_numbers, per_page = paginar_itens(request, conquistas_individuais_list, items_per_page=9)
+    
+    # =======================================================================
+    # INÍCIO DA ADIÇÃO: Lógica para sugerir a próxima ordem da série
+    # =======================================================================
+    # Calcula a próxima ordem livre para sugerir no formulário de criação de série.
+    max_ordem = trilha.series.all().aggregate(Max('ordem'))['ordem__max'] or 0
+    proxima_ordem_sugerida = max_ordem + 1
+    serie_form = SerieDeConquistasForm(initial={'ordem': proxima_ordem_sugerida})
+    # =======================================================================
+    # FIM DA ADIÇÃO
+    # =======================================================================
+
     context = {
         'trilha': trilha,
-        'conquistas': page_obj, # Passando o objeto paginado para o template
+        'series': series_da_trilha,
+        'conquistas_individuais': page_obj,
         'paginated_object': page_obj,
         'page_numbers': page_numbers,
         'per_page': per_page,
+        'serie_form': serie_form,
         'active_tab': 'trilhas',
         'titulo': f'Gerenciando Conquistas da Trilha: {trilha.nome}'
     }
     return render(request, 'gestao/gerenciar_conquistas_da_trilha.html', context)
-
-
 
 def _get_recompensas_with_full_urls(model):
     """
@@ -2172,23 +2200,40 @@ def _get_recompensas_with_full_urls(model):
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
-def criar_ou_editar_conquista(request, trilha_id, conquista_id=None):
+def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_conquista_id=None, conquista_id=None):
     """
-    Processa o formulário para criar ou editar uma Conquista, incluindo
-    suas condições (CondicaoFormSet) e recompensas associadas.
+    View unificada e contextual para criar ou editar uma Conquista.
+    Agora, implementa a herança de condições para conquistas sequenciais.
     """
-    trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
+    trilha = None
+    serie = get_object_or_404(SerieDeConquistas, id=serie_id) if serie_id else None
+    previous_conquista = get_object_or_404(Conquista, id=previous_conquista_id) if previous_conquista_id else None
     instancia = get_object_or_404(Conquista, id=conquista_id) if conquista_id else None
+
+    if instancia:
+        trilha = instancia.trilha
+    elif serie:
+        trilha = serie.trilha
+    elif trilha_id:
+        trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
+
+    if not trilha:
+        messages.error(request, "Não foi possível determinar a trilha para esta operação.")
+        return redirect('gestao:listar_trilhas')
+
+    if serie and serie.trilha != trilha:
+        messages.error(request, "Inconsistência de dados: A série não pertence à trilha especificada.")
+        return redirect('gestao:listar_trilhas')
     
+    form_kwargs = {'trilha': trilha, 'serie': serie, 'previous_conquista': previous_conquista}
+
     if request.method == 'POST':
-        form_conquista = ConquistaForm(request.POST, instance=instancia, trilha=trilha)
+        form_conquista = ConquistaForm(request.POST, instance=instancia, **form_kwargs)
         formset_condicao = CondicaoFormSet(request.POST, instance=instancia, prefix='condicao')
         
         if form_conquista.is_valid() and formset_condicao.is_valid():
             conquista = form_conquista.save(commit=False)
-            conquista.trilha = trilha
             
-            # Monta o dicionário de recompensas a partir do formulário
             recompensas = {
                 'xp': form_conquista.cleaned_data.get('recompensa_xp'), 
                 'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
@@ -2196,31 +2241,58 @@ def criar_ou_editar_conquista(request, trilha_id, conquista_id=None):
                 'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')],
                 'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
             }
-            # Remove chaves vazias ou nulas antes de salvar no JSONField
             conquista.recompensas = {k: v for k, v in recompensas.items() if v}
             
             conquista.save()
-            form_conquista.save_m2m() # Salva relações ManyToMany, como pré-requisitos
+            form_conquista.save_m2m() 
 
-            # Salva o formset de condições associado à conquista
             formset_condicao.instance = conquista
             formset_condicao.save()
             
             messages.success(request, f'Conquista "{conquista.nome}" salva com sucesso!')
-            return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha.id)
+            return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=conquista.trilha.id)
     else:
-        form_conquista = ConquistaForm(instance=instancia, trilha=trilha)
-        formset_condicao = CondicaoFormSet(instance=instancia, prefix='condicao')
+        form_conquista = ConquistaForm(instance=instancia, **form_kwargs)
+        
+        # =======================================================================
+        # INÍCIO DA ADIÇÃO: Lógica para herdar as condições
+        # =======================================================================
+        initial_formset_data = []
+        if previous_conquista:
+            condicoes_herdadas = previous_conquista.condicoes.all()
+            for cond in condicoes_herdadas:
+                initial_dict = {
+                    'variavel': cond.variavel,
+                    'operador': cond.operador,
+                    'valor': cond.valor,
+                }
+                # Popula os campos de contexto se existirem no JSON
+                if cond.contexto_json:
+                    if disc_id := cond.contexto_json.get('disciplina_id'): initial_dict['disciplina_contexto'] = disc_id
+                    if banca_id := cond.contexto_json.get('banca_id'): initial_dict['banca_contexto'] = banca_id
+                    if assunto_id := cond.contexto_json.get('assunto_id'): initial_dict['assunto_contexto'] = assunto_id
+                    if dif := cond.contexto_json.get('dificuldade'): initial_dict['dificuldade_contexto'] = dif
+                initial_formset_data.append(initial_dict)
+        
+        formset_condicao = CondicaoFormSet(instance=instancia, prefix='condicao', initial=initial_formset_data)
+        # =======================================================================
+        # FIM DA ADIÇÃO
+        # =======================================================================
 
-    titulo = f'Editando: {instancia.nome}' if instancia else f'Nova Conquista para a Trilha "{trilha.nome}"'
+    if instancia:
+        titulo = f'Editando: {instancia.nome}'
+    elif serie:
+        titulo = f'Nova Conquista para a Série "{serie.nome}"'
+    else:
+        titulo = f'Nova Conquista Individual para a Trilha "{trilha.nome}"'
     
     context = {
         'form_conquista': form_conquista,
         'formset_condicao': formset_condicao,
         'trilha': trilha,
+        'serie': instancia.serie if instancia else serie,
         'titulo': titulo,
         'active_tab': 'trilhas',
-        # CORREÇÃO: Utilizando a função auxiliar para garantir URLs completas
         'avatares_disponiveis': _get_recompensas_with_full_urls(Avatar),
         'bordas_disponiveis': _get_recompensas_with_full_urls(Borda),
         'banners_disponiveis': _get_recompensas_with_full_urls(Banner),
@@ -2936,14 +3008,22 @@ def listar_trilhas(request):
 
 
 
+# gestao/views.py
+
+from django.db.models import Max
+from .forms import TrilhaDeConquistasForm # <-- Adicionada a importação do novo formulário
+
 @user_passes_test(is_staff_member)
 @login_required
 def criar_ou_editar_trilha(request, trilha_id=None):
     """
-    VIEW UNIFICADA: Cria ou edita as informações básicas de uma Trilha.
+    VIEW UNIFICADA: Cria ou edita as informações básicas de uma Trilha,
+    agora com a lógica para sugerir a próxima ordem disponível e usando
+    um formulário com validação de unicidade.
     """
     instancia = get_object_or_404(TrilhaDeConquistas, id=trilha_id) if trilha_id else None
     if request.method == 'POST':
+        # Utiliza o TrilhaDeConquistasForm com sua validação customizada
         form = TrilhaDeConquistasForm(request.POST, instance=instancia)
         if form.is_valid():
             trilha = form.save()
@@ -2952,12 +3032,26 @@ def criar_ou_editar_trilha(request, trilha_id=None):
             messages.success(request, f'A trilha "{trilha.nome}" foi salva com sucesso.')
             return redirect('gestao:listar_trilhas')
     else:
+        # Utiliza o TrilhaDeConquistasForm para requisições GET
         form = TrilhaDeConquistasForm(instance=instancia)
     
+    proxima_ordem_sugerida = 1
+    max_ordem = TrilhaDeConquistas.objects.all().aggregate(Max('ordem'))['ordem__max']
+    if max_ordem is not None:
+        proxima_ordem_sugerida = max_ordem + 1
+    
+    # Adiciona a sugestão ao help_text do campo 'ordem' no formulário
+    form.fields['ordem'].help_text = f"Define a ordem de exibição. A próxima ordem livre sugerida é <strong>{proxima_ordem_sugerida}</strong>."
+    
     titulo = f'Editando Trilha: {instancia.nome}' if instancia else 'Criar Nova Trilha'
-    context = {'form': form, 'titulo': titulo, 'active_tab': 'trilhas'}
+    context = {
+        'form': form, 
+        'titulo': titulo, 
+        'active_tab': 'trilhas',
+        'proxima_ordem_sugerida': proxima_ordem_sugerida,
+        'instancia_id': instancia.id if instancia else None,
+    }
     return render(request, 'gestao/form_trilha.html', context)
-
 
 @user_passes_test(is_staff_member)
 @require_POST
@@ -2973,3 +3067,123 @@ def deletar_trilha(request, trilha_id):
     criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_DELETADA, alvo=None, detalhes={'tipo': 'Trilha', 'nome_deletado': nome_trilha})
     messages.success(request, f'A trilha "{nome_trilha}" e todas as suas conquistas foram deletadas.')
     return redirect('gestao:listar_trilhas')
+
+# gestao/views.py
+
+# gestao/views.py
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def criar_serie(request, trilha_id):
+    """
+    Processa a criação de uma nova Série de Conquistas via AJAX/modal.
+    """
+    trilha = get_object_or_404(TrilhaDeConquistas, id=trilha_id)
+    form = SerieDeConquistasForm(request.POST)
+    if form.is_valid():
+        serie = form.save(commit=False)
+        serie.trilha = trilha
+        serie.save()
+        messages.success(request, f"Série '{serie.nome}' criada. Agora, adicione a primeira conquista.")
+        # Redireciona para a criação da primeira conquista da nova série
+        return redirect('gestao:criar_primeira_conquista_serie', serie_id=serie.id)
+    else:
+        # Em caso de erro, é melhor redirecionar de volta com uma mensagem de erro
+        messages.error(request, "Ocorreu um erro ao criar a série. Verifique os dados.")
+        return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha_id)
+
+
+# gestao/views.py
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+def deletar_serie(request, serie_id):
+    """
+    Exclui uma Série de Conquistas, se ela não tiver conquistas associadas.
+    """
+    serie = get_object_or_404(SerieDeConquistas.objects.prefetch_related('conquistas'), id=serie_id)
+    trilha_id = serie.trilha.id
+
+    if serie.conquistas.exists():
+        messages.error(request, f"Não é possível excluir a série '{serie.nome}', pois ela contém conquistas. Remova as conquistas primeiro.")
+        return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha_id)
+        
+    nome_serie = serie.nome
+    serie.delete()
+    messages.success(request, f"A série '{nome_serie}' foi excluída com sucesso.")
+    return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha_id)
+
+# gestao/views.py
+@user_passes_test(is_staff_member)
+@login_required
+def gerenciar_serie(request, serie_id):
+    """
+    Renderiza a página dedicada ao gerenciamento de uma série específica,
+    permitindo a edição de seus dados e a reordenação de suas conquistas.
+    """
+    serie = get_object_or_404(
+        SerieDeConquistas.objects.prefetch_related(
+            Prefetch('conquistas', queryset=Conquista.objects.order_by('ordem_na_serie'))
+        ), 
+        id=serie_id
+    )
+
+    if request.method == 'POST':
+        form = SerieDeConquistasForm(request.POST, instance=serie)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Os dados da série '{serie.nome}' foram atualizados.")
+            return redirect('gestao:gerenciar_serie', serie_id=serie.id)
+    else:
+        form = SerieDeConquistasForm(instance=serie)
+
+    context = {
+        'serie': serie,
+        'form': form,
+        'trilha': serie.trilha,
+        'active_tab': 'trilhas',
+        'titulo': f'Gerenciando a Série: {serie.nome}'
+    }
+    return render(request, 'gestao/gerenciar_serie.html', context)
+
+@user_passes_test(is_staff_member)
+@require_POST
+@login_required
+@transaction.atomic
+def reordenar_conquistas_ajax(request, serie_id):
+    """
+    Processa a nova ordem das conquistas de uma série enviada via AJAX (drag-and-drop).
+    """
+    try:
+        serie = get_object_or_404(SerieDeConquistas, id=serie_id)
+        data = json.loads(request.body)
+        nova_ordem_ids = data.get('nova_ordem', [])
+
+        if not nova_ordem_ids:
+            return JsonResponse({'status': 'error', 'message': 'Nenhuma ordem recebida.'}, status=400)
+
+        # Mapeia os IDs para os objetos Conquista para eficiência
+        conquistas_map = {c.id: c for c in serie.conquistas.all()}
+        
+        # Garante que todos os IDs recebidos pertencem de fato à série
+        if any(int(cid) not in conquistas_map for cid in nova_ordem_ids):
+            return JsonResponse({'status': 'error', 'message': 'Inconsistência de dados: ID de conquista inválido.'}, status=400)
+
+        # Reordena e atualiza
+        for index, conquista_id_str in enumerate(nova_ordem_ids):
+            conquista_id = int(conquista_id_str)
+            conquista = conquistas_map[conquista_id]
+            
+            nova_ordem = index + 1
+            if conquista.ordem_na_serie != nova_ordem:
+                conquista.ordem_na_serie = nova_ordem
+                # O método save() irá cuidar da atualização dos pré-requisitos
+                conquista.save(update_fields=['ordem_na_serie'])
+        
+        return JsonResponse({'status': 'success', 'message': 'Sequência da série atualizada com sucesso!'})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'error', 'message': 'Requisição inválida.'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': f'Ocorreu um erro inesperado: {str(e)}'}, status=500)

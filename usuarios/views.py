@@ -589,15 +589,20 @@ def caixa_de_recompensas(request):
         'active_tab': 'caixa_de_recompensas'
     }
     return render(request, 'usuarios/caixa_de_recompensas.html', context)
+from django.db.models import Prefetch # ✅ LINHA ADICIONADA PARA CORRIGIR O ERRO
 
+# usuarios/views.py
+# usuarios/views.py
 @login_required
 def trilhas_de_conquistas(request):
     """
-    Exibe as trilhas de conquistas com uma lógica de agrupamento de sequências
-    corrigida e definitiva, evitando qualquer duplicidade.
+    Exibe as trilhas de conquistas com lógica de agrupamento aprimorada,
+    incluindo o nome da série para exibição no template.
     """
     user_profile = request.user.userprofile
+    # Pré-carrega a série junto com as conquistas para otimizar a consulta
     trilhas = TrilhaDeConquistas.objects.prefetch_related(
+        Prefetch('conquistas', queryset=Conquista.objects.select_related('serie')),
         'conquistas__pre_requisitos',
         'conquistas__condicoes__variavel'
     ).order_by('ordem', 'nome')
@@ -616,49 +621,38 @@ def trilhas_de_conquistas(request):
     banners_map = {b.id: b for b in Banner.objects.filter(id__in=reward_ids['banners'])}
 
     for trilha in trilhas:
-        todas_as_conquistas = list(trilha.conquistas.all())
-        conquistas_por_id = {c.id: c for c in todas_as_conquistas}
+        # Agrupa conquistas por série para facilitar a construção das sequências
+        conquistas_em_serie = [c for c in trilha.conquistas.all() if c.serie]
+        conquistas_individuais = [c for c in trilha.conquistas.all() if not c.serie]
         
-        # Mapeia quem desbloqueia quem
-        desbloqueia_map = {}
-        for conquista in todas_as_conquistas:
-            for pre_req in conquista.pre_requisitos.all():
-                if pre_req.id in desbloqueia_map:
-                    desbloqueia_map[pre_req.id].append(conquista)
-                else:
-                    desbloqueia_map[pre_req.id] = [conquista]
+        series_agrupadas = {}
+        for c in conquistas_em_serie:
+            if c.serie.id not in series_agrupadas:
+                series_agrupadas[c.serie.id] = {'serie_obj': c.serie, 'conquistas': []}
+            series_agrupadas[c.serie.id]['conquistas'].append(c)
 
-        processadas_ids = set()
-        sequencias = []
-        
-        # Encontra as "cabeças" da sequência (conquistas sem pré-requisitos na trilha)
-        cabecas_sequencia = [c for c in todas_as_conquistas if not c.pre_requisitos.exists()]
+        # =======================================================================
+        # INÍCIO DA ALTERAÇÃO: Monta a estrutura de dados com o nome da série
+        # =======================================================================
+        trilha.sequencias_com_titulo = []
+        for serie_id, dados_serie in series_agrupadas.items():
+            # Ordena as conquistas pela ordem definida no modelo
+            conquistas_ordenadas = sorted(dados_serie['conquistas'], key=lambda x: x.ordem_na_serie)
+            trilha.sequencias_com_titulo.append({
+                'titulo': dados_serie['serie_obj'].nome,
+                'descricao': dados_serie['serie_obj'].descricao,
+                'conquistas': conquistas_ordenadas
+            })
+        # =======================================================================
+        # FIM DA ALTERAÇÃO
+        # =======================================================================
 
-        for cabeca in cabecas_sequencia:
-            if cabeca.id in processadas_ids: continue
+        trilha.conquistas_individuais = conquistas_individuais
+
+        # Processa status, progresso e condições para TODAS as conquistas
+        for conquista in trilha.conquistas.all():
+            conquista.unlock_conditions_humanized = []
             
-            sequencia_atual = [cabeca]
-            atual = cabeca
-            processadas_ids.add(atual.id)
-
-            # Monta a cadeia para frente
-            while atual.id in desbloqueia_map and len(desbloqueia_map[atual.id]) == 1:
-                proxima = desbloqueia_map[atual.id][0]
-                if proxima.pre_requisitos.count() == 1: # Garante que é uma sequência linear
-                    sequencia_atual.append(proxima)
-                    processadas_ids.add(proxima.id)
-                    atual = proxima
-                else:
-                    break
-            
-            if len(sequencia_atual) > 1:
-                sequencias.append(sequencia_atual)
-        
-        trilha.sequencias = sequencias
-        trilha.conquistas_individuais = [c for c in todas_as_conquistas if c.id not in processadas_ids]
-
-        # Processa status e progresso para TODAS as conquistas da trilha
-        for conquista in todas_as_conquistas:
             if conquista.is_secreta and conquista.id not in conquistas_usuario_ids:
                 conquista.status = 'hidden'
             elif conquista.id in conquistas_usuario_ids:
@@ -667,6 +661,10 @@ def trilhas_de_conquistas(request):
                 pre_req_ids = set(p.id for p in conquista.pre_requisitos.all())
                 if pre_req_ids.issubset(conquistas_usuario_ids):
                     conquista.status = 'available'
+                    for condicao in conquista.condicoes.all():
+                        cond_text = f"{condicao.variavel.nome_exibicao} {condicao.get_operador_display().lower()} {condicao.valor}"
+                        conquista.unlock_conditions_humanized.append(cond_text)
+                    
                     condicao_principal = conquista.condicoes.first()
                     if condicao_principal:
                         valor_atual = _obter_valor_variavel(user_profile, condicao_principal.variavel.chave, condicao_principal.contexto_json)
@@ -676,12 +674,16 @@ def trilhas_de_conquistas(request):
                             conquista.progresso = {'atual': int(valor_atual), 'meta': valor_meta, 'percentual': int(progresso)}
                 else:
                     conquista.status = 'locked'
+                    for pre_req in conquista.pre_requisitos.all():
+                        if pre_req.id not in conquistas_usuario_ids:
+                            conquista.unlock_conditions_humanized.append(f"Desbloquear a conquista '{pre_req.nome}'")
             
             conquista.recompensas_detalhadas = []
             if conquista.recompensas:
                 for r_type, r_map in [('avatares', avatars_map), ('bordas', bordas_map), ('banners', banners_map)]:
                     for r_id in conquista.recompensas.get(r_type, []):
-                        if r_id in r_map: conquista.recompensas_detalhadas.append(r_map[r_id])
+                        if r_id in r_map:
+                            conquista.recompensas_detalhadas.append(r_map[r_id])
 
     context = { 'trilhas': trilhas, 'active_tab': 'trilhas_de_conquistas' }
     return render(request, 'usuarios/trilhas_de_conquistas.html', context)
