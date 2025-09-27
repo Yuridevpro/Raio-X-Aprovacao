@@ -176,28 +176,38 @@ def _verificar_level_up(gamificacao_data):
         xp_necessario = calcular_xp_para_nivel(gamificacao_data.level)
     return novo_level_info
 
+# gamificacao/services.py
+
 def _verificar_desbloqueio_recompensas(user_profile, conquista_ganha=None):
     def criar_recompensa_pendente(recompensa, origem):
         RecompensaPendente.objects.get_or_create(user_profile=user_profile, content_type=ContentType.objects.get_for_model(recompensa), object_id=recompensa.id, defaults={'origem_desbloqueio': origem})
 
     nivel_atual = user_profile.gamificacao_data.level
     
+    # =======================================================================
+    # INÍCIO DA ALTERAÇÃO: Lógica de desbloqueio direto por NÍVEL
+    # Agora, a função exclui itens que também estão marcados para a loja,
+    # pois esses serão desbloqueados para compra, e não concedidos diretamente.
+    # =======================================================================
     recompensas_por_nivel = list(chain(
-        Avatar.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual), 
-        Borda.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual), 
-        Banner.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual)
+        Avatar.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual).exclude(tipos_desbloqueio__nome='LOJA'),
+        Borda.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual).exclude(tipos_desbloqueio__nome='LOJA'),
+        Banner.objects.filter(tipos_desbloqueio__nome='NIVEL', nivel_necessario__lte=nivel_atual).exclude(tipos_desbloqueio__nome='LOJA')
     ))
     for recompensa in recompensas_por_nivel:
         criar_recompensa_pendente(recompensa, f"Alcançou o Nível {recompensa.nivel_necessario}")
+    # =======================================================================
+    # FIM DA ALTERAÇÃO
+    # =======================================================================
 
+    # =======================================================================
+    # REMOÇÃO: A lógica de desbloqueio por conquista foi removida daqui.
+    # Agora, ela é tratada diretamente na função `_avaliar_e_conceder_conquistas`,
+    # que lê o JSONField da conquista e concede as recompensas.
+    # =======================================================================
     if conquista_ganha:
-        recompensas_por_conquista = list(chain(
-            Avatar.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha), 
-            Borda.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha), 
-            Banner.objects.filter(tipos_desbloqueio__nome='CONQUISTA', conquista_necessaria=conquista_ganha)
-        ))
-        for recompensa in recompensas_por_conquista:
-            criar_recompensa_pendente(recompensa, f"Desbloqueou a conquista '{conquista_ganha.nome}'")
+        # A lógica antiga que buscava `conquista_necessaria` foi removida.
+        pass
 
 # =======================================================================
 # LÓGICA DE AVALIAÇÃO DE CONQUISTAS (TOTALMENTE REESCRITA E DINÂMICA)

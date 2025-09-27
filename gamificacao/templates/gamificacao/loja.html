@@ -16,18 +16,27 @@
      .saldo-display { font-family: var(--fonte-display); font-size: 2.5rem; font-weight: 700; color: var(--cor-dourada); text-shadow: 0 0 10px var(--cor-dourada); }
      .preco-tag { font-family: var(--fonte-display); font-weight: 600; font-size: 1.1rem; color: var(--cor-dourada); text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
      
-     /* ======================================================================= */
-     /* ✅ INÍCIO DA CORREÇÃO: Estilos para o placeholder de item não encontrado */
-     /* ======================================================================= */
      .empty-store-card {
         background-color: var(--cor-fundo-intermediario) !important;
-        color: rgba(255, 255, 255, 0.5) !important; /* Cor do texto mais clara */
+        color: rgba(255, 255, 255, 0.5) !important;
      }
      .empty-store-card .fa-store-slash {
-        color: rgba(255, 255, 255, 0.3) !important; /* Cor do ícone mais clara */
+        color: rgba(255, 255, 255, 0.3) !important;
+     }
+
+     /* ======================================================================= */
+     /* INÍCIO DAS NOVAS ADIÇÕES DE ESTILO PARA ITENS BLOQUEADOS */
+     /* ======================================================================= */
+     .item-card.locked {
+        opacity: 0.7;
+        filter: grayscale(80%);
+        pointer-events: none; /* Impede cliques no card inteiro */
+     }
+     .item-card.locked .btn {
+        pointer-events: all; /* Permite que o tooltip no botão funcione */
      }
      /* ======================================================================= */
-     /* FIM DA CORREÇÃO */
+     /* FIM DAS NOVAS ADIÇÕES */
      /* ======================================================================= */
 
 </style>
@@ -63,12 +72,9 @@
     <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="lista-itens-loja">
         {% for item in itens_loja %}
         <div class="col">
-            <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %}">
+            <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %} {% if item.is_locked %}locked{% endif %}">
                 
                 <div class="card-img-container">
-                    <!-- =========================================================== -->
-                    <!-- ✅ INÍCIO DA CORREÇÃO: Verificação da imagem -->
-                    <!-- =========================================================== -->
                     {% if item.imagem %}
                         <img src="{{ item.imagem.url }}" class="card-img-top" alt="{{ item.nome }}">
                     {% else %}
@@ -76,9 +82,6 @@
                             <i class="fas fa-image fa-3x text-white-50"></i>
                         </div>
                     {% endif %}
-                    <!-- =========================================================== -->
-                    <!-- FIM DA CORREÇÃO -->
-                    <!-- =========================================================== -->
                     <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
                 </div>
                 
@@ -90,20 +93,30 @@
                 <div class="card-footer">
                     <div class="d-flex justify-content-between align-items-center">
                         <span class="preco-tag"><i class="fas fa-coins me-1"></i> {{ item.preco_moedas }}</span>
+                        
+                        <!-- ======================================================================= -->
+                        <!-- INÍCIO DA ALTERAÇÃO: Lógica completa para o botão de compra/bloqueio -->
+                        <!-- ======================================================================= -->
                         {% if item.ja_possui %}
                             <button class="btn btn-sm btn-success disabled"><i class="fas fa-check me-2"></i>Adquirido</button>
+                        {% elif item.is_locked %}
+                            <button class="btn btn-sm btn-secondary" disabled data-bs-toggle="tooltip" title="{{ item.unlock_condition }}">
+                                <i class="fas fa-lock me-2"></i>Bloqueado
+                            </button>
                         {% else %}
                             <button class="btn btn-sm btn-primary btn-comprar" data-item-id="{{ item.id }}" data-item-tipo="{{ item|class_name }}" data-item-preco="{{ item.preco_moedas }}">
                                 <i class="fas fa-shopping-cart me-2"></i>Comprar
                             </button>
                         {% endif %}
+                        <!-- ======================================================================= -->
+                        <!-- FIM DA ALTERAÇÃO -->
+                        <!-- ======================================================================= -->
                     </div>
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
-            <!-- ✅ CORREÇÃO: Adicionada a classe 'empty-store-card' para estilização -->
             <div class="card card-body text-center py-5 empty-store-card">
                 <i class="fas fa-store-slash fa-3x mb-3"></i>
                 <h4 class="h5">Nenhum item encontrado</h4>
@@ -121,6 +134,13 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // =======================================================================
+    // ADIÇÃO: Inicialização dos tooltips para os botões bloqueados.
+    // =======================================================================
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    // =======================================================================
+
     function getCookie(name) {
         let cookieValue = null;
         if (document.cookie && document.cookie !== '') {

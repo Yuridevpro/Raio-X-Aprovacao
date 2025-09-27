@@ -129,6 +129,10 @@ class SimuladoWizardForm(forms.Form):
             except (ValueError, TypeError): 
                 pass
 
+# gestao/forms.py
+
+# gestao/forms.py
+
 class RecompensaBaseForm(forms.ModelForm):
     """ Formulário base com lógica compartilhada para Avatares, Bordas e Banners. """
     def __init__(self, *args, **kwargs):
@@ -140,15 +144,23 @@ class RecompensaBaseForm(forms.ModelForm):
             TipoDesbloqueio.objects.bulk_create(tipos_para_criar)
         
         super().__init__(*args, **kwargs)
-        # Configura campos para não serem obrigatórios por padrão
-        self.fields['conquista_necessaria'].queryset = Conquista.objects.all().order_by('nome')
-        self.fields['conquista_necessaria'].required = False
+
+        # =======================================================================
+        # INÍCIO DA CORREÇÃO: Filtrando o queryset para remover a opção "CONQUISTA"
+        # Isso impede que o checkbox "Por Conquista" seja renderizado no template.
+        # =======================================================================
+        if 'tipos_desbloqueio' in self.fields:
+            self.fields['tipos_desbloqueio'].queryset = TipoDesbloqueio.objects.exclude(nome='CONQUISTA')
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
+        
         self.fields['preco_moedas'].required = False
         self.fields['nivel_necessario'].required = False
 
     class Meta:
         model = Avatar # Usa um modelo como base, será sobrescrito nas classes filhas
-        fields = ['nome', 'descricao', 'imagem', 'raridade', 'tipos_desbloqueio', 'nivel_necessario', 'conquista_necessaria', 'preco_moedas']
+        fields = ['nome', 'descricao', 'imagem', 'raridade', 'tipos_desbloqueio', 'nivel_necessario', 'preco_moedas']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
@@ -156,7 +168,6 @@ class RecompensaBaseForm(forms.ModelForm):
             'raridade': forms.Select(attrs={'class': 'form-select'}),
             'tipos_desbloqueio': forms.CheckboxSelectMultiple(attrs={'class': 'form-check-input'}),
             'nivel_necessario': forms.NumberInput(attrs={'class': 'form-control'}),
-            'conquista_necessaria': forms.Select(attrs={'class': 'form-select'}),
             'preco_moedas': forms.NumberInput(attrs={'class': 'form-control'}),
         }
         labels = { 'tipos_desbloqueio': 'Formas de Desbloqueio' }
@@ -177,29 +188,19 @@ class RecompensaBaseForm(forms.ModelForm):
         
         tipos_desbloqueio_chaves = [tipo.nome for tipo in tipos_desbloqueio]
         
-        # Validação para desbloqueio por LOJA
         if 'LOJA' in tipos_desbloqueio_chaves:
             preco = cleaned_data.get('preco_moedas')
             if not preco or preco <= 0:
                 self.add_error('preco_moedas', 'Se o item é comprável, o preço deve ser maior que zero.')
         else:
-            cleaned_data['preco_moedas'] = None # Garante que o preço seja nulo se não for da loja
+            cleaned_data['preco_moedas'] = None
             
-        # Validação para desbloqueio por NÍVEL
         if 'NIVEL' in tipos_desbloqueio_chaves:
             nivel = cleaned_data.get('nivel_necessario')
             if not nivel:
                 self.add_error('nivel_necessario', 'Se o desbloqueio é por nível, este campo é obrigatório.')
         else:
             cleaned_data['nivel_necessario'] = None
-            
-        # Validação para desbloqueio por CONQUISTA
-        if 'CONQUISTA' in tipos_desbloqueio_chaves:
-            conquista = cleaned_data.get('conquista_necessaria')
-            if not conquista:
-                self.add_error('conquista_necessaria', 'Se o desbloqueio é por conquista, este campo é obrigatório.')
-        else:
-            cleaned_data['conquista_necessaria'] = None
             
         return cleaned_data
     

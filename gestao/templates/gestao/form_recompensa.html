@@ -99,14 +99,7 @@
                             {{ form.nivel_necessario }}
                             {% if form.nivel_necessario.errors %}<div class="invalid-feedback d-block">{{ form.nivel_necessario.errors.0 }}</div>{% endif %}
                         </div>
-                        <div id="requisito-conquista" class="mb-3" style="display: none;">
-                             <label class="form-label d-flex justify-content-between">
-                                {{ form.conquista_necessaria.label }}
-                                <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.conquista_necessaria.help_text }}"></i>
-                            </label>
-                            {{ form.conquista_necessaria }}
-                            {% if form.conquista_necessaria.errors %}<div class="invalid-feedback d-block">{{ form.conquista_necessaria.errors.0 }}</div>{% endif %}
-                        </div>
+                        
                         <div id="requisito-preco" class="mb-3" style="display: none;">
                             <label class="form-label d-flex justify-content-between">
                                 {{ form.preco_moedas.label }}
@@ -135,10 +128,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
     
-    // Mapeamento EXATO do texto da label (em maiúsculas) para o ID da div a ser controlada.
     const labelMap = {
         'POR NÍVEL': 'requisito-nivel',
-        'POR CONQUISTA': 'requisito-conquista',
         'COMPRÁVEL NA LOJA': 'requisito-preco'
     };
 

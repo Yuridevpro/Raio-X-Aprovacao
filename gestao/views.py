@@ -2322,6 +2322,8 @@ def gerenciar_gamificacao_settings(request):
     return render(request, 'gestao/form_gamificacao_settings.html', context)
 
 
+
+
 @user_passes_test(is_staff_member)
 @login_required
 def listar_recompensas(request, tipo):
@@ -2339,7 +2341,12 @@ def listar_recompensas(request, tipo):
 
     Model, titulo = ModelMap[tipo]
     
-    base_queryset = Model.objects.all().select_related('conquista_necessaria')
+    # =======================================================================
+    # CORREÇÃO APLICADA AQUI:
+    # A chamada .select_related('conquista_necessaria') foi removida, pois
+    # o campo não existe mais no modelo Recompensa.
+    # =======================================================================
+    base_queryset = Model.objects.all()
 
     # Filtro por raridade
     filtro_raridade = request.GET.get('raridade')

@@ -221,9 +221,15 @@ class TipoDesbloqueio(models.Model):
     def __str__(self):
         return self.get_nome_display()
 
+# gamificacao/models.py
+
 class Recompensa(models.Model):
     class Raridade(models.TextChoices):
-        COMUM = 'COMUM', 'Comum'; RARO = 'RARO', 'Raro'; EPICO = 'EPICO', 'Épico'; LENDARIO = 'LENDARIO', 'Lendário'; MITICO = 'MITICO', 'Mítico'
+        COMUM = 'COMUM', 'Comum'
+        RARO = 'RARO', 'Raro'
+        EPICO = 'EPICO', 'Épico'
+        LENDARIO = 'LENDARIO', 'Lendário'
+        MITICO = 'MITICO', 'Mítico'
     
     nome = models.CharField(max_length=100, verbose_name="Nome")
     descricao = models.CharField(max_length=255, help_text="Como desbloquear este item.", verbose_name="Descrição")
@@ -233,7 +239,13 @@ class Recompensa(models.Model):
     
     raridade = models.CharField(max_length=20, choices=Raridade.choices, default=Raridade.COMUM, verbose_name="Raridade")
     nivel_necessario = models.PositiveIntegerField(null=True, blank=True, verbose_name="Nível Necessário", help_text="Preencha se for desbloqueável por nível.")
-    conquista_necessaria = models.ForeignKey('Conquista', on_delete=models.SET_NULL, null=True, blank=True, verbose_name="Conquista Necessária", help_text="Preencha se for desbloqueável por conquista.")
+    
+    # =======================================================================
+    # CAMPO REMOVIDO: O campo `conquista_necessaria` foi removido para quebrar
+    # a dependência circular. A Conquista agora é a única fonte da verdade.
+    # conquista_necessaria = models.ForeignKey('Conquista', ...)
+    # =======================================================================
+
     preco_moedas = models.PositiveIntegerField(null=True, blank=True, default=0, verbose_name="Preço em Moedas", help_text="Preencha se for comprável na loja.")
     
     class Meta: 
@@ -247,14 +259,17 @@ class Recompensa(models.Model):
         super().clean()
         if self.pk and not self.tipos_desbloqueio.exists():
             raise ValidationError({'tipos_desbloqueio': 'A recompensa deve ter pelo menos uma forma de desbloqueio.'})
+
         if self.pk:
             tipos_chaves = self.tipos_desbloqueio.values_list('nome', flat=True)
             if 'NIVEL' in tipos_chaves and not self.nivel_necessario:
                 raise ValidationError({'nivel_necessario': 'Este campo é obrigatório para desbloqueio por nível.'})
             if 'LOJA' in tipos_chaves and (not self.preco_moedas or self.preco_moedas <= 0):
                 raise ValidationError({'preco_moedas': 'O preço deve ser maior que zero para itens da loja.'})
-            if 'CONQUISTA' in tipos_chaves and not self.conquista_necessaria:
-                raise ValidationError({'conquista_necessaria': 'Este campo é obrigatório para desbloqueio por conquista.'})
+            
+            # =======================================================================
+            # VALIDAÇÃO REMOVIDA: A validação para `conquista_necessaria` foi removida.
+            # =======================================================================
     
     def save(self, *args, **kwargs):
         is_new = self.pk is None
