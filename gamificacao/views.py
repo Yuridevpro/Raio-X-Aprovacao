@@ -214,7 +214,7 @@ def loja(request):
             item.ja_possui = False
 
     # --- LÓGICA DE PAGINAÇÃO ---
-    page_obj, page_numbers, per_page = paginar_itens(request, sorted_items, items_per_page=8)
+    page_obj, page_numbers, per_page = paginar_itens(request, sorted_items, items_per_page=20)
 
     context = {
         'itens_loja': page_obj,

@@ -408,7 +408,7 @@ def colecao_avatares(request):
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=12)
+    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
     
     context = {
         'user_profile': user_profile,
@@ -437,7 +437,7 @@ def colecao_bordas(request):
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=12)
+    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
 
     context = {
         'user_profile': user_profile,
@@ -466,7 +466,7 @@ def colecao_banners(request):
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=8)
+    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
 
     context = {
         'user_profile': user_profile,
