@@ -87,7 +87,7 @@ def cadastro(request):
                 recipient_list=[user.email]
             )
             
-            messages.success(request, 'Cadastro realizado! Um e-mail de confirmação foi enviado.')
+            messages.success(request, 'Cadastro realizado! Um e-mail de confirmação foi enviado. Verifique sua caixa de entrada e principalmente a caixa de Spam.')
             return redirect('login')
 
         except Exception as e:
@@ -166,7 +166,7 @@ def esqueceu_senha(request):
                 recipient_list=[user.email]
             )
             
-            messages.success(request, 'Um e-mail com instruções foi enviado.')
+            messages.success(request, 'Um e-mail com instruções foi enviado. Verifique sua caixa de entrada e principalmente a caixa de Spam.')
             return redirect('login')
         except User.DoesNotExist:
             messages.error(request, 'Não foi encontrado um usuário com este e-mail.')
@@ -373,7 +373,7 @@ def reenviar_ativacao(request):
                 recipient_list=[user.email]
             )
             
-            messages.success(request, 'Um novo e-mail de ativação foi enviado.')
+            messages.success(request, 'Um novo e-mail de ativação foi enviado. Verifique sua caixa de entrada e principalmente a caixa de Spam.')
             return redirect('login')
             
         except User.DoesNotExist:
