@@ -291,6 +291,7 @@ class SerieDeConquistasForm(forms.ModelForm):
 # =======================================================================
 # FORMULÁRIO MODIFICADO: ConquistaForm
 # =======================================================================
+# gestao/forms.py
 class ConquistaForm(forms.ModelForm):
     """ Formulário principal para criar e editar uma Conquista. """
     recompensa_xp = forms.IntegerField(label="XP Extra", required=False, widget=forms.NumberInput(attrs={'class': 'form-control'}))
@@ -324,10 +325,32 @@ class ConquistaForm(forms.ModelForm):
 
         # 1. Configura o queryset dos pré-requisitos para mostrar apenas conquistas da mesma trilha
         if self.trilha:
-            queryset = Conquista.objects.filter(trilha=self.trilha, serie__isnull=True) # Apenas individuais
+            # =======================================================================
+            # INÍCIO DA LÓGICA DE PRÉ-REQUISITOS APRIMORADA
+            # =======================================================================
+            # 1. Pega todas as conquistas individuais da trilha
+            qs_individuais = Conquista.objects.filter(trilha=self.trilha, serie__isnull=True)
+
+            # 2. Pega a ÚLTIMA conquista de cada série dentro da trilha
+            series_da_trilha = SerieDeConquistas.objects.filter(trilha=self.trilha).prefetch_related('conquistas')
+            ultimas_conquistas_de_series_ids = []
+            for s in series_da_trilha:
+                ultima = s.conquistas.order_by('-ordem_na_serie').first()
+                if ultima:
+                    ultimas_conquistas_de_series_ids.append(ultima.id)
+            
+            qs_ultimas_de_series = Conquista.objects.filter(id__in=ultimas_conquistas_de_series_ids)
+
+            # 3. Combina os dois querysets para formar a lista final de pré-requisitos disponíveis
+            queryset = qs_individuais | qs_ultimas_de_series
+            # =======================================================================
+            # FIM DA LÓGICA DE PRÉ-REQUISITOS APRIMORADA
+            # =======================================================================
+
             if self.instance and self.instance.pk: 
                 queryset = queryset.exclude(pk=self.instance.pk)
-            self.fields['pre_requisitos'].queryset = queryset
+            # Aplica o queryset final e ordena para uma exibição consistente
+            self.fields['pre_requisitos'].queryset = queryset.distinct().order_by('serie__nome', 'nome')
         
         # 2. Lógica para o fluxo de criação sequencial
         if self.serie:

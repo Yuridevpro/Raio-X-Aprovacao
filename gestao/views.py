@@ -2301,21 +2301,32 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
 
 
 
+from django.core.exceptions import ValidationError # <-- ADICIONE ESTA IMPORTAÇÃO
+
 @user_passes_test(is_staff_member)
 @require_POST
 @login_required
 def deletar_conquista(request, conquista_id):
     """
-    Deleta uma conquista e redireciona de volta para a tela da trilha.
+    Deleta uma conquista e redireciona de volta para a tela da trilha,
+    agora com tratamento para erros de dependência.
     """
     conquista = get_object_or_404(Conquista, id=conquista_id)
     trilha_id = conquista.trilha.id
     nome_conquista = conquista.nome
     
-    criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_DELETADA, alvo=None, detalhes={'nome_conquista': nome_conquista})
-    conquista.delete()
+    try:
+        # A lógica de deleção agora está dentro de um bloco try/except
+        conquista.delete()
+        
+        criar_log(ator=request.user, acao=LogAtividade.Acao.CONQUISTA_DELETADA, alvo=None, detalhes={'nome_conquista': nome_conquista})
+        messages.success(request, f'A conquista "{nome_conquista}" foi deletada com sucesso.')
+
+    except ValidationError as e:
+        # Se o sinal levantar um erro, ele será capturado aqui
+        # O e.message contém a mensagem de erro que criamos no sinal
+        messages.error(request, e.message)
     
-    messages.success(request, f'A conquista "{nome_conquista}" foi deletada com sucesso.')
     return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha_id)
 
 
