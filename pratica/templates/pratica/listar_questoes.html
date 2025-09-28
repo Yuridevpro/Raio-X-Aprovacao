@@ -1,3 +1,4 @@
+<!-- pratica/templates/pratica/listar_questoes.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %} 
@@ -417,10 +418,16 @@
     /* AJUSTES PARA MOBILE (ATÉ 768px)
     /* ========================================================================= */
     @media (max-width: 768px) {
+        /* ======================================================================= */
+        /* INÍCIO DA CORREÇÃO: Removendo o padding negativo do container */
+        /* ======================================================================= */
         .container {
-            padding-left: 0;
-            padding-right: 0;
+            padding-left: 1rem;
+            padding-right: 1rem;
         }
+        /* ======================================================================= */
+        /* FIM DA CORREÇÃO */
+        /* ======================================================================= */
         
         .card-body, .card-header, .card-footer, .comentarios-section { 
             padding-left: 1rem;
@@ -456,7 +463,6 @@
             font-size: 1rem;
         }
 
-
         .comment-replies {
             margin-left: 1.25rem; 
             padding-left: 0.75rem;
@@ -467,7 +473,13 @@
 
 
 {% block content %}
-<div class="container mt-5">
+<!-- ======================================================================= -->
+<!-- INÍCIO DA CORREÇÃO: Removida a classe 'container' e adicionada uma div wrapper -->
+<!-- ======================================================================= -->
+<div class="container-fluid container-lg mt-5">
+<!-- ======================================================================= -->
+<!-- FIM DA CORREÇÃO -->
+<!-- ======================================================================= -->
 
     <!-- CABEÇALHO E FILTROS -->
     <div class="filtros-card p-4 mb-5">
@@ -570,13 +582,7 @@
 
         <!-- Seção de Comentários (Oculta) -->
         <div class="comentarios-section p-3" id="comentarios-section-{{ questao.id }}" style="display: none;">
-            <!-- =========================================================== -->
-            <!-- INÍCIO DA CORREÇÃO: Passando a variável `questao`           -->
-            <!-- =========================================================== -->
             {% include 'pratica/includes/_secao_comentarios.html' with questao=questao %}
-            <!-- =========================================================== -->
-            <!-- FIM DA CORREÇÃO                                               -->
-            <!-- =========================================================== -->
         </div>
     </div>
     {% empty %}
@@ -1167,96 +1173,95 @@
         }
     
         function criarElementoComentario(c) {
-    const template = document.createElement('template');
-    
-    let podeEditarHtml = '';
-    if (c.pode_editar) {
-        podeEditarHtml = `
-            <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-edit me-2"></i>Editar</button></li>
-            <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-trash me-2"></i>Excluir</button></li>
-            <li><hr class="dropdown-divider"></li>`;
-    }
+        const template = document.createElement('template');
+        
+        let podeEditarHtml = '';
+        if (c.pode_editar) {
+            podeEditarHtml = `
+                <li><button class="dropdown-item btn-editar-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-edit me-2"></i>Editar</button></li>
+                <li><button class="dropdown-item text-danger btn-excluir-comentario" type="button" data-comentario-id="${c.id}"><i class="fas fa-trash me-2"></i>Excluir</button></li>
+                <li><hr class="dropdown-divider"></li>`;
+        }
 
-    // =======================================================================
-    // LÓGICA ATUALIZADA PARA RENDERIZAR AVATAR E BORDA
-    // =======================================================================
-    const hasBorda = c.usuario_borda_url;
-    const hasAvatar = c.usuario_avatar_url;
+        const hasBorda = c.usuario_borda_url;
+        const hasAvatar = c.usuario_avatar_url;
 
-    // Define as classes do container principal do avatar
-    const containerClasses = `comment-avatar ${hasBorda ? 'with-frame' : ''}`;
-    
-    let innerAvatarHtml = '';
+        const containerClasses = `comment-avatar ${hasBorda ? 'with-frame' : ''}`;
+        
+        let innerAvatarHtml = '';
 
-    // 1. Adiciona a imagem da borda se ela existir
-    if (hasBorda) {
-        innerAvatarHtml += `<img src="${c.usuario_borda_url}" class="comment-border-image" alt="Borda">`;
-    }
-
-    // 2. Adiciona a imagem do avatar ou as iniciais
-    if (hasAvatar) {
-        // Se não tiver borda, adiciona a classe da borda branca padrão
-        const avatarClasses = `comment-avatar-image ${!hasBorda ? 'with-default-border' : ''}`;
-        innerAvatarHtml += `<img src="${c.usuario_avatar_url}" class="${avatarClasses}" alt="Avatar">`;
-    } else {
-        // Fallback para as iniciais
-        innerAvatarHtml += `<div class="comment-default-avatar">${c.usuario.charAt(0).toUpperCase()}</div>`;
-    }
-    // =======================================================================
-
-    // Agora, construímos o HTML final usando as variáveis
-    template.innerHTML = `
-        <div class="comment-wrapper" id="comment-wrapper-${c.id}">
-            <div class="${containerClasses}">${innerAvatarHtml}</div>
-            <div class="comment-card" id="comentario-${c.id}">
-                <div class="comment-header d-flex justify-content-between">
-                    <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
-                    <div class="comment-actions dropdown">
-                        <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            ${podeEditarHtml}
-                            <li>
-                                <button class="dropdown-item text-warning" type="button" 
-                                        data-bs-toggle="modal" data-bs-target="#modalNotificarErro" 
-                                        data-comentario-id="${c.id}">
-                                    <i class="fas fa-flag me-2"></i>Denunciar
-                                </button>
-                            </li>
-                        </ul>
+        if (hasBorda) {
+            innerAvatarHtml += `<img src="${c.usuario_borda_url}" class="comment-border-image" alt="Borda">`;
+        }
+        if (hasAvatar) {
+            const avatarClasses = `comment-avatar-image ${!hasBorda ? 'with-default-border' : ''}`;
+            innerAvatarHtml += `<img src="${c.usuario_avatar_url}" class="${avatarClasses}" alt="Avatar">`;
+        } else {
+            innerAvatarHtml += `<div class="comment-default-avatar">${c.usuario.charAt(0).toUpperCase()}</div>`;
+        }
+        
+        // =======================================================================
+        // INÍCIO DA CORREÇÃO: Envolvendo o avatar com a tag <a>
+        // =======================================================================
+        
+        const profileUrl = `/auth/perfil/${c.usuario_username}/`;
+        const avatarContainerHtml = `<a href="${profileUrl}" class="${containerClasses}">${innerAvatarHtml}</a>`;
+        // =======================================================================
+        // FIM DA CORREÇÃO
+        // =======================================================================
+        
+        template.innerHTML = `
+            <div class="comment-wrapper" id="comment-wrapper-${c.id}">
+                ${avatarContainerHtml}
+                <div class="comment-card" id="comentario-${c.id}">
+                    <div class="comment-header d-flex justify-content-between">
+                        <div><span class="comment-user">${c.usuario}</span><div class="comment-date">${c.data_criacao}</div></div>
+                        <div class="comment-actions dropdown">
+                            <button class="btn btn-sm btn-light py-0 px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="fas fa-ellipsis-h"></i></button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                ${podeEditarHtml}
+                                <li>
+                                    <button class="dropdown-item text-warning" type="button" 
+                                            data-bs-toggle="modal" data-bs-target="#modalNotificarErro" 
+                                            data-comentario-id="${c.id}">
+                                        <i class="fas fa-flag me-2"></i>Denunciar
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
+                    <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
+                        <div class="comment-body">${c.conteudo}</div>
+                    </div>
+                    <div class="comment-edit-form mt-2" style="display: none;"></div>
+                    ${!c.parent_id ? `
+                    <div class="comment-footer">
+                        <a href="#" class="btn btn-like ${c.user_liked ? 'liked' : ''}" data-comentario-id="${c.id}">
+                            <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${c.likes_count}</span>)
+                        </a>
+                        <a href="#" class="btn toggle-replies-btn" data-comentario-id="${c.id}">
+                            <i class="fas fa-reply"></i> Respostas (${c.respostas_count})
+                        </a>
+                    </div>` : ''}
                 </div>
-                <div class="comment-content" data-raw-content="${c.conteudo_raw.replace(/"/g, '&quot;')}">
-                    <div class="comment-body">${c.conteudo}</div>
-                </div>
-                <div class="comment-edit-form mt-2" style="display: none;"></div>
                 ${!c.parent_id ? `
-                <div class="comment-footer">
-                    <a href="#" class="btn btn-like ${c.user_liked ? 'liked' : ''}" data-comentario-id="${c.id}">
-                        <i class="fas fa-thumbs-up"></i> Gostei (<span class="like-count">${c.likes_count}</span>)
-                    </a>
-                    <a href="#" class="btn toggle-replies-btn" data-comentario-id="${c.id}">
-                        <i class="fas fa-reply"></i> Respostas (${c.respostas_count})
-                    </a>
+                <div class="replies-wrapper" style="display: none;">
+                    <div class="comment-replies"></div>
+                    <div class="reply-form-container"></div>
                 </div>` : ''}
-            </div>
-            ${!c.parent_id ? `
-            <div class="replies-wrapper" style="display: none;">
-                <div class="comment-replies"></div>
-                <div class="reply-form-container"></div>
-            </div>` : ''}
-        </div>`.trim();
+            </div>`.trim();
 
-    const commentElement = template.content.firstChild;
-    
-    if (c.respostas && c.respostas.length > 0) {
-        const repliesContainer = commentElement.querySelector('.comment-replies');
-        c.respostas.forEach(resposta => {
-            repliesContainer.appendChild(criarElementoComentario(resposta));
-        });
+        const commentElement = template.content.firstChild;
+        
+        if (c.respostas && c.respostas.length > 0) {
+            const repliesContainer = commentElement.querySelector('.comment-replies');
+            c.respostas.forEach(resposta => {
+                repliesContainer.appendChild(criarElementoComentario(resposta));
+            });
+        }
+        
+        return commentElement;
     }
-    
-    return commentElement;
-}
         
         function handleNotificarErro(form) {
             const tipoErroSelecionado = form.querySelector('button[data-tipo].active')?.dataset.tipo;

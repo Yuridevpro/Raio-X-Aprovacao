@@ -153,6 +153,7 @@ def favoritar_questao(request):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+# pratica/views.py
 @login_required
 def carregar_comentarios(request, questao_id):
     """
@@ -162,47 +163,39 @@ def carregar_comentarios(request, questao_id):
     questao = get_object_or_404(Questao, id=questao_id)
     sort_by = request.GET.get('sort_by', 'recent')
 
-    # Filtra apenas os comentários principais (que não são respostas a outros)
     comentarios_principais = questao.comentarios.filter(parent__isnull=True)
 
-    # Aplica a ordenação solicitada
     if sort_by == 'likes':
         comentarios_qs = comentarios_principais.annotate(num_likes=Count('likes')).order_by('-num_likes', '-data_criacao')
-    else: # 'recent' é o padrão
+    else:
         comentarios_qs = comentarios_principais.order_by('-data_criacao')
 
     def formatar_arvore_comentarios(comentario):
-        """
-        Função recursiva que formata um comentário e todas as suas respostas
-        em uma estrutura de dicionário aninhada.
-        """
-        # Busca e formata as respostas deste comentário
         respostas = comentario.respostas.all().order_by('data_criacao')
         respostas_formatadas = [formatar_arvore_comentarios(r) for r in respostas]
-
-        # Converte a data/hora do banco (UTC) para o fuso horário local
         data_local = localtime(comentario.data_criacao)
         
-        # ===================================================================
-        # LÓGICA PARA BUSCAR AVATAR E BORDA EQUIPADOS
-        # ===================================================================
         avatar_url = None
         borda_url = None
-        # Usamos hasattr como uma verificação de segurança
+        username = comentario.usuario.username
+        
         if hasattr(comentario.usuario, 'userprofile'):
             profile = comentario.usuario.userprofile
             if profile.avatar_equipado:
                 avatar_url = profile.avatar_equipado.imagem.url
             if profile.borda_equipada:
                 borda_url = profile.borda_equipada.imagem.url
-        # ===================================================================
 
         return {
             'id': comentario.id,
             'usuario': comentario.usuario.userprofile.nome,
-            # ===============================================================
-            # PASSANDO AS NOVAS URLS PARA O JSON
-            # ===============================================================
+            # =======================================================================
+            # INÍCIO DA ADIÇÃO: Incluindo o username no JSON
+            # =======================================================================
+            'usuario_username': username,
+            # =======================================================================
+            # FIM DA ADIÇÃO
+            # =======================================================================
             'usuario_avatar_url': avatar_url,
             'usuario_borda_url': borda_url,
             'conteudo': markdown.markdown(comentario.conteudo),
@@ -216,9 +209,7 @@ def carregar_comentarios(request, questao_id):
             'parent_id': comentario.parent_id
         }
 
-    # Itera sobre os comentários principais para construir a árvore de dados
     comentarios_data = [formatar_arvore_comentarios(c) for c in comentarios_qs]
-
     return JsonResponse({'comentarios': comentarios_data})
 
 @login_required
