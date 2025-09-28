@@ -10,6 +10,9 @@
 import json
 from datetime import datetime, timedelta
 from collections import defaultdict
+from django.shortcuts import redirect
+from django.urls import reverse
+import os
 
 # -----------------------------------------------------------------------
 # 2. Importações de Pacotes de Terceiros (Django, etc.)
@@ -3198,3 +3201,53 @@ def reordenar_conquistas_ajax(request, serie_id):
         return JsonResponse({'status': 'error', 'message': 'Requisição inválida.'}, status=400)
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': f'Ocorreu um erro inesperado: {str(e)}'}, status=500)
+    
+
+# gestao/views.py
+
+# ... (no topo, adicione estes imports)
+from django.contrib.auth.views import LoginView
+
+# ... (no final do arquivo, adicione esta classe e função)
+class AdminLoginView(LoginView):
+    template_name = 'gestao/admin_login.html'
+
+    def form_valid(self, form):
+        # Esta é a lógica da nossa "senha mestra"
+        ADMIN_USER = os.getenv('SUPERUSER_ADMIN_USERNAME')
+        ADMIN_PASS = os.getenv('SUPERUSER_ADMIN_PASSWORD')
+
+        # Pega os dados do formulário de login padrão do Django
+        username = form.cleaned_data.get('username')
+        password = form.cleaned_data.get('password')
+
+        # Compara com as credenciais mestras
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            # Se bater, autentica o usuário na sessão privilegiada
+            self.request.session['superuser_admin_authenticated'] = True
+            # E continua o fluxo de login normal do Django Admin
+            return super().form_valid(form)
+        else:
+            # Se não bater, rejeita o login
+            messages.error(self.request, "Credenciais de acesso privilegiado inválidas.")
+            return self.form_invalid(form)
+    
+# gestao/views.py
+
+def superuser_admin_login(request):
+    # ... (código da view de login que você já tem)
+    ADMIN_USER = os.getenv('SUPERUSER_ADMIN_USERNAME')
+    ADMIN_PASS = os.getenv('SUPERUSER_ADMIN_PASSWORD')
+
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        if username == ADMIN_USER and password == ADMIN_PASS:
+            request.session['superuser_admin_authenticated'] = True
+            next_url = request.GET.get('next', reverse('admin:index'))
+            return redirect(next_url)
+        else:
+            messages.error(request, 'Credenciais de acesso privilegiado inválidas.')
+
+    return render(request, 'gestao/admin_login.html')

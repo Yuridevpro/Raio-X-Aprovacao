@@ -2,6 +2,7 @@
 
 from django.urls import path
 from . import views
+from .views import superuser_admin_login
 
 app_name = 'gestao'
 
@@ -131,4 +132,7 @@ urlpatterns = [
     path('gamificacao/<str:tipo>/nova/', views.criar_recompensa, name='criar_recompensa'),
     path('gamificacao/<str:tipo>/editar/<int:recompensa_id>/', views.editar_recompensa, name='editar_recompensa'),
     path('gamificacao/<str:tipo>/deletar/<int:recompensa_id>/', views.deletar_recompensa, name='deletar_recompensa'),
+    
+    path('acesso-privilegiado/login/', superuser_admin_login, name='superuser_admin_login'),
+
 ]

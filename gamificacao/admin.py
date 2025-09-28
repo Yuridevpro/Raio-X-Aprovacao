@@ -1,74 +1,51 @@
-# gamificacao/admin.py (ARQUIVO COMPLETO E REFATORADO)
-
+# gamificacao/admin.py
 from django.contrib import admin
-
-# =======================================================================
-# 1. IMPORTAÇÕES CORRIGIDAS
-# Removemos os modelos obsoletos (como TipoCondicao) e adicionamos os novos.
-# =======================================================================
 from .models import (
-    # Modelos de Configuração e Dados do Usuário
     GamificationSettings, ProfileGamificacao, ProfileStreak, MetaDiariaUsuario,
     RankingSemanal, RankingMensal,
-    
-    # Modelos de Recompensas e Itens
     Avatar, Borda, Banner, TipoDesbloqueio,
     RecompensaPendente, AvatarUsuario, BordaUsuario, BannerUsuario, RecompensaUsuario,
-    
-    # Modelos de Trilhas, Conquistas e a NOVA arquitetura de Condições
-    TrilhaDeConquistas, VariavelDoJogo, Conquista, Condicao, ConquistaUsuario,
-    
-    # Modelos de Campanhas e Eventos
+    TrilhaDeConquistas, SerieDeConquistas, VariavelDoJogo, Conquista, Condicao, ConquistaUsuario,
     Campanha, CampanhaUsuarioCompletion,
 )
 
-# =======================================================================
-# 2. NOVO INLINE PARA O MODELO DE CONDIÇÃO GENÉRICO
-# =======================================================================
 class CondicaoInline(admin.TabularInline):
     model = Condicao
-    extra = 1 # Permite adicionar uma nova condição em branco
-    autocomplete_fields = ['variavel'] # Facilita a busca de variáveis
+    extra = 1
+    autocomplete_fields = ['variavel']
 
-# =======================================================================
-# 3. ADMIN PARA TRILHAS, CONQUISTAS E VARIÁVEIS
-# =======================================================================
 @admin.register(TrilhaDeConquistas)
 class TrilhaDeConquistasAdmin(admin.ModelAdmin):
     list_display = ('nome', 'ordem', 'descricao')
     search_fields = ('nome',)
 
+@admin.register(SerieDeConquistas)
+class SerieDeConquistasAdmin(admin.ModelAdmin):
+    list_display = ('nome', 'trilha', 'ordem')
+    list_filter = ('trilha',)
+    search_fields = ('nome',)
+    raw_id_fields = ('trilha',)
+
 @admin.register(VariavelDoJogo)
 class VariavelDoJogoAdmin(admin.ModelAdmin):
-    """
-    NOVA INTERFACE: Permite ao super-admin gerenciar as variáveis
-    disponíveis para o motor de regras. Substitui o antigo TipoCondicaoAdmin.
-    """
     list_display = ('nome_exibicao', 'chave', 'descricao')
     search_fields = ('nome_exibicao', 'chave')
 
 @admin.register(Conquista)
 class ConquistaAdmin(admin.ModelAdmin):
-    """
-    ATUALIZADO: Agora usa o novo CondicaoInline.
-    """
-    list_display = ('nome', 'trilha', 'is_secreta')
-    list_filter = ('trilha', 'is_secreta')
+    list_display = ('nome', 'trilha', 'serie', 'ordem_na_serie', 'is_secreta')
+    list_filter = ('trilha', 'serie', 'is_secreta')
     search_fields = ('nome', 'descricao')
     filter_horizontal = ('pre_requisitos',)
-    
-    # Usa o novo inline genérico
     inlines = [CondicaoInline]
+    raw_id_fields = ('trilha', 'serie')
     
     fieldsets = (
-        ('Informações Gerais', {'fields': ('nome', 'descricao', 'trilha', 'icone', 'cor', 'is_secreta')}),
-        ('Hierarquia e Requisitos', {'fields': ('pre_requisitos',)}),
+        ('Informações Gerais', {'fields': ('nome', 'descricao', 'icone', 'cor', 'is_secreta')}),
+        ('Hierarquia e Requisitos', {'fields': ('trilha', 'serie', 'pre_requisitos',)}),
         ('Recompensas Diretas (JSON)', {'classes': ('collapse',), 'fields': ('recompensas',)}),
     )
 
-# =======================================================================
-# 4. ADMINS PARA RECOMPENSAS (AVATAR, BORDA, BANNER) - Sem alterações
-# =======================================================================
 class RecompensaAdmin(admin.ModelAdmin):
     list_display = ('nome', 'display_tipos_desbloqueio', 'raridade', 'preco_moedas')
     list_filter = ('raridade', 'tipos_desbloqueio')
@@ -80,25 +57,20 @@ class RecompensaAdmin(admin.ModelAdmin):
         return ", ".join([tipo.get_nome_display() for tipo in obj.tipos_desbloqueio.all()])
 
 @admin.register(Avatar)
-class AvatarAdmin(RecompensaAdmin):
-    pass
+class AvatarAdmin(RecompensaAdmin): pass
 
 @admin.register(Borda)
-class BordaAdmin(RecompensaAdmin):
-    pass
+class BordaAdmin(RecompensaAdmin): pass
 
 @admin.register(Banner)
-class BannerAdmin(RecompensaAdmin):
-    pass
+class BannerAdmin(RecompensaAdmin): pass
 
-# =======================================================================
-# 5. ADMIN PARA CAMPANHAS E REGISTRO DE OUTROS MODELOS - Sem alterações
-# =======================================================================
 @admin.register(Campanha)
 class CampanhaAdmin(admin.ModelAdmin):
     list_display = ('nome', 'gatilho', 'tipo_recorrencia', 'ativo', 'data_inicio', 'data_fim')
     list_filter = ('ativo', 'gatilho', 'tipo_recorrencia')
     search_fields = ('nome',)
+    raw_id_fields = ('simulado_especifico',)
 
 # Registro dos outros modelos com a visualização padrão
 admin.site.register(GamificationSettings)

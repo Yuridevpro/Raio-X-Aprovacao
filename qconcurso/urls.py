@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 
 # Importando a view home temporária
 from usuarios.views import home
-
+from usuarios.views import home
 
 
 urlpatterns = [

@@ -1,49 +1,51 @@
 # usuarios/admin.py
-
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.models import User
-from .models import UserProfile, PasswordResetToken
+from .models import UserProfile, PasswordResetToken, Ativacao
 
-# Define um "inline" para o UserProfile
 class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     verbose_name_plural = 'Perfis de Usuário'
-    # Melhora a UI para o campo ManyToManyField
     filter_horizontal = ('questoes_favoritas',)
+    raw_id_fields = ('avatar_equipado', 'borda_equipada', 'banner_equipado')
 
-# Define uma nova classe de Admin para o User que inclui o nosso inline
 class UserAdmin(BaseUserAdmin):
     inlines = (UserProfileInline,)
+    list_display = ('username', 'email', 'nome_completo', 'is_staff', 'is_superuser', 'is_active', 'date_joined')
+    list_filter = ('is_staff', 'is_superuser', 'is_active', 'groups')
+    
+    @admin.display(description='Nome Completo', ordering='userprofile__nome')
+    def nome_completo(self, obj):
+        if hasattr(obj, 'userprofile'):
+            return f"{obj.userprofile.nome} {obj.userprofile.sobrenome}"
+        return "N/A"
 
-# Cancela o registro do User Admin padrão do Django
+# Registra usando o admin.site padrão
 admin.site.unregister(User)
-# Registra o User novamente com a nossa classe de Admin customizada
 admin.site.register(User, UserAdmin)
-
 
 @admin.register(PasswordResetToken)
 class PasswordResetTokenAdmin(admin.ModelAdmin):
-    """
-    Admin View para PasswordResetToken.
-    Visão de apenas leitura para auditoria e depuração de tokens de reset de senha.
-    Não permite criar, editar ou deletar para manter a segurança.
-    """
     list_display = ('user', 'token', 'created_at', 'is_token_expired')
     search_fields = ('user__username',)
     readonly_fields = ('user', 'token', 'created_at')
     ordering = ('-created_at',)
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return True # Permite ver a tela de detalhes
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return True
     @admin.display(description='Expirado?', boolean=True)
-    def is_token_expired(self, obj):
-        return obj.is_expired()
+    def is_token_expired(self, obj): return obj.is_expired()
+
+@admin.register(Ativacao)
+class AtivacaoAdmin(admin.ModelAdmin):
+    list_display = ('user', 'token', 'created_at', 'is_token_expired')
+    search_fields = ('user__username',)
+    readonly_fields = ('user', 'token', 'created_at')
+    ordering = ('-created_at',)
+    def has_add_permission(self, request): return False
+    def has_change_permission(self, request, obj=None): return False
+    def has_delete_permission(self, request, obj=None): return True
+    @admin.display(description='Expirado?', boolean=True)
+    def is_token_expired(self, obj): return obj.is_expired()
