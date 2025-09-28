@@ -1,156 +1,171 @@
-# Raio-X da Aprovação - Plataforma Inteligente de Preparação para Concursos
+```markdown
+# 🚀 Raio-X da Aprovação - Plataforma de Estudos Gamificada
 
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python)![Django](https://img.shields.io/badge/Django-4.2-092E20?style=for-the-badge&logo=django)![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791?style=for-the-badge&logo=postgresql)![AWS S3](https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazon-aws)![Deployment](https://img.shields.io/badge/Deployed_on-Render-46E3B7?style=for-the-badge&logo=render)
+Sistema web completo e robusto para preparação para concursos públicos e exames, combinando um vasto banco de questões com um sistema de gamificação avançado para motivar e engajar os estudantes em sua jornada de aprovação.
 
-O **Raio-X da Aprovação** é uma plataforma web completa, segura e de alto desempenho, desenvolvida em Django, projetada para otimizar a preparação de candidatos para concursos públicos. A aplicação oferece um ambiente robusto para praticar com um vasto banco de questões, analisar o desempenho através de dashboards interativos e gerenciar todo o conteúdo com um painel de gestão avançado e seguro.
+## ✨ Acesso à Plataforma
 
-## 🚀 Demonstração Ao Vivo
+**Acesse a aplicação em produção no seguinte link:**
+### [https://raio-x-aprovacao.onrender.com/](https://raio-x-aprovacao.onrender.com/)
 
-Acesse a aplicação em produção no seguinte link:
+![Status](https://img.shields.io/badge/Status-Em%20Desenvolvimento%20Ativo-blue)![Versão](https://img.shields.io/badge/Versão-1.0-blue)![Python](https://img.shields.io/badge/Python-3.x-blue)![Django](https://img.shields.io/badge/Django-5.x-darkgreen)![Database](https://img.shields.io/badge/Database-PostgreSQL-blueviolet)
 
-### **[https://raio-x-aprovacao-1.onrender.com](https://raio-x-aprovacao-1.onrender.com)**
+---
 
-> **Nota:** A aplicação está hospedada no plano gratuito do Render. O primeiro acesso pode levar alguns segundos para carregar enquanto o serviço é inicializado ("cold start").
+## ⚙️ Início Rápido (Ambiente de Desenvolvimento)
+
+### 1. Pré-requisitos
+- Python 3.x
+- Git
+- PostgreSQL (Recomendado para simular o ambiente de produção)
+
+### 2. Configuração do Ambiente
+```bash
+# Clone o repositório
+git clone https://github.com/seu-usuario/raio-x-aprovacao.git
+cd raio-x-aprovacao
+
+# Crie e ative um ambiente virtual
+python3 -m venv venv
+source venv/bin/activate  # No Windows: venv\Scripts\activate
+
+# Instale as dependências
+pip install -r requirements.txt
+```
+
+### 3. Variáveis de Ambiente
+Crie um arquivo `.env` na raiz do projeto e preencha com as suas chaves. Use o exemplo abaixo como base.
+```ini
+# .env
+
+# Configurações Gerais do Django
+ENVIRONMENT='development'
+SECRET_KEY='sua-chave-secreta-django-super-segura'
+ALLOWED_HOSTS='127.0.0.1,localhost'
+
+# Configurações do Banco de Dados (PostgreSQL)
+DB_NAME='seu_db_name'
+DB_USER='seu_db_user'
+DB_PASSWORD='sua_db_password'
+DB_HOST='localhost'
+DB_PORT='5432'
+
+# Chaves do Amazon S3 para armazenamento de mídia
+AWS_ACCESS_KEY_ID='sua_aws_access_key'
+AWS_SECRET_ACCESS_KEY='sua_aws_secret_key'
+AWS_STORAGE_BUCKET_NAME='seu-bucket-name'
+AWS_S3_REGION_NAME='sua-aws-region' # Ex: us-east-1
+
+# Chaves do SendGrid para envio de e-mails
+SENDGRID_API_KEY='sua_chave_api_do_sendgrid'
+DEFAULT_FROM_EMAIL='seu-email-verificado@exemplo.com'
+
+# Credenciais de Acesso Privilegiado ao Django Admin
+# Usado pelo middleware para uma camada extra de segurança
+SUPERUSER_ADMIN_USERNAME='admin_mestre'
+SUPERUSER_ADMIN_PASSWORD='senha_mestra_super_secreta'
+```
+
+### 4. Banco de Dados e Execução
+```bash
+# Crie as migrações com base nos modelos
+python manage.py makemigrations
+
+# Aplique as migrações no banco de dados
+python manage.py migrate
+
+# (Opcional) Crie um superusuário para acessar o painel de gestão
+python manage.py createsuperuser
+
+# Inicie o servidor de desenvolvimento
+python manage.py runserver
+```
+
+### 5. Acesso
+Abra seu navegador e acesse: **http://127.0.0.1:8000/**
 
 ---
 
 ## ✨ Funcionalidades Principais
 
-A plataforma é dividida em módulos que atendem tanto aos estudantes quanto aos administradores, garantindo uma experiência completa e segura.
+### 👨‍🎓 Para Alunos (Usuários)
+- **Autenticação Segura:** Cadastro com confirmação por e-mail, login e fluxo completo de recuperação de senha.
+- **Prática de Questões:** Resolva questões individuais com um sistema de filtros avançado (disciplina, assunto, banca, ano, etc.), com verificação de resposta em tempo real.
+- **Simulados:** Crie simulados personalizados ou resolva simulados oficiais criados pela equipe de gestão. Acompanhe seu desempenho e histórico detalhado a cada sessão.
+- **Dashboard de Desempenho:** Analise suas estatísticas de acertos e erros com gráficos e tabelas, filtrando por período, disciplina, banca e mais.
+- **Interação Social:** Favorite questões, adicione comentários e interaja com a comunidade em cada questão.
+- **Perfil Público:** Visualize seu progresso, conquistas, itens cosméticos equipados e histórico.
 
-### Para Estudantes:
-*   **Banco de Questões Completo**: Acesso a milhares de questões com filtros avançados por disciplina, assunto, banca, instituição e ano.
-*   **Dashboard de Desempenho**: Análise visual e detalhada do progresso, com gráficos de acertos/erros, desempenho por disciplina e por banca.
-*   **Sistema de Prática Inteligente**: Resolva questões e receba feedback imediato, com gabarito e explicações detalhadas.
-*   **Interação Social**: Comente, curta e discuta as questões com outros usuários.
-*   **Personalização**: Favorite questões, salve filtros customizados para sessões de estudo futuras e gerencie seu perfil.
-*   **Report de Erros**: Contribua com a qualidade da plataforma notificando erros nas questões diretamente para a equipe de gestão.
+### 🎮 Sistema de Gamificação Completo
+- **Progressão e Níveis:** Ganhe XP ao resolver questões e concluir simulados para subir de nível.
+- **Economia Virtual:** Acumule "Fragmentos de Conhecimento" (moedas) para gastar na loja.
+- **Streaks de Prática:** Mantenha a consistência nos estudos e seja recompensado por sequências diárias.
+- **Trilhas de Conquistas:** Desbloqueie centenas de conquistas organizadas em trilhas e séries temáticas, com pré-requisitos e condições complexas.
+- **Recompensas Cosméticas:** Personalize seu perfil com Avatares, Bordas e Banners de diferentes raridades.
+- **Loja e Caixa de Recompensas:** Use suas moedas para comprar itens na loja ou resgate prêmios ganhos em sua "Câmara dos Tesouros".
+- **Ranking Competitivo:** Dispute com outros usuários nos rankings Geral, Semanal e Mensal.
+- **Campanhas e Eventos:** Participe de eventos sazonais com regras e prêmios exclusivos, baseados em um motor de regras data-driven.
 
-### Para a Equipe de Gestão (Painel de Gestão):
-*   **CRUD Completo de Questões**: Gerenciamento total do banco de questões com um editor de texto rico (Tiptap.js).
-*   **Lixeira Inteligente (Soft-Delete)**: Questões são movidas para uma lixeira, permitindo restauração ou exclusão permanente após um período de segurança.
-*   **Moderação de Conteúdo**: Painel centralizado para revisar e gerenciar notificações de erros reportados pelos usuários.
-*   **Gerenciamento de Usuários**: Controle de permissões, visualização de usuários e um sistema de solicitação/aprovação para exclusão de contas.
-*   **Auditoria e Rastreabilidade**: Um registro de atividades detalhado que monitora todas as ações críticas realizadas no painel.
-
----
-
-## 🛡️ Destaques de Arquitetura e Segurança
-
-Este projeto foi construído com uma forte ênfase em segurança, integridade de dados e boas práticas de desenvolvimento, implementando funcionalidades de nível empresarial.
-
-*   **Sistema de Quórum para Superusuários**: Ações de altíssimo risco, como promover, rebaixar ou excluir um superusuário, exigem a aprovação de um quórum de outros superusuários, prevenindo ações maliciosas ou unilaterais.
-*   **Integridade de Logs (Blockchain-Inspired)**: Cada registro de atividade no painel de gestão possui um hash criptográfico que leva em conta o hash do registro anterior, criando uma cadeia imutável que garante a integridade e a não-repudiação dos logs.
-*   **Alertas Proativos com Django Signals**: Ações críticas, como tentativas de exclusão em massa que excedem um limite de segurança, disparam alertas em tempo real via e-mail para todos os superusuários.
-*   **Transações Atômicas**: Operações críticas no banco de dados, como o cadastro de usuários, são envoltas em transações atômicas (`@transaction.atomic`), garantindo que a operação seja concluída por completo ou revertida, prevenindo estados inconsistentes de dados.
-*   **Defesa em Profundidade**:
-    *   **Rate Limiting**: Proteção contra ataques de força bruta e abuso de API com `django-ratelimit`.
-    *   **Controle de Volume**: Limites rígidos no backend para ações em massa, prevenindo abuso de funcionalidades.
-    *   **Segregação de Permissões**: Uma clara distinção entre as capacidades de `Usuários Comuns`, `Staff` e `Superusuários` em todas as camadas da aplicação.
-*   **Gerenciamento de Mídia Seguro**: Upload de imagens de questões diretamente para um bucket **AWS S3**, isolando arquivos de usuários da infraestrutura principal da aplicação.
+### 🛠️ Para a Gestão (Staff & Admins)
+- **Painel de Gestão Centralizado:** Um dashboard completo com as principais métricas da plataforma.
+- **Gerenciamento de Conteúdo:** CRUD completo para Questões, Disciplinas, Bancas, Assuntos e Simulados Oficiais.
+- **Lixeira (Soft Delete):** Sistema de exclusão segura para Questões e Logs de Atividade, com restauração e exclusão permanente controlada.
+- **Gerenciamento de Usuários:** Ferramentas para listar, filtrar, editar permissões (staff) e remover usuários.
+- **Sistema de Quórum:** Processos de segurança robustos que exigem aprovação de múltiplos superusuários para ações críticas como promover, rebaixar ou excluir um superusuário.
+- **Painel de Moderação:** Interface para analisar e resolver denúncias de erros em questões e comentários inadequados.
+- **Controle Total da Gamificação:** Crie e gerencie todos os aspectos do sistema de gamificação, desde as regras de XP até as Campanhas, Conquistas e itens da Loja, sem precisar de código.
+- **Auditoria Completa:** Um registro detalhado e imutável de todas as ações importantes realizadas no painel de gestão, com sistema de arquivamento e exclusão segura por quórum.
 
 ---
 
-## 💻 Pilha Tecnológica (Technology Stack)
+## 🎯 Público-Alvo e Casos de Uso
 
-| Backend                                                                                                                                                                                           | Frontend                                                                                                                                                                                               | Infraestrutura                                                                                                                                                                   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg" width="24"/> **Python 3.11**                                                                                | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/html5/html5-original.svg" width="24"/> **HTML5**                                                                                           | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/postgresql/postgresql-original.svg" width="24"/> **PostgreSQL**                                                     |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/django/django-plain.svg" width="24"/> **Django 4.2**                                                                                    | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/css3/css3-original.svg" width="24"/> **CSS3**                                                                                              | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/amazonwebservices/amazonwebservices-original.svg" width="24"/> **AWS S3** (Armazenamento de Mídia)                    |
-| <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/djangorest/djangorest-original.svg" width="24"/> **Django Rest Framework** <br/><sub>(Implicitamente, para APIs AJAX)</sub> | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/bootstrap/bootstrap-original.svg" width="24"/> **Bootstrap 5.3**                                                                     | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/render/render-original.svg" width="24"/> **Render** (Hospedagem)                                                        |
-|                                                                                                                                                                                                   | <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg" width="24"/> **JavaScript (ES6+)**                                                                   | <img src="https://user-images.githubusercontent.com/1393946/205132019-53090623-453d-42b7-a068-23340f6b4a3a.svg" width="24"/> **WhiteNoise** (Serviço de Arquivos Estáticos) |
-|                                                                                                                                                                                                   | <img src="https://user-images.githubusercontent.com/1393946/205132019-53090623-453d-42b7-a068-23340f6b4a3a.svg" width="24"/> **Chart.js & Tiptap.js** <br/><sub>(Gráficos e Editor de Texto)</sub> |                                                                                                                                                                                  |
+### 📚 Concurseiros e Vestibulandos
+- **Problema:** A dificuldade de encontrar uma plataforma centralizada, motivadora e com feedback claro sobre o progresso nos estudos.
+- **Solução:** O Raio-X da Aprovação oferece um vasto banco de questões, simulados realistas e um sistema de gamificação que transforma a rotina de estudos em uma jornada engajante, incentivando a consistência e recompensando o esforço.
 
----
-
-## ⚙️ Configuração do Ambiente Local
-
-Siga os passos abaixo para executar o projeto em sua máquina local.
-
-### Pré-requisitos
-*   Python 3.10+
-*   PostgreSQL
-*   Git
-
-### Passos
-1.  **Clone o repositório:**
-    ```bash
-    git clone https://github.com/seu-usuario/raio-x-aprovacao.git
-    cd raio-x-aprovacao
-    ```
-
-2.  **Crie e ative um ambiente virtual:**
-    ```bash
-    python -m venv venv
-    # Windows
-    .\venv\Scripts\activate
-    # macOS/Linux
-    source venv/bin/activate
-    ```
-
-3.  **Instale as dependências:**
-    *Primeiro, gere o arquivo `requirements.txt` no ambiente de produção e adicione-o ao seu repositório.*
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-4.  **Configure as variáveis de ambiente:**
-    Crie um arquivo `.env` na raiz do projeto, baseado no `qconcurso/settings.py`. Preencha com suas credenciais locais:
-
-    ```ini
-    # .env
-
-    # Configurações do Django
-    SECRET_KEY='sua-chave-secreta-muito-forte-aqui'
-    ENVIRONMENT='development' # Use 'development' para local
-    DEBUG=True
-    ALLOWED_HOSTS='127.0.0.1,localhost'
-
-    # Configurações do Banco de Dados (PostgreSQL Local)
-    DB_NAME='raiox_db'
-    DB_USER='postgres'
-    DB_PASSWORD='sua_senha_do_postgres'
-    DB_HOST='localhost'
-    DB_PORT='5432'
-
-    # Configurações de E-mail (use o backend de console para dev local)
-    # Ou configure um SMTP real (ex: Gmail com senha de app)
-    EMAIL_HOST_USER='seu-email@gmail.com'
-    EMAIL_HOST_PASSWORD='sua-senha-de-app'
-
-    # Configurações da AWS S3 (Opcional para dev local, mas necessário para uploads)
-    AWS_ACCESS_KEY_ID='seu_access_key'
-    AWS_SECRET_ACCESS_KEY='seu_secret_access_key'
-    AWS_STORAGE_BUCKET_NAME='seu-bucket-name'
-    AWS_S3_REGION_NAME='sua-regiao-ex-us-east-1'
-    ```
-
-5.  **Execute as migrações do banco de dados:**
-    ```bash
-    python manage.py migrate
-    ```
-
-6.  **Crie um superusuário para acessar o painel de gestão:**
-    ```bash
-    python manage.py createsuperuser
-    ```
-
-7.  **Inicie o servidor de desenvolvimento:**
-    ```bash
-    python manage.py runserver
-    ```
-
-Acesse [http://127.0.0.1:8000](http://127.0.0.1:8000) em seu navegador.
+### 🏫 Cursinhos e Instituições de Ensino
+- **Problema:** Falta de ferramentas modernas para acompanhar o desempenho dos alunos e criar conteúdo personalizado.
+- **Solução:** A plataforma pode ser usada como uma ferramenta de apoio, onde professores (atuando como `staff`) podem criar simulados oficiais, monitorar o desempenho da turma através dos rankings e utilizar o painel de gestão para gerenciar o conteúdo.
 
 ---
 
-## 🗺️ Roadmap de Futuras Implementações
+## 🏛️ Arquitetura do Projeto
 
-O projeto possui uma base sólida que permite a expansão para novas funcionalidades de alto valor:
+O sistema é modularizado em apps Django, cada um com uma responsabilidade clara:
 
-*   [ ] **Autenticação de Dois Fatores (2FA)**: Implementar 2FA com `django-otp` para contas de `Staff` e `Superuser`, elevando a segurança a um novo patamar.
-*   [ ] **Gamificação**: Introduzir elementos como conquistas, medalhas e sequências de dias de estudo ("streaks") para aumentar o engajamento dos usuários.
-*   [ ] **Simulados e Cadernos de Estudo**: Permitir que os usuários criem simulados cronometrados e "cadernos de questões" (conjuntos de filtros salvos) para estudo focado.
-*   [ ] **Testes Automatizados**: Desenvolver uma suíte de testes (com `pytest-django`) para garantir a estabilidade do código e facilitar futuras manutenções e refatorações.
+- `usuarios`: Gerencia a autenticação (cadastro, login, etc.), perfis de usuário e a personalização de itens cosméticos (avatares, bordas).
+- `questoes`: Define os modelos de dados centrais como `Questao`, `Disciplina`, `Banca`, `Assunto`, etc. É a base de todo o conteúdo de estudo.
+- `pratica`: Controla a interação do usuário com questões individuais, incluindo a lógica de resposta, comentários e filtros.
+- `simulados`: Engloba toda a funcionalidade de criação e resolução de simulados, tanto os oficiais quanto os gerados pelos usuários.
+- `desempenho`: Fornece a lógica e as views para o dashboard de análise de desempenho do usuário.
+- `gamificacao`: O coração da experiência de engajamento. Contém o motor de regras para XP, moedas, níveis, streaks, conquistas, rankings, loja e campanhas.
+- `gestao`: Um backend completo e seguro para a administração da plataforma, exclusivo para membros da equipe (`staff`) e superusuários.
 
 ---
+
+## 🔬 Tecnologias Utilizadas
+
+- **Backend:** Python, Django, Gunicorn
+- **Frontend:** HTML5, CSS3, JavaScript, Bootstrap 5
+- **Banco de Dados:** PostgreSQL (Produção), SQLite3 (Desenvolvimento)
+- **Armazenamento de Mídia:** Amazon S3
+- **Envio de E-mails:** SendGrid
+- **Infraestrutura (Produção):** Render (PaaS)
+
+```markdown
+
+
+
+## 📬 Contato
+
+**Yuri Silva**
+
+- **LinkedIn:** [https://www.linkedin.com/in/yuri-silva-a5b9b3299](https://www.linkedin.com/in/yuri-silva-a5b9b3299)
+- **GitHub:** [https://github.com/Yuridevpro/](https://github.com/Yuridevpro/)
+- **E-mail:** yuridev524@gmail.com
+
+---
+
+**Versão:** 1.0 | **Status do Projeto:** ✅ Em Desenvolvimento Ativo
+```
