@@ -187,16 +187,24 @@ MEDIA_URL = f'https://{AWS_S3_CUSTOM_DOMAIN}/{AWS_LOCATION}/'
 # EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 # EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.sendgrid.net'
-EMAIL_PORT = 587
-EMAIL_USE_TLS = True
-EMAIL_HOST_USER = 'apikey'  # Esta palavra é literal e obrigatória.
-EMAIL_HOST_PASSWORD = os.getenv('SENDGRID_API_KEY') 
 
-# Define o remetente padrão para todos os e-mails.
-# Este valor DEVE corresponder ao seu "Single Sender" verificado no SendGrid.
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL')
+EMAIL_BACKEND = "sendgrid_backend.SendgridBackend"
+SENDGRID_API_KEY = os.getenv('SENDGRID_API_KEY')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'raioxaprovacao@gmail.com')
+
+# =======================================================================
+# LINHA ADICIONADA PARA DESATIVAR O MODO SANDBOX
+# =======================================================================
+# Quando SENDGRID_SANDBOX_MODE_IN_DEBUG é False, os e-mails serão enviados
+# de verdade, mesmo quando DEBUG=True.
+SENDGRID_SANDBOX_MODE_IN_DEBUG = False
+# =======================================================================
+# FIM DA ADIÇÃO
+# =======================================================================
+
+# (Opcional, mas recomendado) Imprime o e-mail no console além de enviar.
+SENDGRID_ECHO_TO_STDOUT = True
+
 
 # --- OUTRAS CONFIGURAÇÕES ---
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
