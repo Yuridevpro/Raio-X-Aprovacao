@@ -5,16 +5,27 @@
         <div class="step-indicator">{{ step }}</div>
     {% endif %}
 
-    <div class.="conquista-icon-wrapper" style="background-color: {{ conquista.cor }};">
-        <i class="{{ conquista.icone|default:'fas fa-trophy' }}"></i>
+    <!-- ======================================================================= -->
+    <!-- INÍCIO DA CORREÇÃO: Lógica de estilo do ícone aprimorada -->
+    <!-- ======================================================================= -->
+    <div class="conquista-icon-wrapper" 
+         style="background-color: {{ conquista.cor }}; 
+                {% if conquista.status == 'locked' %} 
+                    opacity: 0.4; 
+                {% endif %}">
+        <i class="{{ conquista.icone|default:'fas fa-trophy' }}" 
+           style="{% if conquista.status == 'locked' %} 
+                      color: #fff !important; 
+                  {% endif %}">
+        </i>
     </div>
+    <!-- ======================================================================= -->
+    <!-- FIM DA CORREÇÃO -->
+    <!-- ======================================================================= -->
 
     <div class="flex-grow-1 conquista-details">
         <h6 class="fw-bold mb-0">
             {{ conquista.nome }}
-            <!-- ======================================================================= -->
-            <!-- INÍCIO DA ADIÇÃO: Tooltip de Pré-requisitos para Individuais -->
-            <!-- ======================================================================= -->
             {% if not conquista.serie and conquista.pre_requisitos.all %}
                 <i class="fas fa-link text-muted ms-2" 
                    data-bs-toggle="tooltip" 
@@ -22,9 +33,6 @@
                    title="Requer: {% for prereq in conquista.pre_requisitos.all %}{{ prereq.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}">
                 </i>
             {% endif %}
-            <!-- ======================================================================= -->
-            <!-- FIM DA ADIÇÃO -->
-            <!-- ======================================================================= -->
         </h6>
         <small class="text-muted">{{ conquista.descricao }}</small>
 
