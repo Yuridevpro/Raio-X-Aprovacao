@@ -1,4 +1,4 @@
-```markdown
+
 # 🚀 Raio-X da Aprovação - Plataforma de Estudos Gamificada
 
 Sistema web completo e robusto para preparação para concursos públicos e exames, combinando um vasto banco de questões com um sistema de gamificação avançado para motivar e engajar os estudantes em sua jornada de aprovação.
@@ -153,7 +153,6 @@ O sistema é modularizado em apps Django, cada um com uma responsabilidade clara
 - **Envio de E-mails:** SendGrid
 - **Infraestrutura (Produção):** Render (PaaS)
 
-```markdown
 
 
 
