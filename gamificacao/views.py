@@ -166,6 +166,7 @@ def ranking(request):
 
 # gamificacao/views.py
 
+# gamificacao/views.py
 @login_required
 def loja(request):
     """
@@ -175,18 +176,12 @@ def loja(request):
     """
     user_profile = request.user.userprofile
     
-    # =======================================================================
-    # INÍCIO DA ALTERAÇÃO: Lógica de exibição condicional na loja.
-    # =======================================================================
-
-    # 1. Busca todos os itens que podem, em teoria, ser vendidos na loja.
     avatares_base = Avatar.objects.filter(tipos_desbloqueio__nome='LOJA', preco_moedas__gt=0).prefetch_related('tipos_desbloqueio')
     bordas_base = Borda.objects.filter(tipos_desbloqueio__nome='LOJA', preco_moedas__gt=0).prefetch_related('tipos_desbloqueio')
     banners_base = Banner.objects.filter(tipos_desbloqueio__nome='LOJA', preco_moedas__gt=0).prefetch_related('tipos_desbloqueio')
 
     all_items_base = list(chain(avatares_base, bordas_base, banners_base))
 
-    # 2. Adiciona flags de status (possuído, bloqueado) a cada item.
     itens_visiveis = []
     nivel_atual = user_profile.gamificacao_data.level
     
@@ -195,21 +190,24 @@ def loja(request):
     banners_possuidas = set(user_profile.banners_desbloqueados.values_list('banner_id', flat=True))
 
     for item in all_items_base:
-        # Define atributos padrão
         item.ja_possui = False
         item.is_locked = False
         item.unlock_condition = ''
         
-        # Verifica se o usuário já possui o item
         item_type_name = item.__class__.__name__
         if item_type_name == 'Avatar' and item.id in avatares_possuidos:
             item.ja_possui = True
         elif item_type_name == 'Borda' and item.id in bordas_possuidas:
             item.ja_possui = True
-        elif item_type_name == 'Banner' and item.id in banners_possuidos:
+        # =======================================================================
+        # INÍCIO DA CORREÇÃO: Ajustando o nome da variável
+        # =======================================================================
+        elif item_type_name == 'Banner' and item.id in banners_possuidas:
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
             item.ja_possui = True
         
-        # Se não possui, verifica se o item está bloqueado por nível
         if not item.ja_possui:
             tipos_desbloqueio_nomes = {t.nome for t in item.tipos_desbloqueio.all()}
             if 'NIVEL' in tipos_desbloqueio_nomes:
@@ -218,9 +216,6 @@ def loja(request):
                     item.unlock_condition = f"Requer Nível {item.nivel_necessario}"
 
         itens_visiveis.append(item)
-    # =======================================================================
-    # FIM DA ALTERAÇÃO
-    # =======================================================================
 
     filtro_tipo = request.GET.get('tipo', '')
     filtro_raridade = request.GET.get('raridade', '')
