@@ -292,7 +292,15 @@ def _obter_valor_variavel(user_profile, chave_variavel, contexto):
     if chave_variavel == 'level': return user_profile.gamificacao_data.level
     if chave_variavel == 'current_streak': user_profile.streak_data.update_streak(); return user_profile.streak_data.current_streak
     if chave_variavel == 'max_streak': return user_profile.streak_data.max_streak
-    if chave_variavel == 'simulados_concluidos': return SessaoSimulado.objects.filter(usuario=user, finalizado=True).count()
+    
+    # =======================================================================
+    # VULNERABILIDADE CORRIGIDA 1: Contagem de Simulados Únicos
+    # =======================================================================
+    if chave_variavel == 'simulados_concluidos':
+        # ANTES: .count() -> Contava todas as sessões, permitindo exploração.
+        # AGORA: .values('simulado').distinct().count() -> Conta apenas simulados únicos.
+        return SessaoSimulado.objects.filter(usuario=user, finalizado=True).values('simulado').distinct().count()
+
     if chave_variavel == 'dias_desde_ultima_pratica':
         last_date = user_profile.streak_data.last_practice_date
         if not last_date: return 999
@@ -303,17 +311,18 @@ def _obter_valor_variavel(user_profile, chave_variavel, contexto):
     if chave_variavel == 'simulados_pessoais_criados': return Simulado.objects.filter(criado_por=user, is_oficial=False).count()
     if chave_variavel == 'comentarios_criados': return Comentario.objects.filter(usuario=user, parent__isnull=True).count()
         
-    # =======================================================================
-    # INÍCIO DA ADIÇÃO DE NOVAS VARIÁVEIS
-    # =======================================================================
     if chave_variavel == 'bancas_unicas_estudadas':
         return RespostaUsuario.objects.filter(usuario=user).values('questao__banca').distinct().count()
 
+    # =======================================================================
+    # VULNERABILIDADE CORRIGIDA 2: Contagem de Simulados Únicos por Dificuldade
+    # =======================================================================
     if chave_variavel == 'simulados_concluidos_por_dificuldade':
         qs = SessaoSimulado.objects.filter(usuario=user, finalizado=True)
         if contexto and contexto.get('dificuldade'):
             qs = qs.filter(simulado__dificuldade=contexto['dificuldade'])
-        return qs.count()
+        # A mesma lógica de contar IDs distintos é aplicada aqui.
+        return qs.values('simulado').distinct().count()
 
     if chave_variavel == 'melhor_percentual_acerto_em_simulado':
         sessoes = SessaoSimulado.objects.filter(usuario=user, finalizado=True)
@@ -326,9 +335,6 @@ def _obter_valor_variavel(user_profile, chave_variavel, contexto):
                 if percentual_atual > melhor_percentual:
                     melhor_percentual = percentual_atual
         return melhor_percentual
-    # =======================================================================
-    # FIM DA ADIÇÃO
-    # =======================================================================
     
     qs = RespostaUsuario.objects.filter(usuario=user)
     
@@ -648,4 +654,15 @@ def _verificar_condicoes_de_grupo(grupo, contexto, user_profile):
                 
     return True
 
-
+# =======================================================================
+# FUNÇÃO ADICIONADA PARA CORRIGIR O ERRO
+# =======================================================================
+def _conceder_recompensa(user_profile, recompensa, campanha):
+    """Cria uma RecompensaPendente para o usuário."""
+    _, created = RecompensaPendente.objects.get_or_create(
+        user_profile=user_profile,
+        content_type=ContentType.objects.get_for_model(recompensa),
+        object_id=recompensa.id,
+        defaults={'origem_desbloqueio': f"Prêmio da campanha '{campanha.nome}'"}
+    )
+    return created

@@ -79,6 +79,15 @@
                             <i class="fas fa-info-circle text-muted" data-bs-toggle="tooltip" title="{{ form.tipos_desbloqueio.help_text }}"></i>
                         </h5>
                         
+                        {% if form.instance.pk %}
+                        <div class="alert alert-warning" role="alert">
+                            <h4 class="alert-heading"><i class="fas fa-lock me-2"></i>Campo Bloqueado</h4>
+                            <p>Para alterar as formas de desbloqueio, é necessário <strong>excluir este item e criá-lo novamente</strong>.</p>
+                            <hr>
+                            <p class="mb-0">Esta medida garante a consistência das recompensas que podem já ter sido distribuídas aos usuários sob as regras atuais.</p>
+                        </div>
+                        {% endif %}
+                        
                         <div class="mb-3 checkbox-grid" id="tipos-desbloqueio-container">
                             {% for checkbox in form.tipos_desbloqueio %}
                             <div class="form-check">
@@ -144,6 +153,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 const targetDiv = document.getElementById(targetDivId);
                 if (targetDiv) {
                     targetDiv.style.display = checkbox.checked ? 'block' : 'none';
+                    // ADIÇÃO: Limpa o valor do input quando o campo é escondido para evitar envio de dados antigos
+                    if (!checkbox.checked) {
+                        const input = targetDiv.querySelector('input[type="number"]');
+                        if (input) {
+                            input.value = '';
+                        }
+                    }
                 }
             }
         });

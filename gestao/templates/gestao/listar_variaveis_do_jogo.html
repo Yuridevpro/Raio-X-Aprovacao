@@ -12,8 +12,60 @@
     .variavel-card:hover {
         transform: translateY(-5px);
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
-        border-left-color: var(--bs-info-dark);
+        border-left-color: var(--bs-primary);
     }
+
+    /* ======================================================================= */
+    /* INÍCIO DAS MELHORIAS DE DESIGN RESPONSIVO                             */
+    /* ======================================================================= */
+
+    /* Container do cabeçalho da página */
+    .page-header {
+        display: flex;
+        flex-direction: column; /* Começa empilhado em mobile */
+        gap: 0.5rem;
+        justify-content: space-between;
+        align-items: flex-start; /* Alinha tudo à esquerda */
+        margin-bottom: 1.5rem;
+    }
+
+    /* Ajusta o layout para desktop */
+    @media (min-width: 576px) {
+        .page-header {
+            flex-direction: row; /* Layout lado a lado */
+            align-items: center; /* Centraliza verticalmente */
+        }
+    }
+
+    /* Ajustes de fonte para o cabeçalho em telas pequenas */
+    .page-header .h3 {
+        font-size: 1.5rem; /* Reduz um pouco o título principal */
+    }
+    .page-header p {
+        font-size: 0.9rem; /* Reduz o texto de descrição */
+        margin-bottom: 0.5rem;
+    }
+
+    /* Estiliza o botão de "Nova Variável" */
+    .page-header .btn {
+        width: 100%; /* Ocupa a largura toda em mobile */
+        margin-top: 0.5rem;
+    }
+    @media (min-width: 576px) {
+        .page-header .btn {
+            width: auto; /* Largura automática em desktop */
+            margin-top: 0;
+        }
+    }
+
+    /* Ajusta a tag `code` para quebrar a linha se for muito longa */
+    .variavel-card code {
+        word-break: break-all;
+    }
+
+    /* ======================================================================= */
+    /* FIM DAS MELHORIAS DE DESIGN                                             */
+    /* ======================================================================= */
 </style>
 {% endblock %}
 
@@ -21,7 +73,7 @@
 <div class="container my-5">
     {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab='variaveis_jogo' %}
 
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="page-header">
         <div>
             <h2 class="h3 mb-0">{{ titulo }}</h2>
             <p class="text-muted mb-0">Estas são as estatísticas do jogador que podem ser usadas para criar regras.</p>

@@ -330,6 +330,11 @@ def resgatar_recompensa_ajax(request):
             resgatado_em__isnull=True
         )
 
+        # Garante que a recompensa ainda existe antes de tentar resgatar
+        if not recompensa_pendente.recompensa:
+            recompensa_pendente.delete() # Limpa o item pendente quebrado
+            return JsonResponse({'status': 'error', 'message': 'Este item não existe mais e foi removido da sua caixa.'}, status=404)
+
         sucesso = recompensa_pendente.resgatar()
 
         if sucesso:
@@ -347,7 +352,6 @@ def resgatar_recompensa_ajax(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': 'Ocorreu um erro inesperado.'}, status=500)
-    
 
 # gamificacao/views.py
 

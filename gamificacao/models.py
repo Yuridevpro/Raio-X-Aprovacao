@@ -1,4 +1,4 @@
-# gamificacao/models.py (ARQUIVO COMPLETO E REFATORADO)
+# gamificacao/models.py
 
 from django.db import models
 from django.contrib.auth.models import User
@@ -222,8 +222,6 @@ class TipoDesbloqueio(models.Model):
     def __str__(self):
         return self.get_nome_display()
 
-# gamificacao/models.py
-
 class Recompensa(models.Model):
     class Raridade(models.TextChoices):
         COMUM = 'COMUM', 'Comum'
@@ -241,12 +239,6 @@ class Recompensa(models.Model):
     raridade = models.CharField(max_length=20, choices=Raridade.choices, default=Raridade.COMUM, verbose_name="Raridade")
     nivel_necessario = models.PositiveIntegerField(null=True, blank=True, verbose_name="Nível Necessário", help_text="Preencha se for desbloqueável por nível.")
     
-    # =======================================================================
-    # CAMPO REMOVIDO: O campo `conquista_necessaria` foi removido para quebrar
-    # a dependência circular. A Conquista agora é a única fonte da verdade.
-    # conquista_necessaria = models.ForeignKey('Conquista', ...)
-    # =======================================================================
-
     preco_moedas = models.PositiveIntegerField(null=True, blank=True, default=0, verbose_name="Preço em Moedas", help_text="Preencha se for comprável na loja.")
     
     class Meta: 
@@ -268,9 +260,6 @@ class Recompensa(models.Model):
             if 'LOJA' in tipos_chaves and (not self.preco_moedas or self.preco_moedas <= 0):
                 raise ValidationError({'preco_moedas': 'O preço deve ser maior que zero para itens da loja.'})
             
-            # =======================================================================
-            # VALIDAÇÃO REMOVIDA: A validação para `conquista_necessaria` foi removida.
-            # =======================================================================
     
     def save(self, *args, **kwargs):
         is_new = self.pk is None
@@ -319,16 +308,12 @@ class Condicao(models.Model):
     operador = models.CharField(max_length=4, choices=Operador.choices, default=Operador.MAIOR_IGUAL)
     valor = models.IntegerField(verbose_name="Valor para comparar", default=0)
     
-    # =======================================================================
-    # CAMPO ADICIONADO
-    # =======================================================================
     contexto_json = models.JSONField(
         default=dict, 
         blank=True, 
         verbose_name="Filtros Adicionais (JSON)", 
         help_text="Opcional. Use para filtrar variáveis. Ex: {'disciplina_id': 5}"
     )
-    # =======================================================================
 
     class Meta:
         verbose_name = "Condição"
@@ -343,26 +328,16 @@ class Condicao(models.Model):
 # =======================================================================
 # MODELOS DE TRILHAS E CONQUISTAS (AJUSTADOS)
 # =======================================================================
-# gamificacao/models.py
-
 class TrilhaDeConquistas(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(help_text="Descreva o objetivo geral desta trilha de conquistas.")
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-graduation-cap' (classe do Font Awesome)")
-    # =======================================================================
-    # INÍCIO DA ALTERAÇÃO: Adicionando `unique=True`
-    # Isso cria uma restrição no banco de dados que impede valores duplicados
-    # para o campo 'ordem'.
-    # =======================================================================
     ordem = models.PositiveIntegerField(
         default=0, 
         unique=True, 
         verbose_name="Ordem de Exibição",
         help_text="Define a ordem de exibição das trilhas (menor primeiro). Cada trilha deve ter uma ordem única."
     )
-    # =======================================================================
-    # FIM DA ALTERAÇÃO
-    # =======================================================================
 
     class Meta: 
         ordering = ['ordem', 'nome']
@@ -371,7 +346,6 @@ class TrilhaDeConquistas(models.Model):
     def __str__(self): 
         return self.nome
 
-# gamificacao/models.py
 class SerieDeConquistas(models.Model):
     """
     Agrupamento para conquistas que seguem uma progressão linear (Ex: Bronze, Prata, Ouro).
@@ -389,25 +363,19 @@ class SerieDeConquistas(models.Model):
     def __str__(self):
         return self.nome
 
-# =======================================================================
-# MODELO MODIFICADO: Conquista
-# =======================================================================
-# gamificacao/models.py
 class Conquista(models.Model):
     nome = models.CharField(max_length=100, unique=True)
     descricao = models.TextField(help_text="Explique o que o usuário precisa fazer para ganhar esta conquista.")
     icone = models.CharField(max_length=50, help_text="Ex: 'fas fa-fire' (classes do Font Awesome)")
     cor = models.CharField(max_length=20, default='gold', help_text="Cor do ícone (ex: 'gold', '#FFD700')")
     
-    # LINHA CORRIGIDA: Adicionado null=True, blank=True para permitir a migração
     trilha = models.ForeignKey('TrilhaDeConquistas', on_delete=models.CASCADE, related_name='conquistas', null=True, blank=True)
     
     is_secreta = models.BooleanField(default=False, verbose_name="É uma Conquista Secreta?", help_text="Se marcado, não aparecerá na trilha até ser desbloqueada.")
     
-    # --- NOVOS CAMPOS PARA O SISTEMA DE SÉRIES ---
     serie = models.ForeignKey(SerieDeConquistas, on_delete=models.PROTECT, null=True, blank=True, related_name='conquistas', verbose_name="Série")
     ordem_na_serie = models.PositiveIntegerField(default=0, db_index=True)
-    sequencia_automatica = models.BooleanField(default=False, editable=False) # Flag interna de controle
+    sequencia_automatica = models.BooleanField(default=False, editable=False)
 
     pre_requisitos = models.ManyToManyField('self', symmetrical=False, blank=True, related_name='desbloqueia', verbose_name="Pré-requisitos")
     recompensas = JSONField(default=dict, blank=True, verbose_name="Recompensas Diretas", help_text="JSON com as recompensas concedidas. Ex: {\"xp\": 100, \"moedas\": 50, \"avatares\": [1, 2]}")
@@ -420,30 +388,81 @@ class Conquista(models.Model):
     
     @transaction.atomic
     def save(self, *args, **kwargs):
-        # Lógica para garantir a integridade da série ao salvar
-        if self.serie and not self.pk: # Apenas na criação de uma nova conquista em série
+        is_new = self.pk is None
+        
+        # Garante a ordem correta na criação
+        if is_new and self.serie:
             maior_ordem = self.serie.conquistas.aggregate(max_ordem=Max('ordem_na_serie'))['max_ordem'] or 0
             self.ordem_na_serie = maior_ordem + 1
         
         super().save(*args, **kwargs)
 
-        # Garante que o pré-requisito seja definido corretamente APÓS salvar
+        # Atualiza o pré-requisito sequencial
         if self.serie and self.ordem_na_serie > 1:
             try:
                 conquista_anterior = Conquista.objects.get(serie=self.serie, ordem_na_serie=self.ordem_na_serie - 1)
-                self.pre_requisitos.set([conquista_anterior])
+                if not self.pre_requisitos.filter(pk=conquista_anterior.pk).exists():
+                    self.pre_requisitos.set([conquista_anterior])
             except Conquista.DoesNotExist:
-                # Lida com a possibilidade de uma quebra na sequência, embora a lógica deva prevenir isso
                 self.pre_requisitos.clear()
+        
+        # =======================================================================
+        # INÍCIO DA LÓGICA DE SINCRONIZAÇÃO DE CONDIÇÕES (PUSH)
+        # =======================================================================
+        # Se a conquista que está sendo salva é a PRIMEIRA da série, ela dita as regras.
+        if self.serie and self.ordem_na_serie == 1:
+            # Pega as condições "mestras" (as que acabaram de ser salvas no formulário)
+            master_conditions = list(self.condicoes.all())
+            
+            # Busca todas as outras conquistas na mesma série para atualizá-las
+            achievements_to_update = Conquista.objects.filter(
+                serie=self.serie, 
+                ordem_na_serie__gt=1
+            ).prefetch_related('condicoes', 'condicoes__variavel')
+
+            for achievement in achievements_to_update:
+                # 1. Guarda os valores atuais para não perdermos a progressão
+                current_values = {
+                    c.variavel.chave: c.valor 
+                    for c in achievement.condicoes.all() if c.variavel
+                }
+                
+                # 2. Limpa as condições antigas
+                achievement.condicoes.all().delete()
+                
+                # 3. Recria as condições com base no "molde" da primeira conquista
+                new_conditions = []
+                for master_cond in master_conditions:
+                    # Usa o valor antigo se existir, senão usa o valor da primeira
+                    valor_preservado = current_values.get(master_cond.variavel.chave, master_cond.valor)
+                    
+                    new_conditions.append(Condicao(
+                        conquista=achievement,
+                        variavel=master_cond.variavel,
+                        operador=master_cond.operador,
+                        contexto_json=master_cond.contexto_json,
+                        valor=valor_preservado
+                    ))
+                
+                # 4. Cria as novas condições em lote
+                if new_conditions:
+                    Condicao.objects.bulk_create(new_conditions)
+        # =======================================================================
+        # FIM DA LÓGICA DE SINCRONIZAÇÃO
+        # =======================================================================
 
     @transaction.atomic
     def delete(self, *args, **kwargs):
+        dependentes = Conquista.objects.filter(pre_requisitos=self)
+        if dependentes.exists():
+            nomes_dependentes = ", ".join([f"'{c.nome}'" for c in dependentes])
+            raise ValidationError(f"Não é possível excluir. A(s) conquista(s) {nomes_dependentes} depende(m) desta.")
+
         serie_a_reordenar = self.serie
         ordem_excluida = self.ordem_na_serie
         
         super().delete(*args, **kwargs)
         
-        # Se a conquista pertencia a uma série, reordena as subsequentes
         if serie_a_reordenar and ordem_excluida > 0:
             conquistas_posteriores = Conquista.objects.filter(
                 serie=serie_a_reordenar, 
@@ -453,8 +472,7 @@ class Conquista(models.Model):
             for i, conquista in enumerate(conquistas_posteriores):
                 nova_ordem = ordem_excluida + i
                 conquista.ordem_na_serie = nova_ordem
-                conquista.save() # Salva para acionar a lógica de pré-requisitos no .save()
-
+                conquista.save(update_fields=['ordem_na_serie'])
 class ConquistaUsuario(models.Model):
     user_profile = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='conquistas_usuario')
     conquista = models.ForeignKey(Conquista, on_delete=models.CASCADE)
@@ -476,14 +494,7 @@ class Campanha(models.Model):
         RANKING_MENSAL_CONCLUIDO = 'RANKING_MENSAL_CONCLUIDO', 'Ao Fechar o Ranking Mensal'
         PRIMEIRA_ACAO_DO_DIA = 'PRIMEIRA_ACAO_DO_DIA', 'Na Primeira Ação do Dia'
         META_DIARIA_CONCLUIDA = 'META_DIARIA_CONCLUIDA', 'Ao Concluir a Meta Diária'
-        # =======================================================================
-        # INÍCIO DA ADIÇÃO
-        # =======================================================================
         CONQUISTA_DESBLOQUEADA = 'CONQUISTA_DESBLOQUEADA', 'Ao Desbloquear uma Conquista'
-        # =======================================================================
-        # FIM DA ADIÇÃO
-        # =======================================================================
-
         COMENTARIO_PUBLICADO = 'COMENTARIO_PUBLICADO', 'Ao Publicar um Comentário'
         LIKE_EM_COMENTARIO_CONCEDIDO = 'LIKE_EM_COMENTARIO_CONCEDIDO', 'Ao Curtir um Comentário'
 

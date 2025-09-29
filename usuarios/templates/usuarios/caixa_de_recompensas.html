@@ -2,43 +2,19 @@
 
 {% extends 'base.html' %}
 {% load static %}
+{% load colecao_extras %}
 {% block title %}{{ titulo_pagina }}{% endblock %}
 
 {% block head %}
+<link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
 <style>
-    .premio-card {
-        background-color: var(--cor-fundo-intermediario);
-        border: 1px solid rgba(141, 118, 198, 0.3);
-        border-radius: var(--raio-borda);
-        overflow: hidden;
-        transition: var(--transicao-padrao);
-        color: var(--cor-texto-claro);
+    /* Estilos específicos para animação de fade-out */
+    .card-fading-out {
+        transition: opacity 0.5s ease, transform 0.5s ease;
+        opacity: 0;
+        transform: scale(0.9);
     }
-    .premio-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 30px rgba(141, 118, 198, 0.3);
-        border-color: var(--cor-dourada);
-    }
-    .premio-card .card-img-top {
-        height: 200px;
-        object-fit: cover;
-        filter: saturate(0.8) brightness(0.9);
-    }
-    .premio-card .card-body { background-color: transparent; }
-    .premio-card .card-title {
-        color: var(--cor-texto-claro);
-        font-family: var(--fonte-display);
-    }
-    .premio-card .text-muted { color: var(--cor-secundaria) !important; }
-    .btn-resgatar {
-        background-color: var(--cor-dourada);
-        border-color: var(--cor-dourada);
-        color: var(--cor-texto-escuro);
-    }
-    .btn-resgatar .fa-check { display: none; }
-    .btn-resgatar.btn-success .fa-check { display: inline-block; }
-    .btn-resgatar.btn-success .fa-gift { display: none; }
-    .card-fading-out { opacity: 0; transform: scale(0.9); }
 </style>
 {% endblock %}
 
@@ -54,28 +30,40 @@
 
     {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='caixa_de_recompensas' %}
 
-    <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4" id="recompensas-grid">
+    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="recompensas-grid">
         {% for premio in recompensas_pendentes %}
-        <div class="col" id="premio-card-{{ premio.id }}">
-            <div class="card h-100 shadow-sm premio-card">
-                {% if premio.recompensa.imagem %}<img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">{% endif %}
-                <div class="card-body d-flex flex-column">
-                    <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
-                    <p class="card-text small flex-grow-1">
-                        Origem: <strong>{{ premio.origem_desbloqueio }}</strong><br>
-                        Conquistado em: {{ premio.data_ganho|date:"d/m/Y" }}
-                    </p>
-                    <button class="btn fw-bold btn-resgatar w-100 mt-3" data-pendente-id="{{ premio.id }}">
-                        <i class="fas fa-gift me-2"></i>
-                        <i class="fas fa-check me-2"></i>
-                        <span>Revelar</span>
-                    </button>
+            {% if premio.recompensa %}
+            <div class="col" id="premio-card-{{ premio.id }}">
+                <div class="card h-100 collection-card {% rarity_class premio.recompensa.raridade %}">
+                    <div class="card-img-container">
+                        {% if premio.recompensa.imagem %}
+                            <img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
+                                <i class="fas fa-image fa-3x text-white-50"></i>
+                            </div>
+                        {% endif %}
+                        <span class="badge rarity-badge {% rarity_class premio.recompensa.raridade %}">{{ premio.recompensa.get_raridade_display }}</span>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
+                        <p class="card-text small">
+                            <strong>Origem:</strong> {{ premio.origem_desbloqueio }}<br>
+                            <small class="text-white-50">Conquistado em: {{ premio.data_ganho|date:"d/m/Y" }}</small>
+                        </p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn fw-bold btn-celestial w-100 btn-resgatar" data-pendente-id="{{ premio.id }}">
+                            <span><i class="fas fa-gift me-2"></i>Revelar</span>
+                            <div class="star-1"></div><div class="star-2"></div><div class="star-3"></div><div class="star-4"></div><div class="star-5"></div><div class="star-6"></div>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+            {% endif %}
         {% empty %}
         <div class="col-12" id="empty-message-container">
-            <div class="card card-body text-center py-5">
+            <div class="card card-body text-center py-5 bg-transparent border-dashed">
                 <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
                 <h4 class="h5">Sua câmara de tesouros está vazia</h4>
                 <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
@@ -87,6 +75,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{% static 'js/gamification-effects.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -94,21 +83,27 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const pendenteId = this.dataset.pendenteId;
             const cardWrapper = document.getElementById(`premio-card-${pendenteId}`);
+            const buttonSpan = button.querySelector('span');
 
-            this.disabled = true;
-            this.querySelector('span').textContent = 'Revelando...';
+            button.disabled = true;
+            if(buttonSpan) buttonSpan.textContent = 'Revelando...';
 
             fetch("{% url 'gamificacao:resgatar_recompensa' %}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
                 body: JSON.stringify({ pendente_id: pendenteId })
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
             .then(result => {
                 if (result.status === 'success') {
-                    button.classList.remove('btn-primary');
+                    button.classList.remove('btn-celestial');
                     button.classList.add('btn-success');
-                    button.querySelector('span').textContent = 'Resgatado!';
+                    if(buttonSpan) buttonSpan.innerHTML = '<i class="fas fa-check me-2"></i>Resgatado!';
                     
                     if (window.confetti) {
                         const rect = button.getBoundingClientRect();
@@ -116,52 +111,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         confetti({ particleCount: 100, spread: 70, origin: origin });
                     }
                     
-                    showNotificationModal('Tesouro Revelado!', result.message, 'success');
+                    // 🔹 Modal de confirmação com reload só depois do clique
+                    Swal.fire({
+                        title: 'Tesouro Revelado!',
+                        text: result.message,
+                        icon: 'success',
+                        confirmButtonText: 'Continuar'
+                    }).then(() => {
+                        location.reload();
+                    });
 
-                    // ✅ INÍCIO DA CORREÇÃO: Atualizar contador e remover card
-                    const counter = document.getElementById('recompensa-counter');
-                    if (counter) {
-                        let currentCount = parseInt(counter.textContent, 10);
-                        if (!isNaN(currentCount)) {
-                            currentCount -= 1;
-                            if (currentCount > 0) {
-                                counter.textContent = currentCount;
-                            } else {
-                                counter.parentElement.remove(); // Remove o link inteiro se o contador zerar
-                            }
-                        }
-                    }
-
+                    // Efeito de sumir cartão (antes do reload, só visual)
                     if (cardWrapper) {
-                        cardWrapper.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
                         cardWrapper.classList.add('card-fading-out');
-                        setTimeout(() => {
-                            cardWrapper.remove();
-                            const grid = document.getElementById('recompensas-grid');
-                            if (grid && grid.children.length === 0) {
-                                grid.innerHTML = `
-                                <div class="col-12" id="empty-message-container">
-                                    <div class="card card-body text-center py-5">
-                                        <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                                        <h4 class="h5">Sua câmara de tesouros está vazia</h4>
-                                        <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
-                                    </div>
-                                </div>`;
-                            }
-                        }, 500);
+                        setTimeout(() => { cardWrapper.remove(); }, 500);
                     }
-                    // ✅ FIM DA CORREÇÃO
-
-                } else {
-                    button.disabled = false;
-                    button.querySelector('span').textContent = 'Revelar';
-                    showNotificationModal('Erro ao Resgatar', result.message, 'error');
                 }
             })
             .catch(err => {
                 button.disabled = false;
-                button.querySelector('span').textContent = 'Revelar';
-                showNotificationModal('Erro de Rede', 'Não foi possível resgatar o prêmio. Tente novamente.', 'error');
+                if(buttonSpan) buttonSpan.innerHTML = '<i class="fas fa-gift me-2"></i>Revelar';
+                const errorMessage = err.message || 'Não foi possível resgatar o prêmio. Tente novamente.';
+                Swal.fire('Erro ao Resgatar', errorMessage, 'error');
             });
         });
     });

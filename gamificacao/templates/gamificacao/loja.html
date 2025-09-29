@@ -9,55 +9,110 @@
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
 <style>
-     /* Estilos específicos da página da loja (cabeçalho, etc.) */
-     .loja-header { background: linear-gradient(135deg, var(--cor-fundo-escuro), var(--cor-primaria-escura)); color: white; border-radius: var(--raio-borda); text-shadow: 0 2px 5px rgba(0,0,0,0.3); border: 1px solid rgba(141, 118, 198, 0.3); }
-     .loja-header h1 { font-family: var(--fonte-display); color: var(--cor-dourada); text-shadow: 0 0 15px var(--cor-dourada); }
-     .loja-header .lead { color: rgba(255, 255, 255, 0.8); }
-     .saldo-display { font-family: var(--fonte-display); font-size: 2.5rem; font-weight: 700; color: var(--cor-dourada); text-shadow: 0 0 10px var(--cor-dourada); }
-     .preco-tag { font-family: var(--fonte-display); font-weight: 600; font-size: 1.1rem; color: var(--cor-dourada); text-shadow: 1px 1px 3px rgba(0,0,0,0.5); }
-     
-     .empty-store-card {
-        background-color: var(--cor-fundo-intermediario) !important;
-        color: rgba(255, 255, 255, 0.5) !important;
-     }
-     .empty-store-card .fa-store-slash {
-        color: rgba(255, 255, 255, 0.3) !important;
-     }
+    /* ======================================================================= */
+    /* INÍCIO DA REFORMULAÇÃO DE DESIGN DA LOJA                              */
+    /* ======================================================================= */
 
-     /* ======================================================================= */
-     /* INÍCIO DAS NOVAS ADIÇÕES DE ESTILO PARA ITENS BLOQUEADOS */
-     /* ======================================================================= */
-     .item-card.locked {
+    /* Cabeçalho da Loja */
+    .loja-header {
+        position: relative;
+        background: radial-gradient(ellipse at top, #2D2F55 0%, #1A1F3D 80%);
+        color: white;
+        border-radius: 16px;
+        text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        padding: 4px; /* Espaço para a borda */
+        overflow: hidden;
+    }
+    .loja-header::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+        background-image: conic-gradient(from var(--angle), #4A3D8C, #6E5BD4, #8FD3FF, #6E5BD4, #4A3D8C);
+        border-radius: inherit;
+        animation: rarity-border-spin 8s linear infinite;
+        opacity: 0.8;
+    }
+    .loja-header-content {
+        position: relative;
+        z-index: 1;
+        background-color: rgba(26, 31, 61, 0.8); /* Fundo semi-transparente para o conteúdo */
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 2rem;
+    }
+    @media (max-width: 767px) {
+        .loja-header-content {
+            padding: 1.5rem;
+        }
+    }
+
+    .loja-header h1 {
+        font-family: var(--fonte-display);
+        color: var(--cor-dourada);
+        text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
+    }
+    .loja-header .lead {
+        color: rgba(255, 255, 255, 0.8);
+    }
+    .saldo-display {
+        font-family: var(--fonte-display);
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--cor-dourada);
+        text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    /* Card de Filtros */
+    .filter-card {
+        background-color: #1A1F3D;
+        border: 1px solid #2D2F55;
+    }
+
+    /* Placeholder de loja vazia */
+    .empty-store-card {
+        background-color: rgba(26, 31, 61, 0.5) !important;
+        border: 1px dashed #2D2F55;
+        color: rgba(255, 255, 255, 0.5) !important;
+    }
+    .empty-store-card .fa-store-slash {
+        color: rgba(255, 255, 255, 0.3) !important;
+    }
+
+    /* Itens bloqueados na loja */
+    .item-card.locked {
         opacity: 0.7;
         filter: grayscale(80%);
         pointer-events: none; /* Impede cliques no card inteiro */
-     }
-     .item-card.locked .btn {
+    }
+    .item-card.locked .btn {
         pointer-events: all; /* Permite que o tooltip no botão funcione */
-     }
-     /* ======================================================================= */
-     /* FIM DAS NOVAS ADIÇÕES */
-     /* ======================================================================= */
+    }
+    /* ======================================================================= */
+    /* FIM DA REFORMULAÇÃO DE DESIGN                                           */
+    /* ======================================================================= */
 
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="loja-header p-4 p-md-5 text-center mb-5 shadow">
-        <i class="fas fa-store-alt fa-3x mb-3" style="color: var(--cor-dourada);"></i>
-        <h1 class="display-5">Arsenal Divino</h1>
-        <p class="lead">Forje seu destino com artefatos celestiais usando seus Fragmentos de Conhecimento.</p>
-        <div class="d-inline-flex align-items-center bg-white bg-opacity-10 p-2 px-4 rounded-pill mt-3">
-            <span class="me-3 text-white-50">Seu Tesouro:</span>
-            <span class="saldo-display" id="saldo-atual-display">
-                <i class="fas fa-coins me-2"></i>{{ saldo_atual }}
-            </span>
+    <div class="loja-header text-center mb-5 shadow">
+        <div class="loja-header-content">
+            <i class="fas fa-store-alt fa-3x mb-3" style="color: var(--cor-dourada);"></i>
+            <h1 class="display-5">Arsenal Divino</h1>
+            <p class="lead">Forje seu destino com artefatos celestiais usando seus Fragmentos de Conhecimento.</p>
+            <div class="d-inline-flex align-items-center bg-white bg-opacity-10 p-2 px-4 rounded-pill mt-3">
+                <span class="me-3 text-white-50">Seu Tesouro:</span>
+                <span class="saldo-display" id="saldo-atual-display">
+                    <i class="fas fa-coins me-2"></i>{{ saldo_atual }}
+                </span>
+            </div>
         </div>
     </div>
 
     <!-- Filtros e Ordenação -->
-    <div class="card shadow-sm mb-4" style="background-color: var(--cor-fundo-intermediario); border-color: rgba(141, 118, 198, 0.2);">
+    <div class="card shadow-sm mb-4 filter-card">
         <div class="card-body">
             <form method="GET" action="{% url 'gamificacao:loja' %}" class="row g-3 align-items-center">
                 <div class="col-md-3"><select name="tipo" class="form-select"><option value="">Todos os Tipos</option>{% for value, name in tipo_choices %}<option value="{{ value }}" {% if active_filters.tipo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></div>
@@ -91,27 +146,27 @@
                 </div>
                 
                 <div class="card-footer">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="preco-tag"><i class="fas fa-coins me-1"></i> {{ item.preco_moedas }}</span>
+                    <!-- ======================================================================= -->
+                    <!-- INÍCIO DA CORREÇÃO: Layout responsivo para o footer do card        -->
+                    <!-- ======================================================================= -->
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
+                        <span class="preco-tag mb-2 mb-sm-0"><i class="fas fa-coins me-1"></i> {{ item.preco_moedas }}</span>
                         
-                        <!-- ======================================================================= -->
-                        <!-- INÍCIO DA ALTERAÇÃO: Lógica completa para o botão de compra/bloqueio -->
-                        <!-- ======================================================================= -->
                         {% if item.ja_possui %}
-                            <button class="btn btn-sm btn-success disabled"><i class="fas fa-check me-2"></i>Adquirido</button>
+                            <button class="btn btn-sm btn-success disabled w-100 w-sm-auto"><i class="fas fa-check me-2"></i>Adquirido</button>
                         {% elif item.is_locked %}
-                            <button class="btn btn-sm btn-secondary" disabled data-bs-toggle="tooltip" title="{{ item.unlock_condition }}">
+                            <button class="btn btn-sm btn-secondary w-100 w-sm-auto" disabled data-bs-toggle="tooltip" title="{{ item.unlock_condition }}">
                                 <i class="fas fa-lock me-2"></i>Bloqueado
                             </button>
                         {% else %}
-                            <button class="btn btn-sm btn-primary btn-comprar" data-item-id="{{ item.id }}" data-item-tipo="{{ item|class_name }}" data-item-preco="{{ item.preco_moedas }}">
+                            <button class="btn btn-sm btn-primary btn-comprar w-100 w-sm-auto" data-item-id="{{ item.id }}" data-item-tipo="{{ item|class_name }}" data-item-preco="{{ item.preco_moedas }}">
                                 <i class="fas fa-shopping-cart me-2"></i>Comprar
                             </button>
                         {% endif %}
-                        <!-- ======================================================================= -->
-                        <!-- FIM DA ALTERAÇÃO -->
-                        <!-- ======================================================================= -->
                     </div>
+                    <!-- ======================================================================= -->
+                    <!-- FIM DA CORREÇÃO                                                         -->
+                    <!-- ======================================================================= -->
                 </div>
             </div>
         </div>
@@ -134,12 +189,9 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // =======================================================================
-    // ADIÇÃO: Inicialização dos tooltips para os botões bloqueados.
-    // =======================================================================
+    // Inicialização dos tooltips para os botões bloqueados.
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
-    // =======================================================================
 
     function getCookie(name) {
         let cookieValue = null;

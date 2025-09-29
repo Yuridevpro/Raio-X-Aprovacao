@@ -39,7 +39,8 @@ from datetime import date
 from questoes.utils import paginar_itens
 from questoes.models import Questao # Adicione esta importação no topo
 
-
+from django.db.models import Prefetch, Count, Q, F, Window, Case, When, Value, IntegerField
+from django.db.models.functions import Rank
 # =======================================================================
 # VIEWS DE AUTENTICAÇÃO
 # =======================================================================
@@ -397,90 +398,84 @@ def _grant_all_rewards_to_staff(user_profile, Model, M2M_Manager):
         M2M_Manager.get_or_create(user_profile=user_profile, **{m2m_field_name: item})
 
 
-@login_required
-def colecao_avatares(request):
-    user_profile = request.user.userprofile
+def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina):
+    """
+    Função auxiliar para obter o contexto de qualquer página de coleção (Avatares, Bordas, Banners),
+    já com lógica de filtro, ordenação e paginação.
+    """
     _verificar_desbloqueio_recompensas(user_profile)
-    _grant_all_rewards_to_staff(user_profile, Avatar, AvatarUsuario.objects)
     
-    base_queryset = Avatar.objects.all()
+    related_name_map = {
+        'avatar': 'avatares_desbloqueados',
+        'borda': 'bordas_desbloqueadas',
+        'banner': 'banners_desbloqueados',
+    }
+    related_manager_name = related_name_map.get(tipo_item)
+    if not related_manager_name:
+        return {} 
+    
+    M2M_Manager = getattr(user_profile, related_manager_name)
+    
+    if user_profile.user.is_staff:
+        todos_os_itens = Model.objects.all()
+        for item in todos_os_itens:
+            M2M_Manager.model.objects.get_or_create(user_profile=user_profile, **{f'{tipo_item}_id': item.id})
+
+    base_queryset = Model.objects.all()
+    
+    # --- Lógica de Filtragem ---
     filtro_raridade = request.GET.get('raridade')
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Lógica de ordenação simplificada e fixa
+    # =======================================================================
+    # Mapeamento de raridade para um valor numérico para ordenação correta
+    rarity_order = Case(
+        *[When(raridade=rarity_tuple[0], then=Value(i)) for i, rarity_tuple in enumerate(Model.Raridade.choices)],
+        output_field=IntegerField()
+    )
     
-    context = {
+    # Ordena sempre por raridade (mais raros primeiro) e depois por nome
+    itens_ordenados = base_queryset.annotate(rarity_order=rarity_order).order_by('-rarity_order', 'nome')
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+
+    page_obj, page_numbers, per_page = paginar_itens(request, itens_ordenados, items_per_page=10)
+    
+    desbloqueados_ids = list(M2M_Manager.values_list(f'{tipo_item}_id', flat=True))
+    equipado_id = getattr(user_profile, f'{tipo_item}_equipado_id', None)
+
+    return {
         'user_profile': user_profile,
         'itens': page_obj,
-        'desbloqueados_ids': list(user_profile.avatares_desbloqueados.values_list('avatar_id', flat=True)),
-        'equipado_id': user_profile.avatar_equipado_id,
-        'tipo_item': 'avatar',
-        'titulo_pagina': 'Meus Avatares',
+        'desbloqueados_ids': desbloqueados_ids,
+        'equipado_id': equipado_id,
+        'tipo_item': tipo_item,
+        'titulo_pagina': titulo_pagina,
         'paginated_object': page_obj,
         'page_numbers': page_numbers,
         'per_page': per_page,
-        'raridade_choices': Avatar.Raridade.choices,
+        'raridade_choices': Model.Raridade.choices,
         'filtro_raridade_ativo': filtro_raridade,
     }
+    
+    
+@login_required
+def colecao_avatares(request):
+    context = _get_colecao_context(request, Avatar, request.user.userprofile, 'avatar', 'Meus Avatares')
     return render(request, 'usuarios/colecao_listagem.html', context)
-
 
 @login_required
 def colecao_bordas(request):
-    user_profile = request.user.userprofile
-    _verificar_desbloqueio_recompensas(user_profile)
-    _grant_all_rewards_to_staff(user_profile, Borda, BordaUsuario.objects)
-
-    base_queryset = Borda.objects.all()
-    filtro_raridade = request.GET.get('raridade')
-    if filtro_raridade:
-        base_queryset = base_queryset.filter(raridade=filtro_raridade)
-
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
-
-    context = {
-        'user_profile': user_profile,
-        'itens': page_obj,
-        'desbloqueados_ids': list(user_profile.bordas_desbloqueadas.values_list('borda_id', flat=True)),
-        'equipado_id': user_profile.borda_equipada_id,
-        'tipo_item': 'borda',
-        'titulo_pagina': 'Minhas Bordas',
-        'paginated_object': page_obj,
-        'page_numbers': page_numbers,
-        'per_page': per_page,
-        'raridade_choices': Borda.Raridade.choices,
-        'filtro_raridade_ativo': filtro_raridade,
-    }
+    context = _get_colecao_context(request, Borda, request.user.userprofile, 'borda', 'Minhas Bordas')
     return render(request, 'usuarios/colecao_listagem.html', context)
-
 
 @login_required
 def colecao_banners(request):
-    user_profile = request.user.userprofile
-    _verificar_desbloqueio_recompensas(user_profile)
-    _grant_all_rewards_to_staff(user_profile, Banner, BannerUsuario.objects)
-
-    base_queryset = Banner.objects.all()
-    filtro_raridade = request.GET.get('raridade')
-    if filtro_raridade:
-        base_queryset = base_queryset.filter(raridade=filtro_raridade)
-
-    page_obj, page_numbers, per_page = paginar_itens(request, base_queryset, items_per_page=20)
-
-    context = {
-        'user_profile': user_profile,
-        'itens': page_obj,
-        'desbloqueados_ids': list(user_profile.banners_desbloqueados.values_list('banner_id', flat=True)),
-        'equipado_id': user_profile.banner_equipado_id,
-        'tipo_item': 'banner',
-        'titulo_pagina': 'Meus Banners',
-        'paginated_object': page_obj,
-        'page_numbers': page_numbers,
-        'per_page': per_page,
-        'raridade_choices': Banner.Raridade.choices,
-        'filtro_raridade_ativo': filtro_raridade,
-    }
+    context = _get_colecao_context(request, Banner, request.user.userprofile, 'banner', 'Meus Banners')
     return render(request, 'usuarios/colecao_listagem.html', context)
 
 # =======================================================================
@@ -575,20 +570,35 @@ def desequipar_item(request, tipo_item):
     user_profile.save()
     return redirect(redirect_url)
 
+
 @login_required
 def caixa_de_recompensas(request):
     """ Exibe a página com os prêmios pendentes do usuário para resgate. """
     user_profile = request.user.userprofile
+    
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Readicionando a verificação de desbloqueio
+    # =======================================================================
+    # Esta linha é essencial para gerar novas recompensas pendentes
+    _verificar_desbloqueio_recompensas(user_profile)
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+    
     recompensas = RecompensaPendente.objects.filter(
         user_profile=user_profile, 
         resgatado_em__isnull=True
     ).prefetch_related('recompensa')
+    
     context = {
         'recompensas_pendentes': recompensas,
-        'titulo_pagina': 'Câmara dos Tesouros', # Título temático adicionado
+        'titulo_pagina': 'Câmara dos Tesouros',
         'active_tab': 'caixa_de_recompensas'
     }
     return render(request, 'usuarios/caixa_de_recompensas.html', context)
+
+
+
 from django.db.models import Prefetch # ✅ LINHA ADICIONADA PARA CORRIGIR O ERRO
 
 # usuarios/views.py

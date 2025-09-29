@@ -1,4 +1,5 @@
-# gestao/views.py (ARQUIVO COMPLETO E FINALMENTE CORRIGIDO)
+
+# gestao/views.py
 
 # =======================================================================
 # BLOCO DE IMPORTAÇÕES
@@ -32,6 +33,10 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 from django_ratelimit.decorators import ratelimit
 import markdown
+from django.forms import inlineformset_factory
+from django.core.exceptions import ValidationError
+from django import forms  # <--- CORREÇÃO: Importação adicionada
+
 
 from django.db.models import F, Value, Case, When, CharField
 from django.db.models.functions import Concat
@@ -47,7 +52,6 @@ from gamificacao.models import (
     Conquista, ConquistaUsuario, GamificationSettings, MetaDiariaUsuario, 
     ProfileGamificacao, RankingMensal, RankingSemanal, RecompensaPendente, 
     RecompensaUsuario, TarefaAgendadaLog, TrilhaDeConquistas, SerieDeConquistas,
-    # NOVOS MODELOS DA ARQUITETURA DATA-DRIVEN
     VariavelDoJogo, Condicao
 )
 
@@ -73,8 +77,7 @@ from usuarios.utils import enviar_email_com_template
 # 4. Importações Locais (do próprio app 'gestao')
 # -----------------------------------------------------------------------
 from .forms import (
-    # Formulários de Gamificação (agora com a nova estrutura)
-    TrilhaDeConquistasForm, ConquistaForm, CondicaoFormSet, VariavelDoJogoForm,
+    TrilhaDeConquistasForm, ConquistaForm, CondicaoForm, VariavelDoJogoForm,
     AvatarForm, BordaForm, BannerForm, CampanhaForm, 
     GamificationSettingsForm, ConcessaoManualForm,
     SerieDeConquistasForm,
@@ -2200,6 +2203,11 @@ def _get_recompensas_with_full_urls(model):
 # VIEW DE CONQUISTAS (MODIFICADA PARA CONSISTÊNCIA)
 # =======================================================================
 
+
+
+from django.core.exceptions import ValidationError # <-- ADICIONE ESTA IMPORTAÇÃO
+from django.forms import inlineformset_factory # <-- ADICIONE ESTA IMPORTAÇÃO
+
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
@@ -2230,57 +2238,76 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
     
     form_kwargs = {'trilha': trilha, 'serie': serie, 'previous_conquista': previous_conquista}
 
+    can_edit_conditions_structure = False
+    if instancia:
+        if not instancia.serie or instancia.ordem_na_serie == 1:
+            can_edit_conditions_structure = True
+    else:
+        if not serie or (serie and not previous_conquista):
+            can_edit_conditions_structure = True
+
+    is_sequential_context = not can_edit_conditions_structure
+    
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO FINAL: Lógica para o "Campo Fantasma"
+    # =======================================================================
+    initial_formset_data = []
+    
+    if previous_conquista: # Criando conquista sequencial
+        condicoes_herdadas = previous_conquista.condicoes.all()
+        for cond in condicoes_herdadas:
+            initial_dict = {
+                'variavel': cond.variavel, 'operador': cond.operador, 'valor': cond.valor,
+            }
+            if cond.contexto_json:
+                if disc_id := cond.contexto_json.get('disciplina_id'): initial_dict['disciplina_contexto'] = disc_id
+                if banca_id := cond.contexto_json.get('banca_id'): initial_dict['banca_contexto'] = banca_id
+                if assunto_id := cond.contexto_json.get('assunto_id'): initial_dict['assunto_contexto'] = assunto_id
+                if dif := cond.contexto_json.get('dificuldade'): initial_dict['dificuldade_contexto'] = dif
+            initial_formset_data.append(initial_dict)
+        extra_forms = len(initial_formset_data)
+    else:
+        # Mostra 1 campo extra (fantasma) se puder editar, senão mostra 0.
+        extra_forms = 1 if can_edit_conditions_structure else 0
+
+    DynamicCondicaoFormSet = inlineformset_factory(
+        Conquista, Condicao, form=CondicaoForm, 
+        fields=('variavel', 'operador', 'valor'),
+        extra=extra_forms, 
+        can_delete=can_edit_conditions_structure,
+        widgets={
+            'variavel': forms.Select(attrs={'class': 'form-select form-select-sm tom-select-single'}),
+            'operador': forms.Select(attrs={'class': 'form-select form-select-sm tom-select-single'}),
+            'valor': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
+        }
+    )
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
+    
+    formset_init_kwargs = {'form_kwargs': {'is_sequential': is_sequential_context}}
+
     if request.method == 'POST':
         form_conquista = ConquistaForm(request.POST, instance=instancia, **form_kwargs)
-        formset_condicao = CondicaoFormSet(request.POST, instance=instancia, prefix='condicao')
+        formset_condicao = DynamicCondicaoFormSet(request.POST, instance=instancia, prefix='condicao', **formset_init_kwargs)
         
         if form_conquista.is_valid() and formset_condicao.is_valid():
-            conquista = form_conquista.save(commit=False)
-            
+            conquista = form_conquista.save()
             recompensas = {
-                'xp': form_conquista.cleaned_data.get('recompensa_xp'), 
-                'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
+                'xp': form_conquista.cleaned_data.get('recompensa_xp'), 'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
                 'avatares': [int(v) for v in request.POST.getlist('recompensa_avatares')],
-                'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')],
-                'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
+                'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')], 'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
             }
             conquista.recompensas = {k: v for k, v in recompensas.items() if v}
-            
-            conquista.save()
-            form_conquista.save_m2m() 
-
             formset_condicao.instance = conquista
             formset_condicao.save()
+            conquista.save()
             
             messages.success(request, f'Conquista "{conquista.nome}" salva com sucesso!')
             return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=conquista.trilha.id)
     else:
         form_conquista = ConquistaForm(instance=instancia, **form_kwargs)
-        
-        # =======================================================================
-        # INÍCIO DA ADIÇÃO: Lógica para herdar as condições
-        # =======================================================================
-        initial_formset_data = []
-        if previous_conquista:
-            condicoes_herdadas = previous_conquista.condicoes.all()
-            for cond in condicoes_herdadas:
-                initial_dict = {
-                    'variavel': cond.variavel,
-                    'operador': cond.operador,
-                    'valor': cond.valor,
-                }
-                # Popula os campos de contexto se existirem no JSON
-                if cond.contexto_json:
-                    if disc_id := cond.contexto_json.get('disciplina_id'): initial_dict['disciplina_contexto'] = disc_id
-                    if banca_id := cond.contexto_json.get('banca_id'): initial_dict['banca_contexto'] = banca_id
-                    if assunto_id := cond.contexto_json.get('assunto_id'): initial_dict['assunto_contexto'] = assunto_id
-                    if dif := cond.contexto_json.get('dificuldade'): initial_dict['dificuldade_contexto'] = dif
-                initial_formset_data.append(initial_dict)
-        
-        formset_condicao = CondicaoFormSet(instance=instancia, prefix='condicao', initial=initial_formset_data)
-        # =======================================================================
-        # FIM DA ADIÇÃO
-        # =======================================================================
+        formset_condicao = DynamicCondicaoFormSet(instance=instancia, prefix='condicao', initial=initial_formset_data, **formset_init_kwargs)
 
     if instancia:
         titulo = f'Editando: {instancia.nome}'
@@ -2290,12 +2317,9 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
         titulo = f'Nova Conquista Individual para a Trilha "{trilha.nome}"'
     
     context = {
-        'form_conquista': form_conquista,
-        'formset_condicao': formset_condicao,
-        'trilha': trilha,
-        'serie': instancia.serie if instancia else serie,
-        'titulo': titulo,
-        'active_tab': 'trilhas',
+        'form_conquista': form_conquista, 'formset_condicao': formset_condicao, 'trilha': trilha,
+        'serie': instancia.serie if instancia else serie, 'titulo': titulo, 'active_tab': 'trilhas',
+        'can_edit_conditions_structure': can_edit_conditions_structure,
         'avatares_disponiveis': _get_recompensas_with_full_urls(Avatar),
         'bordas_disponiveis': _get_recompensas_with_full_urls(Borda),
         'banners_disponiveis': _get_recompensas_with_full_urls(Banner),
@@ -2303,8 +2327,8 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
     return render(request, 'gestao/form_conquista.html', context)
 
 
-
 from django.core.exceptions import ValidationError # <-- ADICIONE ESTA IMPORTAÇÃO
+
 
 @user_passes_test(is_staff_member)
 @require_POST
@@ -2331,7 +2355,6 @@ def deletar_conquista(request, conquista_id):
         messages.error(request, e.message)
     
     return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=trilha_id)
-
 
 @user_passes_test(is_staff_member)
 @login_required
@@ -2410,12 +2433,16 @@ def gerenciar_gamificacao_settings(request):
 
 
 
+from django.db.models import Case, When, Value, IntegerField
+
+from django.db.models import Case, When, Value, IntegerField, Prefetch
+
 @user_passes_test(is_staff_member)
 @login_required
 def listar_recompensas(request, tipo):
     """
     Lista Avatares, Bordas ou Banners com base no tipo,
-    adicionando filtro por raridade.
+    adicionando filtros e ordenação avançada.
     """
     ModelMap = {
         'avatares': (Avatar, 'Gerenciar Avatares'),
@@ -2423,23 +2450,51 @@ def listar_recompensas(request, tipo):
         'banners': (Banner, 'Gerenciar Banners de Perfil'),
     }
     if tipo not in ModelMap:
-        return redirect('gestao:listar_conquistas')
+        return redirect('gestao:dashboard_gestao') # Redirecionamento mais seguro
 
     Model, titulo = ModelMap[tipo]
     
     # =======================================================================
-    # CORREÇÃO APLICADA AQUI:
-    # A chamada .select_related('conquista_necessaria') foi removida, pois
-    # o campo não existe mais no modelo Recompensa.
+    # INÍCIO DA MODIFICAÇÃO: Adicionando prefetch_related
     # =======================================================================
-    base_queryset = Model.objects.all()
+    # Otimiza a consulta para buscar os tipos de desbloqueio de uma só vez
+    base_queryset = Model.objects.prefetch_related('tipos_desbloqueio').all()
+    # =======================================================================
+    # FIM DA MODIFICAÇÃO
+    # =======================================================================
 
-    # Filtro por raridade
+
+    # --- Lógica de Filtragem ---
     filtro_raridade = request.GET.get('raridade')
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    recompensas_list = base_queryset.order_by('nome')
+    # --- Lógica de Ordenação ---
+    sort_by = request.GET.get('sort_by', 'nome') # Padrão para ordenar por nome
+    sort_options = {
+        'nome': 'Nome (A-Z)',
+        '-nome': 'Nome (Z-A)',
+        'raridade': 'Raridade (Crescente)',
+        '-raridade': 'Raridade (Decrescente)',
+        'preco_moedas': 'Preço (Menor)',
+        '-preco_moedas': 'Preço (Maior)',
+    }
+    
+    # Mapeamento de raridade para um valor numérico para ordenação correta
+    rarity_order = Case(
+        *[When(raridade=rarity_tuple[0], then=Value(i)) for i, rarity_tuple in enumerate(Model.Raridade.choices)],
+        output_field=IntegerField()
+    )
+
+    if sort_by == 'raridade':
+        recompensas_list = base_queryset.annotate(rarity_order=rarity_order).order_by('rarity_order', 'nome')
+    elif sort_by == '-raridade':
+        recompensas_list = base_queryset.annotate(rarity_order=rarity_order).order_by('-rarity_order', 'nome')
+    elif sort_by in sort_options:
+        recompensas_list = base_queryset.order_by(sort_by)
+    else:
+        recompensas_list = base_queryset.order_by('nome') # Fallback seguro
+
     paginated_object, page_numbers, per_page = paginar_itens(request, recompensas_list, 12)
     
     context = {
@@ -2450,9 +2505,12 @@ def listar_recompensas(request, tipo):
         'tipo': tipo,
         'titulo': titulo,
         'raridade_choices': Model.Raridade.choices,
+        'sort_options': sort_options,
         'filtro_raridade_ativo': filtro_raridade,
+        'sort_by_ativo': sort_by,
     }
     return render(request, 'gestao/listar_recompensas.html', context)
+
 
 @user_passes_test(is_staff_member)
 @login_required

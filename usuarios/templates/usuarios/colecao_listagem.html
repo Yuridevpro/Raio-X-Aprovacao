@@ -8,11 +8,99 @@
 {# Carrega o CSS centralizado #}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
+
+<style>
+    /* ======================================================================= */
+    /* INÍCIO DAS MELHORIAS DE DESIGN RESPONSIVO                             */
+    /* ======================================================================= */
+
+    /* Container do cabeçalho da página */
+    .page-header {
+        display: flex;
+        flex-direction: column; /* Começa empilhado em mobile */
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: flex-start; /* Alinha tudo à esquerda */
+        margin-bottom: 1.5rem;
+    }
+
+    /* Ajusta o layout para desktop (telas pequenas e maiores) */
+    @media (min-width: 576px) {
+        .page-header {
+            flex-direction: row; /* Layout lado a lado */
+            align-items: center; /* Centraliza verticalmente */
+        }
+    }
+
+    /* Ajustes de fonte para o cabeçalho em telas pequenas */
+    .page-header .h3 {
+        font-size: 1.75rem; /* Reduz um pouco o título principal */
+    }
+    .page-header p {
+        font-size: 0.95rem; /* Reduz o texto de descrição */
+        margin-bottom: 0;
+    }
+    .page-header .btn {
+        width: 100%; /* Ocupa a largura toda em mobile */
+        margin-top: 0.5rem;
+    }
+    @media (min-width: 576px) {
+        .page-header .btn {
+            width: auto; /* Largura automática em desktop */
+            margin-top: 0;
+        }
+    }
+
+    /* Card principal que contém os itens da coleção */
+    .collection-container {
+        position: relative; /* Necessário para a borda animada */
+        border-radius: 16px; /* Borda arredondada */
+        padding: 4px; /* Espaçamento para a borda animada brilhar */
+        background: transparent;
+        border: none;
+        overflow: hidden; /* Garante que o conteúdo não vaze */
+    }
+
+    /* Borda animada para o container usando a paleta de cores */
+    .collection-container::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background-image: conic-gradient(from var(--angle), #4A3D8C, #6E5BD4, #8FD3FF, #6E5BD4, #4A3D8C);
+        border-radius: inherit;
+        animation: rarity-border-spin 8s linear infinite;
+        opacity: 0.8;
+    }
+
+    /* ======================================================================= */
+    /* INÍCIO DA ATUALIZAÇÃO: Fundo Roxo Escuro com Gradiente Cósmico         */
+    /* ======================================================================= */
+    .collection-content {
+        background: radial-gradient(ellipse at center, #2D2F55 0%, #16192e 80%); /* COR BASE MAIS ESCURA */
+        border-radius: 12px; /* Borda interna um pouco menor que a externa */
+        padding: 1.5rem;
+    }
+    /* ======================================================================= */
+    /* FIM DA ATUALIZAÇÃO                                                      */
+    /* ======================================================================= */
+
+     @media (max-width: 575px) {
+        .collection-content {
+            padding: 1rem;
+        }
+     }
+
+    /* ======================================================================= */
+    /* FIM DAS MELHORIAS DE DESIGN                                             */
+    /* ======================================================================= */
+</style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="page-header">
         <div>
             <h2 class="h3 mb-0">Arsenal Celestial</h2>
             <p class="text-muted">Personalize seu perfil com os artefatos que você desbloqueou.</p>
@@ -23,21 +111,25 @@
     {% include 'usuarios/includes/_colecao_submenu.html' with active_tab=tipo_item %}
     {% include 'usuarios/includes/_messages.html' %}
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex flex-wrap justify-content-between align-items-center">
-            <h5 class="mb-0 me-3">{{ titulo_pagina }}</h5>
-            <form method="GET" class="d-flex align-items-center">
-                <select name="raridade" class="form-select form-select-sm me-2" onchange="this.form.submit()">
-                    <option value="">Todas as Raridades</option>
-                    {% for value, name in raridade_choices %}<option value="{{ value }}" {% if filtro_raridade_ativo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}
-                </select>
-                {% if filtro_raridade_ativo %}<a href="?" class="btn btn-sm btn-outline-secondary">&times; Limpar</a>{% endif %}
-            </form>
-        </div>
-        <!-- ======================================================================= -->
-        <!-- INÍCIO DA CORREÇÃO: Removida a classe card-body e adicionado padding -->
-        <!-- ======================================================================= -->
-        <div class="p-4">
+    <div class="card shadow-sm collection-container">
+        <div class="collection-content">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+                <h5 class="mb-3 mb-md-0 me-3 text-light">{{ titulo_pagina }}</h5>
+                <form method="GET" id="filter-form" class="row g-2 align-items-center w-100 w-md-auto">
+                    <div class="col">
+                        <select name="raridade" class="form-select form-select-sm filter-control" placeholder="Filtrar por Raridade...">
+                            <option value="">Todas as Raridades</option>
+                            {% for value, name in raridade_choices %}<option value="{{ value }}" {% if filtro_raridade_ativo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    {% if filtro_raridade_ativo %}
+                    <div class="col-auto">
+                        <a href="?" class="btn btn-sm btn-outline-light">&times; Limpar</a>
+                    </div>
+                    {% endif %}
+                </form>
+            </div>
+            
             {% if itens %}
             <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
                 {% for item in itens %}
@@ -45,26 +137,41 @@
                 {% endfor %}
             </div>
             {% else %}
-            <!-- Esta div agora terá o fundo branco padrão do card pai -->
             <div class="text-center py-5">
-                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <h4 class="h5">Nenhum item encontrado</h4>
-                <p class="text-muted">
+                <i class="fas fa-box-open fa-3x text-white-50 mb-3"></i>
+                <h4 class="h5 text-light">Nenhum item encontrado</h4>
+                <p class="text-white-50">
                     {% if filtro_raridade_ativo %}
                         Não há itens com a raridade selecionada. <a href="?">Limpar filtro</a>.
                     {% else %}
-                        Sua coleção de {{ titulo_pagina|lower|slice:"5:" }} ainda está vazia. Continue praticando para desbloquear!
+                        Sua coleção de {{ tipo_item }}s ainda está vazia. Continue praticando para desbloquear!
                     {% endif %}
                 </p>
             </div>
             {% endif %}
         </div>
-        <!-- ======================================================================= -->
-        <!-- FIM DA CORREÇÃO -->
-        <!-- ======================================================================= -->
     </div>
     
     <div class="mt-4">{% include 'includes/_paginacao.html' with paginated_object=paginated_object %}</div>
 </div>
 
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new TomSelect(".filter-control", { create: false });
+
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+        const filterControl = filterForm.querySelector('.filter-control');
+        if (filterControl) {
+            filterControl.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        }
+    }
+});
+</script>
 {% endblock %}

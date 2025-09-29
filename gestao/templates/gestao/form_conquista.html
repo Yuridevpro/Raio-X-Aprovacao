@@ -6,15 +6,88 @@
 {% block head %}
 <link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <style>
-    /* Estilos para o construtor de condições (FormSet) */
-    .formset-row-inner { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; align-items: center; }
-    .formset-row-wrapper { padding: 0.75rem; border-radius: .5rem; margin-bottom: 0.5rem; background-color: #f8f9fa; border: 1px solid #dee2e6; }
-    .formset-row label { display: none; }
-    .delete-checkbox-wrapper { text-align: center; }
-    .formset-row .form-select, .formset-row .form-control { font-size: 0.875rem; }
-    /* Esconde o checkbox original, pois o jquery.formset.js o substitui por um botão */
-    .formset-row input[type="checkbox"] { display: none; }
-    .context-field { display: none; padding-top: 0.75rem; margin-top: 0.75rem; border-top: 1px dashed #ced4da; }
+    /* ======================================================================= */
+    /* INÍCIO DA REFORMULAÇÃO DE DESIGN DO FORMSET DE CONDIÇÕES                */
+    /* ======================================================================= */
+
+    /* Container principal de cada condição */
+    .formset-row-wrapper {
+        padding: 1rem;
+        border-radius: .5rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        transition: box-shadow 0.2s ease-in-out;
+    }
+    .formset-row-wrapper:focus-within {
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    /* Layout interno dos campos */
+    .formset-row-inner {
+        display: grid;
+        grid-template-columns: 1fr; /* Layout empilhado por padrão (mobile) */
+        gap: 0.75rem;
+        align-items: end;
+    }
+
+    /* Layout para telas maiores (desktop) */
+    @media (min-width: 768px) {
+        .formset-row-inner {
+            /* Layout em grade: 40% para variável, o resto dividido, e auto para o botão */
+            grid-template-columns: 40% 1fr 1fr auto;
+        }
+    }
+
+    /* Rótulos visíveis apenas em mobile para dar contexto */
+    .formset-row label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+    }
+
+    /* Esconde rótulos em desktop, pois os placeholders e o cabeçalho já dão contexto */
+    @media (min-width: 768px) {
+        .formset-row label {
+            display: none;
+        }
+    }
+    
+    /* Campos de contexto (Disciplina, Banca, etc.) */
+    .context-field {
+        display: none; /* Começa escondido */
+        padding-top: 0.75rem;
+        margin-top: 0.75rem;
+        border-top: 1px dashed #ced4da;
+        grid-column: 1 / -1; /* Ocupa a largura total da grade */
+    }
+
+    /* Botão de deletar */
+    .delete-checkbox-wrapper {
+        text-align: right;
+    }
+    .formset-row input[type="checkbox"] { display: none; } /* Oculta o checkbox padrão */
+    .manual-delete-btn { color: var(--bs-danger); }
+    .manual-delete-btn:hover { color: var(--bs-body-color); background-color: var(--bs-danger-bg-subtle); }
+
+
+    /* ======================================================================= */
+    /* FIM DA REFORMULAÇÃO DE DESIGN                                           */
+    /* ======================================================================= */
+
+    /* Estilos para campos desabilitados (herdados) */
+    .form-select:disabled, .form-control:disabled {
+        background-color: #e9ecef !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed;
+    }
+    .ts-wrapper.disabled .ts-control {
+        background-color: #e9ecef !important;
+        opacity: 0.7 !important;
+        cursor: not-allowed;
+    }
 
     /* Estilos para o Seletor de Ícones (Modal) */
     #iconPickerModal .modal-body { max-height: 60vh; overflow-y: auto; }
@@ -43,21 +116,20 @@
         <a href="{% url 'gestao:gerenciar_conquistas_da_trilha' trilha_id=trilha.id %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar para a Trilha</a>
     </div>
 
-    <!-- ======================================================================= -->
-    <!-- INÍCIO DA ADIÇÃO: Bloco de Alerta Contextual para Séries -->
-    <!-- ======================================================================= -->
-    {% if serie %}
+    <!-- Bloco de Alerta Contextual para Séries -->
+    {% if serie or form_conquista.instance.serie %}
     <div class="alert alert-info d-flex align-items-center" role="alert">
         <i class="fas fa-stream me-3 fs-4"></i>
         <div>
-            Você está adicionando ou editando uma conquista dentro da série <strong>"{{ serie.nome }}"</strong>.
-            O pré-requisito sequencial será gerenciado automaticamente.
+            Você está adicionando ou editando uma conquista dentro da série <strong>"{% if serie %}{{ serie.nome }}{% elif form_conquista.instance.serie %}{{ form_conquista.instance.serie.nome }}{% endif %}"</strong>.
+            {% if form_conquista.instance.serie and form_conquista.instance.ordem_na_serie > 1 or previous_conquista %}
+                <br>As <strong>condições de desbloqueio</strong> (variável, operador e filtros) são herdadas da primeira conquista da série. Você só pode alterar o <strong>valor</strong>.
+            {% else %}
+                O pré-requisito sequencial será gerenciado automaticamente.
+            {% endif %}
         </div>
     </div>
     {% endif %}
-    <!-- ======================================================================= -->
-    <!-- FIM DA ADIÇÃO -->
-    <!-- ======================================================================= -->
 
     <form method="POST">
         {% csrf_token %}
@@ -69,14 +141,8 @@
                     <div class="card-body p-4">
                         {{ form_conquista.non_field_errors }}
 
-                        <!-- =========================================================== -->
-                        <!-- INÍCIO DA ADIÇÃO: Campos ocultos para trilha e série        -->
-                        <!-- =========================================================== -->
                         {{ form_conquista.trilha }}
                         {{ form_conquista.serie }}
-                        <!-- =========================================================== -->
-                        <!-- FIM DA ADIÇÃO                                               -->
-                        <!-- =========================================================== -->
 
                         <div class="mb-3"><label class="form-label">{{ form_conquista.nome.label }}</label>{{ form_conquista.nome }}{{ form_conquista.nome.errors }}</div>
                         <div class="mb-3"><label class="form-label">{{ form_conquista.descricao.label }}</label>{{ form_conquista.descricao }}{{ form_conquista.descricao.errors }}</div>
@@ -125,11 +191,45 @@
                     <div class="card-body p-4">
                         <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS.</p>
                         <div id="condicao-formset-container">
-                            <div class="d-none d-md-grid" style="grid-template-columns: 1fr 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem;"><label class="form-label small text-muted">Variável</label><label class="form-label small text-muted">Operador</label><label class="form-label small text-muted">Valor</label><label></label></div>
+                            <!-- Cabeçalho visível apenas em desktop -->
+                            <div class="d-none d-md-grid" style="grid-template-columns: 40% 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem; margin-bottom: 0.5rem;">
+                                <label class="form-label small text-muted">Variável</label>
+                                <label class="form-label small text-muted">Operador</label>
+                                <label class="form-label small text-muted">Valor</label>
+                                <label></label>
+                            </div>
+
                             {{ formset_condicao.management_form }}
+                            
+                            <!-- Formulários existentes -->
                             {% for form in formset_condicao.forms %}
-                                <div class="formset-row"><div class="formset-row-wrapper"><div class="formset-row-inner">{{ form.id }}{{ form.variavel }}{{ form.operador }}{{ form.valor }}<div class="delete-checkbox-wrapper">{{ form.DELETE }}<button type="button" class="btn btn-sm btn-link p-0 manual-delete-btn" title="Remover Condição"><i class="fas fa-trash text-danger"></i></button></div></div><div class="context-field">{{ form.disciplina_contexto }}{{ form.banca_contexto }}{{ form.assunto_contexto }}{{ form.dificuldade_contexto }}</div></div></div>
+                                <div class="formset-row">
+                                    <div class="formset-row-wrapper">
+                                        <div class="formset-row-inner">
+                                            <div><label for="{{ form.variavel.id_for_label }}">Variável</label>{{ form.variavel }}</div>
+                                            <div><label for="{{ form.operador.id_for_label }}">Operador</label>{{ form.operador }}</div>
+                                            <div><label for="{{ form.valor.id_for_label }}">Valor</label>{{ form.valor }}</div>
+                                            <div class="delete-checkbox-wrapper">{{ form.id }}{{ form.DELETE }}<button type="button" class="btn btn-sm btn-light manual-delete-btn" title="Remover Condição"><i class="fas fa-trash text-danger"></i></button></div>
+                                        </div>
+                                        <div class="context-field">{{ form.disciplina_contexto }}{{ form.banca_contexto }}{{ form.assunto_contexto }}{{ form.dificuldade_contexto }}</div>
+                                    </div>
+                                </div>
                             {% endfor %}
+
+                            <!-- Template para o formset dinâmico (molde) -->
+                            <div class="d-none" id="condicao-empty-form-template">
+                                <div class="formset-row">
+                                    <div class="formset-row-wrapper">
+                                        <div class="formset-row-inner">
+                                            <div><label for="{{ formset_condicao.empty_form.variavel.id_for_label }}">Variável</label>{{ formset_condicao.empty_form.variavel }}</div>
+                                            <div><label for="{{ formset_condicao.empty_form.operador.id_for_label }}">Operador</label>{{ formset_condicao.empty_form.operador }}</div>
+                                            <div><label for="{{ formset_condicao.empty_form.valor.id_for_label }}">Valor</label>{{ formset_condicao.empty_form.valor }}</div>
+                                            <div class="delete-checkbox-wrapper">{{ formset_condicao.empty_form.id }}{{ formset_condicao.empty_form.DELETE }}<button type="button" class="btn btn-sm btn-light manual-delete-btn" title="Remover Condição"><i class="fas fa-trash text-danger"></i></button></div>
+                                        </div>
+                                        <div class="context-field">{{ formset_condicao.empty_form.disciplina_contexto }}{{ formset_condicao.empty_form.banca_contexto }}{{ formset_condicao.empty_form.assunto_contexto }}{{ formset_condicao.empty_form.dificuldade_contexto }}</div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -238,6 +338,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             if (variavelSelect.tomselect) {
                 variavelSelect.tomselect.on('change', toggleContext);
+            } else {
+                 variavelSelect.addEventListener('change', toggleContext);
             }
             toggleContext();
         });
@@ -253,15 +355,27 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeTomSelectIn(this);
     });
 
-    $('#condicao-formset-container .formset-row').formset({
+    // =======================================================================
+    // INÍCIO DA CORREÇÃO: Inicialização condicional e robusta do Formset
+    // =======================================================================
+    {% if can_edit_conditions_structure %}
+    $('#condicao-formset-container').formset({
         prefix: '{{ formset_condicao.prefix }}',
         addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
         addCssClass: 'btn btn-outline-success btn-sm mt-2 w-100 mt-3',
+        deleteCssClass: 'manual-delete-btn',
+        formTemplate: '#condicao-empty-form-template', // Usa nosso molde
         added: function(row) {
+            row.removeClass('d-none');
             initializeTomSelectIn(row[0]);
             handleContextFields();
-        }
+        },
+        hideLastAddForm: true
     });
+    {% endif %}
+    // =======================================================================
+    // FIM DA CORREÇÃO
+    // =======================================================================
 
     const formsetContainer = document.getElementById('condicao-formset-container');
     formsetContainer.addEventListener('click', function(e) {

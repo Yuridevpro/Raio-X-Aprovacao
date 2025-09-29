@@ -1,82 +1,264 @@
 <!-- gestao/templates/gestao/listar_recompensas.html -->
 {% extends 'base.html' %}
 {% load static %}
+{% load colecao_extras %}
 {% block title %}{{ titulo }}{% endblock %}
 
 {% block head %}
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
+<link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.bootstrap5.css" rel="stylesheet">
 <style>
-    /* Adiciona uma borda colorida para destacar os cards */
-    .recompensa-card { 
-        border-left: 4px solid var(--cor-primaria); 
+    :root {
+        --angle: 0deg;
     }
-    .recompensa-card img { 
-        height: 150px; 
-        object-fit: cover; /* Garante que a imagem cubra a área sem distorcer */
+    @keyframes rarity-border-spin {
+        to { --angle: 360deg; }
     }
+    @property --angle {
+        syntax: '<angle>';
+        initial-value: 0deg;
+        inherits: false;
+    }
+
+    /* Page Header Styling */
+    .page-header {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1.5rem;
+    }
+    @media (min-width: 576px) {
+        .page-header {
+            flex-direction: row;
+            align-items: center;
+        }
+    }
+    .page-header .btn {
+        width: 100%;
+    }
+    @media (min-width: 576px) {
+        .page-header .btn {
+            width: auto;
+        }
+    }
+
+    /* Main Container with animated border */
+    .collection-container {
+        position: relative;
+        border-radius: 16px;
+        padding: 4px;
+        background: transparent;
+        border: none;
+        overflow: hidden;
+    }
+    .collection-container::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        z-index: -1;
+        background-image: conic-gradient(from var(--angle), #4A3D8C, #6E5BD4, #8FD3FF, #6E5BD4, #4A3D8C);
+        border-radius: inherit;
+        animation: rarity-border-spin 8s linear infinite;
+        opacity: 0.8;
+    }
+
+    /* Dark cosmic background */
+    .collection-content {
+        background: radial-gradient(ellipse at center, #2D2F55 0%, #16192e 80%);
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+
+    /* Card Styling */
+    .recompensa-card {
+        background: rgba(45, 47, 85, 0.7);
+        border: 1px solid rgba(110, 91, 212, 0.5);
+        color: #fff;
+        backdrop-filter: blur(5px);
+        transition: all 0.2s ease-in-out;
+    }
+    .recompensa-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 0 25px rgba(110, 91, 212, 0.6);
+        border-color: rgba(143, 211, 255, 0.7);
+    }
+    .card-img-container {
+        position: relative;
+        height: 150px; /* Reduced height for a more compact card */
+    }
+    .recompensa-card img {
+        height: 100%; width: 100%; object-fit: cover;
+    }
+    .recompensa-card .card-title { color: #fff; }
+    .recompensa-card .card-text { color: #ccc; }
+    
+    /* ======================================================================= */
+    /* INÍCIO DAS MODIFICAÇÕES: Estilos da Checklist */
+    /* ======================================================================= */
+    .unlock-info {
+        list-style: none;
+        padding-left: 0;
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: #d0d0d0;
+    }
+    .unlock-info li {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem; /* Space between icon and text */
+        margin-bottom: 0.3rem;
+    }
+    .unlock-info .value {
+        font-weight: bold;
+        color: #fff;
+    }
+    /* ======================================================================= */
+    /* FIM DAS MODIFICAÇÕES */
+    /* ======================================================================= */
+
+    /* Rarity badges and colors */
+    .rarity-badge { position: absolute; top: 10px; right: 10px; z-index: 1; font-size: 0.7rem; font-weight: 700; padding: 0.3em 0.8em; border-radius: 50px; color: #fff; text-shadow: 1px 1px 2px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.3); }
+    .rarity-comum { background-color: #6c757d; }
+    .rarity-raro { background-color: #4A90E2; }
+    .rarity-epico { background: linear-gradient(45deg, #6f42c1, #8d76c6); }
+    .rarity-lendario { background: linear-gradient(45deg, #ffd700, #ffec8a); color: #333; }
+    .rarity-mitico { background: linear-gradient(45deg, #fc4a1a, #f7b733); }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container my-5">
-    <!-- Inclui o submenu de navegação da área de gamificação -->
     {% include 'gestao/includes/_submenu_gamificacao.html' with active_tab=tipo %}
 
-    <!-- Cabeçalho da página com título e botão de adicionar -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="h3 mb-0">{{ titulo }}</h2>
+    <div class="page-header">
+        <div>
+            <h2 class="h3 mb-0 text-light">{{ titulo }}</h2>
+            <p class="text-white-50">Gerencie os itens cosméticos disponíveis para os usuários.</p>
+        </div>
         <a href="{% url 'gestao:criar_recompensa' tipo=tipo %}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Adicionar Novo Item
         </a>
     </div>
 
-    <!-- Exibe mensagens de sucesso ou erro (ex: "Item criado com sucesso") -->
     {% include 'gestao/includes/_messages.html' %}
-
-    <!-- Grid para exibir os cards de recompensa -->
-    <div class="row g-4">
-        {% for recompensa in recompensas %}
-        <div class="col-lg-3 col-md-4 col-sm-6">
-            <div class="card shadow-sm h-100 recompensa-card">
-                {% if recompensa.imagem %}
-                    <!-- A tag .url gera a URL completa para a imagem -->
-                    <img src="{{ recompensa.imagem.url }}" class="card-img-top bg-light" alt="{{ recompensa.nome }}">
-                {% else %}
-                    <!-- Placeholder para itens sem imagem, evitando um erro visual -->
-                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 150px;">
-                        <i class="fas fa-image fa-2x text-muted"></i>
-                    </div>
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ recompensa.nome }}</h5>
-                    <p class="card-text small text-muted">{{ recompensa.descricao|truncatewords:15 }}</p>
-                </div>
-                <div class="card-footer d-flex justify-content-end gap-2">
-                    <!-- Botão de Editar -->
-                    <a href="{% url 'gestao:editar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
-                    <!-- Botão de Excluir que aciona o modal de confirmação -->
-                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" data-item-name="{{ recompensa.nome }}" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            </div>
-        </div>
-        {% empty %}
-        <!-- Mensagem exibida se não houver nenhum item cadastrado -->
-        <div class="col-12">
-            <div class="card card-body text-center p-5">
-                <h5 class="text-muted">Nenhum item cadastrado.</h5>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
     
-    <!-- Componente de Paginação -->
-    <div class="mt-4">
-        {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+    <div class="card shadow-sm collection-container">
+        <div class="collection-content">
+             <form method="GET" id="filter-form" class="row g-2 align-items-center mb-4">
+                <div class="col-lg col-md-6">
+                    <select name="raridade" id="raridade-filter" class="form-select filter-control" placeholder="Filtrar por Raridade...">
+                        <option value="">Todas as Raridades</option>
+                        {% for value, name in raridade_choices %}<option value="{{ value }}" {% if filtro_raridade_ativo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg col-md-6">
+                    <select name="sort_by" id="sort-by" class="form-select filter-control" placeholder="Ordenar por...">
+                        {% for value, name in sort_options.items %}<option value="{{ value }}" {% if sort_by_ativo == value %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                    </select>
+                </div>
+                <div class="col-lg-auto col-12 d-grid">
+                     <a href="{% url 'gestao:listar_recompensas' tipo=tipo %}" class="btn btn-outline-light">Limpar</a>
+                </div>
+            </form>
+
+            <!-- ======================================================================= -->
+            <!-- MODIFICAÇÃO: Ajuste da grid de colunas para maior densidade -->
+            <!-- ======================================================================= -->
+            <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 row-cols-xl-6 g-4">
+                {% for recompensa in paginated_object %}
+                <div class="col">
+                    <div class="card h-100 recompensa-card">
+                        <div class="card-img-container">
+                            {% if recompensa.imagem %}
+                                <img src="{{ recompensa.imagem.url }}" class="card-img-top" alt="{{ recompensa.nome }}">
+                            {% else %}
+                                <div class="bg-dark d-flex align-items-center justify-content-center h-100 rounded-top">
+                                    <i class="fas fa-image fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                            <span class="badge rarity-badge {% rarity_class recompensa.raridade %}">{{ recompensa.get_raridade_display }}</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ recompensa.nome }}</h5>
+                            <p class="card-text small text-white-50">{{ recompensa.descricao|truncatewords:15 }}</p>
+                            
+                            <!-- ======================================================================= -->
+                            <!-- INÍCIO DA MODIFICAÇÃO: Lógica da Checklist -->
+                            <!-- ======================================================================= -->
+                            <ul class="unlock-info mt-auto pt-2">
+                                {% for tipo_desbloqueio in recompensa.tipos_desbloqueio.all %}
+                                    <li>
+                                        <i class="fas fa-check-circle text-success"></i>
+                                        <span>
+                                        {% if tipo_desbloqueio.nome == 'NIVEL' and recompensa.nivel_necessario %}
+                                            Nível <span class="value">{{ recompensa.nivel_necessario }}</span>
+                                        {% elif tipo_desbloqueio.nome == 'LOJA' and recompensa.preco_moedas %}
+                                            Loja <span class="value"><i class="fas fa-coins text-warning"></i> {{ recompensa.preco_moedas }}</span>
+                                        {% elif tipo_desbloqueio.nome == 'EVENTO' %}
+                                            <i class="fas fa-calendar-star me-1 text-info"></i> Evento
+                                        {% elif tipo_desbloqueio.nome == 'CAMPANHA' %}
+                                            <i class="fas fa-trophy me-1 text-primary"></i> Campanha
+                                        {% else %}
+                                            {{ tipo_desbloqueio.get_nome_display }}
+                                        {% endif %}
+                                        </span>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                            <!-- ======================================================================= -->
+                            <!-- FIM DA MODIFICAÇÃO -->
+                            <!-- ======================================================================= -->
+                        </div>
+                        <div class="card-footer d-flex justify-content-end gap-2 bg-transparent border-top-0 pt-0">
+                            <a href="{% url 'gestao:editar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" class="btn btn-sm btn-outline-info" title="Editar"><i class="fas fa-edit"></i></a>
+                            <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal" data-delete-url="{% url 'gestao:deletar_recompensa' tipo=tipo recompensa_id=recompensa.id %}" data-item-name="{{ recompensa.nome }}" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="text-center py-5">
+                        <i class="fas fa-ghost fa-3x text-white-50 mb-3"></i>
+                        <h4 class="h5 text-light">Nenhum item encontrado</h4>
+                        <p class="text-white-50">
+                            Tente ajustar os filtros ou <a href="{% url 'gestao:criar_recompensa' tipo=tipo %}" class="link-light">adicione um novo item</a>.
+                        </p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-4">
+                {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Modal de Confirmação de Exclusão (reutilizável) -->
 {% include 'gestao/includes/_modal_confirmacao_delete.html' %}
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    new TomSelect("#raridade-filter", { create: false });
+    new TomSelect("#sort-by", { create: false });
+
+    const filterForm = document.getElementById('filter-form');
+    if (filterForm) {
+        const filterControls = filterForm.querySelectorAll('.filter-control');
+        filterControls.forEach(function(selectElement) {
+            selectElement.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+    }
+});
+</script>
 {% endblock %}
