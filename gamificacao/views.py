@@ -166,7 +166,6 @@ def ranking(request):
 
 # gamificacao/views.py
 
-# gamificacao/views.py
 @login_required
 def loja(request):
     """
@@ -199,13 +198,7 @@ def loja(request):
             item.ja_possui = True
         elif item_type_name == 'Borda' and item.id in bordas_possuidas:
             item.ja_possui = True
-        # =======================================================================
-        # INÍCIO DA CORREÇÃO: Ajustando o nome da variável
-        # =======================================================================
         elif item_type_name == 'Banner' and item.id in banners_possuidas:
-        # =======================================================================
-        # FIM DA CORREÇÃO
-        # =======================================================================
             item.ja_possui = True
         
         if not item.ja_possui:
@@ -226,15 +219,33 @@ def loja(request):
     if filtro_raridade:
         filtered_items = [item for item in filtered_items if item.raridade == filtro_raridade]
 
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Lógica para ordenar por possuídos primeiro
+    # =======================================================================
     sort_by = request.GET.get('sort_by', 'preco_asc')
     sort_options = {
-        'preco_asc': ('Preço (Menor > Maior)', lambda item: (item.is_locked, item.preco_moedas)),
-        'preco_desc': ('Preço (Maior > Menor)', lambda item: (item.is_locked, -item.preco_moedas)),
-        'nome_asc': ('Nome (A-Z)', lambda item: (item.is_locked, item.nome)),
+        'preco_asc': ('Preço (Menor > Maior)', lambda item: (item.ja_possui, item.is_locked, item.preco_moedas)),
+        'preco_desc': ('Preço (Maior > Menor)', lambda item: (item.ja_possui, item.is_locked, -item.preco_moedas)),
+        'nome_asc': ('Nome (A-Z)', lambda item: (item.ja_possui, item.is_locked, item.nome)),
     }
     
-    sort_key = sort_options.get(sort_by, sort_options['preco_asc'])[1]
-    sorted_items = sorted(filtered_items, key=sort_key)
+    # A ordenação por `item.ja_possui` (False vem antes de True) já coloca os não possuídos primeiro.
+    # O pedido é o contrário: possuídos primeiro. Então, invertemos a lógica.
+    sort_key_lambda = sort_options.get(sort_by, sort_options['preco_asc'])[1]
+    
+    # Nova chave que prioriza `not item.ja_possui`.
+    # Itens possuídos (ja_possui=True) terão a chave (False, ...), vindo primeiro.
+    # Itens não possuídos (ja_possui=False) terão a chave (True, ...), vindo depois.
+    final_sort_key = lambda item: (
+        not item.ja_possui,  # Critério primário: possuídos primeiro
+        sort_key_lambda(item)[1], # Critério secundário: bloqueado por nível
+        sort_key_lambda(item)[2]  # Critério terciário: ordenação do usuário
+    )
+    
+    sorted_items = sorted(filtered_items, key=final_sort_key)
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
     
     page_obj, page_numbers, per_page = paginar_itens(request, sorted_items, items_per_page=8)
 

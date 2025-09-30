@@ -423,29 +423,39 @@ def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina)
 
     base_queryset = Model.objects.all()
     
-    # --- Lógica de Filtragem ---
     filtro_raridade = request.GET.get('raridade')
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
     # =======================================================================
-    # INÍCIO DA CORREÇÃO: Lógica de ordenação simplificada e fixa
+    # INÍCIO DA CORREÇÃO: Lógica para ordenar por desbloqueados primeiro
     # =======================================================================
-    # Mapeamento de raridade para um valor numérico para ordenação correta
+    desbloqueados_ids = list(M2M_Manager.values_list(f'{tipo_item}_id', flat=True))
+
+    # Cria uma anotação que vale 0 se o item estiver desbloqueado, e 1 se não.
+    unlocked_first_order = Case(
+        When(pk__in=desbloqueados_ids, then=Value(0)),
+        default=Value(1),
+        output_field=IntegerField()
+    )
+
     rarity_order = Case(
         *[When(raridade=rarity_tuple[0], then=Value(i)) for i, rarity_tuple in enumerate(Model.Raridade.choices)],
         output_field=IntegerField()
     )
     
-    # Ordena sempre por raridade (mais raros primeiro) e depois por nome
-    itens_ordenados = base_queryset.annotate(rarity_order=rarity_order).order_by('-rarity_order', 'nome')
+    # Ordena primeiro pela anotação `is_unlocked` (0s vêm antes de 1s),
+    # depois pela raridade e por fim pelo nome.
+    itens_ordenados = base_queryset.annotate(
+        is_unlocked=unlocked_first_order,
+        rarity_order=rarity_order
+    ).order_by('is_unlocked', '-rarity_order', 'nome')
     # =======================================================================
     # FIM DA CORREÇÃO
     # =======================================================================
 
     page_obj, page_numbers, per_page = paginar_itens(request, itens_ordenados, items_per_page=10)
     
-    desbloqueados_ids = list(M2M_Manager.values_list(f'{tipo_item}_id', flat=True))
     equipado_id = getattr(user_profile, f'{tipo_item}_equipado_id', None)
 
     return {
@@ -461,7 +471,6 @@ def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina)
         'raridade_choices': Model.Raridade.choices,
         'filtro_raridade_ativo': filtro_raridade,
     }
-    
     
 @login_required
 def colecao_avatares(request):

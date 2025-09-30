@@ -129,13 +129,75 @@ a:hover {
 .navbar-custom .nav-link {
     color: rgba(255, 255, 255, 0.75);
     font-weight: 500;
-    transition: color 0.2s ease-in-out;
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out; /* Adicionada transição de background */
+    padding: .5rem .8rem; /* Padding ajustado para o visual */
+    border-radius: 8px; /* Borda arredondada */
 }
 
 .navbar-custom .nav-link:hover,
 .navbar-custom .nav-link.active {
     color: var(--cor-texto-claro);
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+/* ✅ NOVO ESTILO PARA DROPDOWN ATIVO */
+.navbar-custom .nav-item.dropdown.show > .nav-link {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.nav-block {
+    display: flex;
+    flex-direction: column; 
+}
+
+.nav-block-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-left: 0.5rem;
+    margin-bottom: -8px; 
+}
+
+.navbar-divider {
+    height: 30px;
+    border-left: 1px solid rgba(255, 255, 255, 0.15);
+    margin: auto 1.5rem;
+}
+
+/* ========================================================================= */
+/* REGRAS PARA O MENU MOBILE OTIMIZADO */
+/* ========================================================================= */
+@media (max-width: 991.98px) {
+    .nav-block {
+        padding: 1rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+    }
+    .nav-block:last-child {
+        border-bottom: none;
+    }
+
+    .nav-block-title {
+        margin-bottom: 0.75rem;
+        padding-left: 0;
+    }
+
+    .nav-block .navbar-nav {
+        gap: 0.5rem 1rem;
+    }
+    
+    .nav-block-user {
+        border-bottom: none;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-block-user .navbar-nav {
+        justify-content: center;
+        width: 100%;
+    }
 }
 
 .footer-custom {

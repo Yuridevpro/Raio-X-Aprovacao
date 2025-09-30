@@ -13,7 +13,7 @@
     <!-- Nosso CSS base reestruturado -->
     <link href="{% static 'base/css/base.css' %}" rel="stylesheet">
     
-    <!-- Outros CSS (se necessário, movido para blocos específicos) -->
+    <!-- Outros CSS -->
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
     <style>
@@ -65,12 +65,10 @@
             width: 100%;
             height: 100%;
         }
-        /* ✅ INÍCIO DA CORREÇÃO DO CONTADOR DE RECOMPENSAS */
         #recompensa-counter {
             top: 5px;
             right: -8px;
         }
-        /* ✅ FIM DA CORREÇÃO DO CONTADOR DE RECOMPENSAS */
     </style>
 
     {% block head %}{% endblock %}
@@ -85,72 +83,104 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                    {% if user.is_authenticated and user.is_staff %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'gestao:dashboard' %}">Painel de Gestão</a></li>
-                    {% endif %}
-                </ul>
-    
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0 align-items-center">
+                <div class="d-flex flex-column flex-lg-row align-items-lg-center w-100">
+                    
+                    <div class="d-flex flex-column flex-lg-row align-items-lg-center mx-lg-auto">
+                        {% if user.is_authenticated and user.is_staff %}
+                        <div class="nav-block">
+                            <span class="nav-block-title">Admin</span>
+                            <ul class="navbar-nav flex-row flex-wrap flex-lg-row">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'gestao:dashboard' %}"><i class="fas fa-shield-halved me-2 d-lg-none"></i>Painel de Gestão</a></li>
+                            </ul>
+                        </div>
+                        <div class="navbar-divider d-none d-lg-block"></div>
+                        {% endif %}
+                        
+                        {% if user.is_authenticated %}
+                        <!-- Bloco de Estudo -->
+                        <div class="nav-block">
+                            <span class="nav-block-title">Estudo</span>
+                            <ul class="navbar-nav flex-row flex-wrap flex-lg-row">
+                                <li class="nav-item"><a class="nav-link" href="{% url 'pratica:listar_questoes' %}"><i class="fas fa-pencil-alt me-2 d-lg-none"></i>Praticar</a></li>
+                                <li class="nav-item"><a class="nav-link" href="{% url 'simulados:listar_simulados' %}"><i class="fas fa-file-alt me-2 d-lg-none"></i>Simulados</a></li>
+                            </ul>
+                        </div>
+                        <div class="navbar-divider d-none d-lg-block"></div>
+
+                        <!-- Bloco de Gamificação -->
+                        <div class="nav-block">
+                             <span class="nav-block-title">Gamificação</span>
+                            <ul class="navbar-nav flex-row flex-wrap flex-lg-row">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="fas fa-chart-line me-2 d-lg-none"></i>Meu Progresso</a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fas fa-chart-pie fa-fw me-2"></i>Meu Desempenho</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'gamificacao:ranking' %}"><i class="fas fa-trophy fa-fw me-2"></i>Ranking</a></li>
+                                    </ul>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown"><i class="fas fa-star me-2 d-lg-none"></i>Coleção</a>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="{% url 'gamificacao:loja' %}"><i class="fas fa-store fa-fw me-2"></i>Loja</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'gamificacao:campanhas_ativas' %}"><i class="fas fa-calendar-check fa-fw me-2"></i>Eventos Ativos</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'trilhas_de_conquistas' %}"><i class="fas fa-road fa-fw me-2"></i>Trilhas de Conquistas</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem fa-fw me-2"></i>Meus Itens</a></li>
+                                        <li><a class="dropdown-item position-relative" href="{% url 'caixa_de_recompensas' %}">
+                                            <i class="fas fa-box-open fa-fw me-2"></i>Caixa de Recompensas
+                                            {% if recompensas_pendentes_count > 0 %}
+                                            <span id="recompensa-counter" class="position-absolute translate-middle-y badge rounded-pill bg-danger">{{ recompensas_pendentes_count }}</span>
+                                            {% endif %}
+                                        </a></li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Bloco de Ações do Usuário -->
                     {% if user.is_authenticated %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'pratica:listar_questoes' %}">Praticar</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{% url 'simulados:listar_simulados' %}">Simulados</a></li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Meu Progresso</a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'dashboard' %}"><i class="fas fa-chart-pie fa-fw me-2"></i>Meu Desempenho</a></li>
-                            <li><a class="dropdown-item" href="{% url 'gamificacao:ranking' %}"><i class="fas fa-trophy fa-fw me-2"></i>Ranking</a></li>
+                    <div class="nav-block nav-block-user ms-lg-auto">
+                         <span class="nav-block-title d-none">Conta</span>
+                        <ul class="navbar-nav flex-row flex-wrap flex-lg-row align-items-center">
+                             <!-- ✅ MARGEM ADICIONADA E TAG 'a' CORRIGIDA -->
+                             <li class="nav-item me-lg-2">
+                                <a class="nav-link" href="#" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Fragmentos de Conhecimento">
+                                    <i class="fas fa-coins text-warning me-1"></i>
+                                    <span id="navbar-coin-balance">{{ saldo_moedas_usuario }}</span>
+                                </a>
+                            </li>
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
+                                    <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
+                                        {% if borda_equipada_url %}<img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">{% endif %}
+                                        {% if avatar_equipado_url %}
+                                            <img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
+                                        {% else %}
+                                            <i class="fas fa-user-circle fs-4" style="color: rgba(255,255,255,0.8);"></i>
+                                        {% endif %}
+                                    </div>
+                                    <span class="d-none d-lg-inline">{{ user.userprofile.nome }}</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user-circle fa-fw me-2"></i>Meu Perfil</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog fa-fw me-2"></i>Editar Conta</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt fa-fw me-2"></i>Sair</a></li>
+                                </ul>
+                            </li>
                         </ul>
-                    </li>
-                    
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Coleção</a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'gamificacao:loja' %}"><i class="fas fa-store fa-fw me-2"></i>Loja</a></li>
-                            <li><a class="dropdown-item" href="{% url 'gamificacao:campanhas_ativas' %}"><i class="fas fa-calendar-check fa-fw me-2"></i>Eventos Ativos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'trilhas_de_conquistas' %}"><i class="fas fa-road fa-fw me-2"></i>Trilhas de Conquistas</a></li>
-                            <li><a class="dropdown-item" href="{% url 'colecao_avatares' %}"><i class="fas fa-gem fa-fw me-2"></i>Meus Itens</a></li>
-                             <li><a class="dropdown-item position-relative" href="{% url 'caixa_de_recompensas' %}">
-                                <i class="fas fa-box-open fa-fw me-2"></i>Caixa de Recompensas
-                                {% if recompensas_pendentes_count > 0 %}
-                                <span id="recompensa-counter" class="position-absolute translate-middle-y badge rounded-pill bg-danger">{{ recompensas_pendentes_count }}</span>
-                                {% endif %}
-                            </a></li>
-                        </ul>
-                    </li>
-
-                    <li class="nav-item">
-                        <a class="nav-link" href="#" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Fragmentos de Conhecimento">
-                            <i class="fas fa-coins text-warning me-1"></i>
-                            <span id="navbar-coin-balance">{{ saldo_moedas_usuario }}</span>
-                        </a>
-                    </li>
-
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown">
-                            <div class="navbar-avatar-container {% if borda_equipada_url %}with-frame{% endif %}">
-                                {% if borda_equipada_url %}<img src="{{ borda_equipada_url }}" class="navbar-border-image" alt="Borda">{% endif %}
-                                {% if avatar_equipado_url %}
-                                    <img src="{{ avatar_equipado_url }}" alt="Avatar" class="navbar-avatar-image">
-                                {% else %}
-                                    <i class="fas fa-user-circle fs-4" style="color: rgba(255,255,255,0.8);"></i>
-                                {% endif %}
-                            </div>
-                            <span class="d-none d-lg-inline">{{ user.userprofile.nome }}</span>
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="{% url 'meu_perfil' %}"><i class="fas fa-user-circle fa-fw me-2"></i>Meu Perfil</a></li>
-                            <li><a class="dropdown-item" href="{% url 'editar_perfil' %}"><i class="fas fa-user-cog fa-fw me-2"></i>Editar Conta</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="{% url 'sair' %}"><i class="fas fa-sign-out-alt fa-fw me-2"></i>Sair</a></li>
-                        </ul>
-                    </li>
+                    </div>
                     {% else %}
-                    <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-primary text-white ms-2 px-3" href="{% url 'cadastro' %}" role="button">Cadastre-se</a></li>
+                    <!-- Bloco para Visitantes -->
+                    <div class="nav-block nav-block-user ms-lg-auto">
+                        <ul class="navbar-nav flex-row flex-wrap flex-lg-row align-items-center">
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a></li>
+                            <li class="nav-item"><a class="nav-link btn btn-primary text-white ms-2 px-3" href="{% url 'cadastro' %}" role="button">Cadastre-se</a></li>
+                        </ul>
+                    </div>
                     {% endif %}
-                </ul>
+                </div>
             </div>
         </div>
     </nav>
@@ -158,10 +188,7 @@
     <main>
         {% block content %}{% endblock %}
     </main>
-    <br>
-    <br>
-    <br>
-    
+    <br><br><br>
     
     <footer class="footer-custom mt-auto">
         <div class="container py-5">
@@ -175,24 +202,20 @@
         </div>
     </footer>
 
-    <!-- Toast Container para Notificações de Gamificação -->
+    <!-- Toast e Modais -->
     <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
         <div id="gamificationToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="toast-header"><strong class="me-auto" id="gamificationToastTitle"></strong><button type="button" class="btn-close" data-bs-dismiss="toast"></button></div>
             <div class="toast-body d-flex align-items-center" id="gamificationToastBody"></div>
         </div>
     </div>
-    
-    <!-- Modais Genéricos (usados em várias páginas) -->
     {% include 'gestao/includes/_modais_notificacoes.html' %}
 
     <!-- Scripts Essenciais -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{% static 'js/notificacoes.js' %}"></script>
     <script src="{% static 'js/gamification-effects.js' %}"></script>
-
     <script>
-        // Inicializa Tooltips do Bootstrap
         document.addEventListener('DOMContentLoaded', function() {
             const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
