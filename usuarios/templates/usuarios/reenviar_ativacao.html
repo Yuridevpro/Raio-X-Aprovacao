@@ -4,28 +4,31 @@
 {% block title %}Reenviar E-mail de Ativação{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center my-5">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-body p-4">
-                <h2 class="text-center h4 mb-4">Reenviar E-mail de Ativação</h2>
-                <p class="text-muted text-center mb-4">Se você não recebeu o e-mail de ativação ou seu link expirou, digite seu e-mail abaixo para receber um novo.</p>
+<!-- ✅ DIV CONTAINER ADICIONADA PARA CORRIGIR O LAYOUT -->
+<div class="container">
+    <div class="row justify-content-center my-5">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="text-center h4 mb-4">Reenviar E-mail de Ativação</h2>
+                    <p class="text-muted text-center mb-4">Se você não recebeu o e-mail de ativação ou seu link expirou, digite seu e-mail abaixo para receber um novo.</p>
 
-                {% include 'usuarios/includes/_messages.html' %}
+                    {% include 'usuarios/includes/_messages.html' %}
 
-                <form action="{% url 'reenviar_ativacao' %}" method="POST">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Seu E-mail de Cadastro:</label>
-                        <input type="email" class="form-control" name="email" required>
-                    </div>
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Enviar Novo Link</button>
-                    </div>
-                </form>
-            </div>
-            <div class="card-footer text-center bg-light">
-                <a href="{% url 'login' %}">Voltar para o Login</a>
+                    <form action="{% url 'reenviar_ativacao' %}" method="POST">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Seu E-mail de Cadastro:</label>
+                            <input type="email" class="form-control" name="email" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">Enviar Novo Link</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer text-center bg-light">
+                    <a href="{% url 'login' %}">Voltar para o Login</a>
+                </div>
             </div>
         </div>
     </div>
