@@ -427,12 +427,8 @@ def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina)
     if filtro_raridade:
         base_queryset = base_queryset.filter(raridade=filtro_raridade)
 
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Lógica para ordenar por desbloqueados primeiro
-    # =======================================================================
     desbloqueados_ids = list(M2M_Manager.values_list(f'{tipo_item}_id', flat=True))
 
-    # Cria uma anotação que vale 0 se o item estiver desbloqueado, e 1 se não.
     unlocked_first_order = Case(
         When(pk__in=desbloqueados_ids, then=Value(0)),
         default=Value(1),
@@ -444,25 +440,35 @@ def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina)
         output_field=IntegerField()
     )
     
-    # Ordena primeiro pela anotação `is_unlocked` (0s vêm antes de 1s),
-    # depois pela raridade e por fim pelo nome.
     itens_ordenados = base_queryset.annotate(
         is_unlocked=unlocked_first_order,
         rarity_order=rarity_order
     ).order_by('is_unlocked', '-rarity_order', 'nome')
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
 
     page_obj, page_numbers, per_page = paginar_itens(request, itens_ordenados, items_per_page=10)
     
-    equipado_id = getattr(user_profile, f'{tipo_item}_equipado_id', None)
+    # =======================================================================
+    # ✅ INÍCIO DA CORREÇÃO: Lógica para pegar o ID do item equipado
+    # =======================================================================
+    equipado_id = None
+    if tipo_item == 'borda':
+        # Trata o caso especial de 'borda_equipada' (feminino)
+        if user_profile.borda_equipada:
+            equipado_id = user_profile.borda_equipada.id
+    else:
+        # Usa a lógica dinâmica para os outros casos (avatar, banner)
+        equipado_obj = getattr(user_profile, f'{tipo_item}_equipado', None)
+        if equipado_obj:
+            equipado_id = equipado_obj.id
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
 
     return {
         'user_profile': user_profile,
         'itens': page_obj,
         'desbloqueados_ids': desbloqueados_ids,
-        'equipado_id': equipado_id,
+        'equipado_id': equipado_id, # Agora esta variável terá o valor correto para bordas
         'tipo_item': tipo_item,
         'titulo_pagina': titulo_pagina,
         'paginated_object': page_obj,
@@ -471,7 +477,7 @@ def _get_colecao_context(request, Model, user_profile, tipo_item, titulo_pagina)
         'raridade_choices': Model.Raridade.choices,
         'filtro_raridade_ativo': filtro_raridade,
     }
-    
+
 @login_required
 def colecao_avatares(request):
     context = _get_colecao_context(request, Avatar, request.user.userprofile, 'avatar', 'Meus Avatares')
@@ -585,25 +591,33 @@ def caixa_de_recompensas(request):
     """ Exibe a página com os prêmios pendentes do usuário para resgate. """
     user_profile = request.user.userprofile
     
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO: Readicionando a verificação de desbloqueio
-    # =======================================================================
-    # Esta linha é essencial para gerar novas recompensas pendentes
     _verificar_desbloqueio_recompensas(user_profile)
+    
+    # =======================================================================
+    # ✅ INÍCIO DA CORREÇÃO: Contexto de paginação completo
+    # =======================================================================
+    # 1. Obtemos o queryset completo de recompensas, ordenado.
+    recompensas_queryset = RecompensaPendente.objects.filter(
+        user_profile=user_profile, 
+        resgatado_em__isnull=True
+    ).prefetch_related('recompensa').order_by('-data_ganho')
+
+    # 2. Usamos a função auxiliar para paginar o queryset.
+    page_obj, page_numbers, per_page = paginar_itens(request, recompensas_queryset, items_per_page=10)
+
+    # 3. ATUALIZAÇÃO CRÍTICA: Adicionamos TODAS as variáveis de paginação ao contexto.
+    context = {
+        'recompensas_pendentes': page_obj,
+        'paginated_object': page_obj,
+        'page_numbers': page_numbers,  # <-- ESTA LINHA ESTAVA FALTANDO
+        'per_page': per_page,          # <-- Adicionado por consistência
+        'titulo_pagina': 'Câmara dos Tesouros',
+        'active_tab': 'caixa_de_recompensas'
+    }
     # =======================================================================
     # FIM DA CORREÇÃO
     # =======================================================================
     
-    recompensas = RecompensaPendente.objects.filter(
-        user_profile=user_profile, 
-        resgatado_em__isnull=True
-    ).prefetch_related('recompensa')
-    
-    context = {
-        'recompensas_pendentes': recompensas,
-        'titulo_pagina': 'Câmara dos Tesouros',
-        'active_tab': 'caixa_de_recompensas'
-    }
     return render(request, 'usuarios/caixa_de_recompensas.html', context)
 
 

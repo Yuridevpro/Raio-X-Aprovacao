@@ -106,6 +106,10 @@
 {% endblock %}
 
 {% block content %}
+
+{% include 'includes/_loader.html' %}
+
+<div id="page-content-wrapper" style="opacity: 0; transition: opacity 0.5s ease;">
 <div class="container my-5">
     <div class="page-header">
         <div>
@@ -172,7 +176,10 @@
 {% endblock %}
 
 {% block scripts %}
+
 <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+
+<script src="{% static 'js/loader.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     new TomSelect(".filter-control", { create: false });

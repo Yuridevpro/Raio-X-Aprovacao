@@ -103,6 +103,9 @@
 {% endblock %}
 
 {% block content %}
+{% include 'includes/_loader.html' %}
+
+<div id="page-content-wrapper" style="opacity: 0; transition: opacity 0.5s ease;">
 <div class="container my-5">
     <div class="loja-header text-center mb-5 shadow">
         <div class="loja-header-content">
@@ -220,6 +223,7 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/loader.js' %}"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {

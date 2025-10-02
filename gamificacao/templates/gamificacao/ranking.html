@@ -52,6 +52,9 @@
 {% endblock %}
 
 {% block content %}
+{% include 'includes/_loader.html' %}
+
+<div id="page-content-wrapper" style="opacity: 0; transition: opacity 0.5s ease;">
 <div class="container my-5">
     <div class="ranking-header text-center p-5 mb-4 rounded shadow">
         <i class="fas fa-trophy fa-3x mb-3" style="color: var(--cor-dourada); text-shadow: 0 0 15px var(--cor-dourada);"></i>
@@ -192,6 +195,8 @@
 {% endblock %}
 
 {% block scripts %}
+<script src="{% static 'js/loader.js' %}"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

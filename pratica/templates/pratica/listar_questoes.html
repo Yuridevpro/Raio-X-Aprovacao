@@ -232,6 +232,32 @@
     /* SEÇÃO DE COMENTÁRIOS (Reorganizado e Otimizado)
     /* ========================================================================= */
 
+        /* ✅ INÍCIO DA CORREÇÃO DEFINITIVA: Layout do Formulário de Resposta
+    /* ======================================================================= */
+
+    /* 1. Transforma o contêiner do formulário de resposta em um flex container */
+    .new-comment-form-container {
+        display: flex;
+        align-items: flex-start; /* Alinha o topo do avatar com o topo do formulário */
+        gap: 15px; /* Espaço entre o avatar e o formulário */
+    }
+
+    /* 2. Anula o posicionamento absoluto APENAS para o avatar dentro do formulário de resposta */
+    .new-comment-form-container .comment-avatar {
+        position: relative; /* Remove o 'position: absolute' herdado */
+        left: auto;
+        top: auto;
+        width: 40px; /* Define um tamanho fixo e menor para o avatar de resposta */
+        height: 40px;
+    }
+
+    /* 3. Garante que o avatar padrão (bolinha azul) se ajuste ao novo tamanho */
+    .new-comment-form-container .comment-default-avatar {
+        width: 100%;
+        height: 100%;
+        font-size: 1.2rem;
+    }
+
     /* --- Estrutura Geral --- */
     .comentarios-section {
         background-color: #f8f9fa;

@@ -350,20 +350,39 @@ def resgatar_recompensa_ajax(request):
     try:
         data = json.loads(request.body)
         pendente_id = data.get('pendente_id')
-        
-        recompensa_pendente = get_object_or_404(
-            RecompensaPendente,
-            id=pendente_id,
-            user_profile=request.user.userprofile,
-            resgatado_em__isnull=True
-        )
+        user_profile = request.user.userprofile
 
-        # Garante que a recompensa ainda existe antes de tentar resgatar
+        # =======================================================================
+        # ✅ INÍCIO DA ALTERAÇÃO: Lógica de verificação robusta
+        # =======================================================================
+        try:
+            # 1. Tenta encontrar a recompensa pendente pelo ID e usuário.
+            recompensa_pendente = RecompensaPendente.objects.get(
+                id=pendente_id,
+                user_profile=user_profile
+            )
+        except RecompensaPendente.DoesNotExist:
+            # Se não encontrar, retorna 404.
+            return JsonResponse({'status': 'error', 'message': 'Recompensa não encontrada.'}, status=404)
+
+        # 2. Verifica se a recompensa JÁ foi resgatada.
+        if recompensa_pendente.resgatado_em is not None:
+            # Se já foi, retorna um erro específico (409 Conflict)
+            return JsonResponse({
+                'status': 'already_redeemed', 
+                'message': 'Este tesouro já foi revelado! Por favor, atualize a página para ver sua coleção atualizada.'
+            }, status=409) # 409 Conflict é o status HTTP ideal para esta situação.
+        
+        # 3. Garante que a recompensa ainda existe antes de tentar resgatar
         if not recompensa_pendente.recompensa:
             recompensa_pendente.delete() # Limpa o item pendente quebrado
             return JsonResponse({'status': 'error', 'message': 'Este item não existe mais e foi removido da sua caixa.'}, status=404)
 
+        # 4. Procede com o resgate se tudo estiver OK.
         sucesso = recompensa_pendente.resgatar()
+        # =======================================================================
+        # FIM DA ALTERAÇÃO
+        # =======================================================================
 
         if sucesso:
             # Cria um registro da recompensa para fins de log e histórico
@@ -380,10 +399,6 @@ def resgatar_recompensa_ajax(request):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': 'Ocorreu um erro inesperado.'}, status=500)
-
-# gamificacao/views.py
-
-# gamificacao/views.py
 
 @login_required
 def campanhas_ativas(request):

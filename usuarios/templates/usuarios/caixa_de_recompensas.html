@@ -1,5 +1,3 @@
-<!-- usuarios/templates/usuarios/caixa_de_recompensas.html -->
-
 {% extends 'base.html' %}
 {% load static %}
 {% load colecao_extras %}
@@ -9,133 +7,310 @@
 <link rel="stylesheet" href="{% static 'css/listagem-comum.css' %}">
 <link rel="stylesheet" href="{% static 'css/celestial_card.css' %}">
 <style>
-    /* Estilos específicos para animação de fade-out */
     .card-fading-out {
         transition: opacity 0.5s ease, transform 0.5s ease;
         opacity: 0;
         transform: scale(0.9);
     }
+
+    /* CSS do Botão de Resgate (com melhorias de responsividade) */
+    .reward-btn {
+        width: 100%;
+        height: 45px;
+        background-color: var(--cor-fundo-intermediario);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid var(--cor-primaria-escura);
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .reward-btn .IconContainer {
+        width: 40px;
+        height: 40px;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+    .reward-btn .IconContainer svg {
+        width: 40%;
+        z-index: 3;
+    }
+    .reward-btn .box-top {
+        transition: all 0.3s;
+    }
+    .reward-btn .text {
+        flex-grow: 1;
+        height: 100%;
+        font-size: 14px;
+        color: var(--cor-primaria);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        padding-left: 10px;
+        padding-right: 10px;
+        text-align: center;
+    }
+    .reward-btn:not(:disabled):hover .IconContainer .box-top {
+        transform: translateY(-5px);
+    }
+    .reward-btn:not(:disabled):hover {
+        background-color: var(--cor-primaria-escura);
+        border-color: var(--cor-primaria);
+    }
+    .reward-btn:not(:disabled):hover .text {
+        color: white;
+    }
+    .reward-btn:not(:disabled):hover .coin {
+        transform: translateY(-5px);
+        transition-delay: 0.2s;
+    }
+    .reward-btn .coin {
+        width: 25%;
+        aspect-ratio: 1/1;
+        background-color: var(--cor-dourada);
+        position: absolute;
+        border-radius: 50%;
+        transition: all 0.3s;
+        z-index: 1;
+        border: 2px solid #ffe956;
+        margin-top: 4px;
+    }
+    .reward-btn.btn-success {
+        background-color: var(--cor-sucesso);
+        border-color: var(--cor-sucesso);
+        color: white;
+    }
+    .reward-btn.btn-success .text {
+        color: white;
+    }
+    @media (max-width: 576px) {
+        .reward-btn { height: auto; padding: 8px; }
+        .reward-btn .text { font-size: 13px; padding: 0 6px; line-height: 1.2; }
+        .reward-btn .IconContainer { width: 32px; height: 32px; }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h2 class="h3 mb-0">{{ titulo_pagina }}</h2>
-            <p class="text-muted">Revele os artefatos que você conquistou em sua jornada.</p>
+{% include 'includes/_loader.html' %}
+
+<div id="page-content-wrapper" style="opacity: 0; transition: opacity 0.5s ease;">
+    <div class="container my-5">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h2 class="h3 mb-0">{{ titulo_pagina }}</h2>
+                <p class="text-muted">Revele os artefatos que você conquistou em sua jornada.</p>
+            </div>
+            <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Santuário</a>
         </div>
-        <a href="{% url 'meu_perfil' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-2"></i>Voltar ao Santuário</a>
-    </div>
 
-    {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='caixa_de_recompensas' %}
+        {% include 'usuarios/includes/_colecao_submenu.html' with active_tab='caixa_de_recompensas' %}
 
-    <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="recompensas-grid">
-        {% for premio in recompensas_pendentes %}
-            {% if premio.recompensa %}
-            <div class="col" id="premio-card-{{ premio.id }}">
-                <div class="card h-100 collection-card {% rarity_class premio.recompensa.raridade %}">
-                    <div class="card-img-container">
-                        {% if premio.recompensa.imagem %}
-                            <img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">
-                        {% else %}
-                            <div class="card-img-top d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
-                                <i class="fas fa-image fa-3x text-white-50"></i>
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="recompensas-grid">
+            {% for premio in recompensas_pendentes %}
+                {% if premio.recompensa %}
+                <div class="col" id="premio-card-{{ premio.id }}">
+                    <div class="card h-100 collection-card {% rarity_class premio.recompensa.raridade %}"
+                         data-name="{{ premio.recompensa.nome }}"
+                         data-description="{{ premio.recompensa.descricao }}"
+                         data-image="{% if premio.recompensa.imagem %}{{ premio.recompensa.imagem.url }}{% endif %}"
+                         data-rarity="{{ premio.recompensa.get_raridade_display }}"
+                         data-type="{{ premio.recompensa|class_name }}"
+                         data-owned="true"
+                         data-origin="{{ premio.origem_desbloqueio }}"
+                         data-date-won="{{ premio.data_ganho|date:'d/m/Y' }}">
+                        <div class="card-img-container">
+                            {% if premio.recompensa.imagem %}
+                                <img src="{{ premio.recompensa.imagem.url }}" class="card-img-top" alt="{{ premio.recompensa.nome }}">
+                            {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center bg-dark bg-opacity-25">
+                                    <i class="fas fa-image fa-3x text-white-50"></i>
+                                </div>
+                            {% endif %}
+                            <span class="badge rarity-badge {% rarity_class premio.recompensa.raridade %}">{{ premio.recompensa.get_raridade_display }}</span>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
+                            
+                            <!-- ======================================================================= -->
+                            <!-- ✅ ALTERAÇÃO: Exibe apenas os detalhes da conquista no card.
+                            <!-- A descrição do item foi removida desta visualização.
+                            <!-- ======================================================================= -->
+                            <div class="card-text small mb-2">
+                                <strong>Origem:</strong> {{ premio.origem_desbloqueio }}<br>
+                                <small>Conquistado em: {{ premio.data_ganho|date:"d/m/Y" }}</small>
                             </div>
-                        {% endif %}
-                        <span class="badge rarity-badge {% rarity_class premio.recompensa.raridade %}">{{ premio.recompensa.get_raridade_display }}</span>
-                    </div>
-                    <div class="card-body">
-                        <h5 class="card-title">{{ premio.recompensa.nome }}</h5>
-                        <p class="card-text small">
-                            <strong>Origem:</strong> {{ premio.origem_desbloqueio }}<br>
-                            <small class="text-white-50">Conquistado em: {{ premio.data_ganho|date:"d/m/Y" }}</small>
-                        </p>
-                    </div>
-                    <div class="card-footer">
-                        <button class="btn fw-bold btn-celestial w-100 btn-resgatar" data-pendente-id="{{ premio.id }}">
-                            <span><i class="fas fa-gift me-2"></i>Revelar</span>
-                            <div class="star-1"></div><div class="star-2"></div><div class="star-3"></div><div class="star-4"></div><div class="star-5"></div><div class="star-6"></div>
-                        </button>
+                            <!-- ======================================================================= -->
+                            <!-- FIM DA ALTERAÇÃO -->
+                            <!-- ======================================================================= -->
+
+                            <a href="#" class="view-details-link small mt-auto" data-bs-toggle="modal" data-bs-target="#itemDetailModal" style="text-decoration: none;">
+                                <span class="d-none d-sm-inline">Ver mais detalhes...</span>
+                                <span class="d-inline d-sm-none">Detalhes...</span>
+                            </a>
+                        </div>
+                        <div class="card-footer">
+                            <button class="reward-btn btn-resgatar" data-pendente-id="{{ premio.id }}">
+                                <span class="IconContainer">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 60 20" class="box-top box"><path stroke-linecap="round" stroke-width="4" stroke="#8d76c6" d="M2 18L58 18"></path><circle stroke-width="5" stroke="#8d76c6" fill="#252a4a" r="7" cy="9.5" cx="20.5"></circle><circle stroke-width="5" stroke="#8d76c6" fill="#252a4a" r="7" cy="9.5" cx="38.5"></circle></svg>
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 58 44" class="box-body box"><mask fill="white" id="path-1-inside-1_81_19_{{premio.id}}"><rect rx="3" height="44" width="58"></rect></mask><rect mask="url(#path-1-inside-1_81_19_{{premio.id}})" stroke-width="8" stroke="#8d76c6" fill="#252a4a" rx="3" height="44" width="58"></rect><line stroke-width="6" stroke="#8d76c6" y2="29" x2="58" y1="29" x1="-3.61529e-09"></line><path stroke-linecap="round" stroke-width="5" stroke="#8d76c6" d="M45.0005 20L36 3"></path><path stroke-linecap="round" stroke-width="5" stroke="#8d76c6" d="M21 3L13.0002 19.9992"></path></svg>
+                                    <span class="coin"></span>
+                                </span>
+                                <span class="text">Revelar Tesouro</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
+                {% endif %}
+            {% empty %}
+            <div class="col-12" id="empty-message-container">
+                <div class="card card-body text-center py-5 bg-transparent border-dashed">
+                    <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
+                    <h4 class="h5">Sua câmara de tesouros está vazia</h4>
+                    <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
+                </div>
             </div>
-            {% endif %}
-        {% empty %}
-        <div class="col-12" id="empty-message-container">
-            <div class="card card-body text-center py-5 bg-transparent border-dashed">
-                <i class="fas fa-box-open fa-3x text-muted mb-3"></i>
-                <h4 class="h5">Sua câmara de tesouros está vazia</h4>
-                <p class="text-muted">Continue sua jornada para conquistar novas bênçãos!</p>
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
+        <div class="mt-5">
+            {% include 'includes/_paginacao.html' with paginated_object=paginated_object %}
+        </div>
     </div>
+    {% include 'usuarios/includes/_modal_detalhes_item.html' %}
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="{% static 'js/gamification-effects.js' %}"></script>
+<script src="{% static 'js/loader.js' %}"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.btn-resgatar').forEach(button => {
-        button.addEventListener('click', function() {
-            const pendenteId = this.dataset.pendenteId;
-            const cardWrapper = document.getElementById(`premio-card-${pendenteId}`);
-            const buttonSpan = button.querySelector('span');
-
-            button.disabled = true;
-            if(buttonSpan) buttonSpan.textContent = 'Revelando...';
-
-            fetch("{% url 'gamificacao:resgatar_recompensa' %}", {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-                body: JSON.stringify({ pendente_id: pendenteId })
-            })
-            .then(response => {
-                if (!response.ok) {
-                    return response.json().then(err => { throw err; });
-                }
-                return response.json();
-            })
-            .then(result => {
-                if (result.status === 'success') {
-                    button.classList.remove('btn-celestial');
-                    button.classList.add('btn-success');
-                    if(buttonSpan) buttonSpan.innerHTML = '<i class="fas fa-check me-2"></i>Resgatado!';
-                    
-                    if (window.confetti) {
-                        const rect = button.getBoundingClientRect();
-                        const origin = { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight };
-                        confetti({ particleCount: 100, spread: 70, origin: origin });
-                    }
-                    
-                    // 🔹 Modal de confirmação com reload só depois do clique
-                    Swal.fire({
-                        title: 'Tesouro Revelado!',
-                        text: result.message,
-                        icon: 'success',
-                        confirmButtonText: 'Continuar'
-                    }).then(() => {
-                        location.reload();
+    // O script permanece exatamente o mesmo. Ele é inteligente o suficiente
+    // para pegar a descrição do `data-description` e exibi-la no modal,
+    // mesmo que ela não esteja mais visível diretamente no card.
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- LÓGICA DE RESGATE (SEM ALTERAÇÕES) ---
+        document.querySelectorAll('.btn-resgatar').forEach(button => {
+            button.addEventListener('click', function() {
+                const pendenteId = this.dataset.pendenteId;
+                const cardWrapper = document.getElementById(`premio-card-${pendenteId}`);
+                const buttonText = button.querySelector('.text');
+                button.disabled = true;
+                if(buttonText) buttonText.textContent = 'Revelando...';
+                fetch("{% url 'gamificacao:resgatar_recompensa' %}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify({ pendente_id: pendenteId })
+                })
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            data.statusCode = response.status;
+                            throw data;
+                        }
+                        return data;
                     });
-
-                    // Efeito de sumir cartão (antes do reload, só visual)
-                    if (cardWrapper) {
-                        cardWrapper.classList.add('card-fading-out');
-                        setTimeout(() => { cardWrapper.remove(); }, 500);
+                })
+                .then(result => {
+                    if (result.status === 'success') {
+                        button.classList.add('btn-success');
+                        if(buttonText) buttonText.innerHTML = '<i class="fas fa-check me-2"></i>Resgatado!';
+                        if (window.confetti) {
+                            const rect = button.getBoundingClientRect();
+                            const origin = { x: (rect.left + rect.width / 2) / window.innerWidth, y: (rect.top + rect.height / 2) / window.innerHeight };
+                            confetti({ particleCount: 100, spread: 70, origin: origin });
+                        }
+                        Swal.fire({
+                            title: 'Tesouro Revelado!',
+                            text: result.message,
+                            icon: 'success',
+                            confirmButtonText: 'Continuar'
+                        }).then(() => {
+                            if (cardWrapper) {
+                                cardWrapper.classList.add('card-fading-out');
+                                setTimeout(() => { location.reload(); }, 500);
+                            } else {
+                                location.reload();
+                            }
+                        });
                     }
-                }
-            })
-            .catch(err => {
-                button.disabled = false;
-                if(buttonSpan) buttonSpan.innerHTML = '<i class="fas fa-gift me-2"></i>Revelar';
-                const errorMessage = err.message || 'Não foi possível resgatar o prêmio. Tente novamente.';
-                Swal.fire('Erro ao Resgatar', errorMessage, 'error');
+                })
+                .catch(err => {
+                    if (err.statusCode === 409 && err.status === 'already_redeemed') {
+                        Swal.fire({
+                            title: 'Atenção!',
+                            text: err.message,
+                            icon: 'warning',
+                            confirmButtonText: 'Atualizar Página'
+                        }).then(() => {
+                            location.reload();
+                        });
+                        button.classList.add('btn-success');
+                        if (buttonText) buttonText.innerHTML = '<i class="fas fa-check-double me-2"></i>Já Resgatado';
+                        button.disabled = true;
+                    } else {
+                        button.disabled = false;
+                        if(buttonText) buttonText.textContent = 'Revelar Tesouro';
+                        const errorMessage = err.message || 'Não foi possível resgatar o prêmio. Tente novamente.';
+                        Swal.fire('Erro ao Resgatar', errorMessage, 'error');
+                    }
+                });
             });
         });
+
+        // --- LÓGICA DO MODAL (SEM ALTERAÇÕES) ---
+        const itemDetailModal = document.getElementById('itemDetailModal');
+        if (itemDetailModal) {
+            itemDetailModal.addEventListener('show.bs.modal', function (event) {
+                const triggerElement = event.relatedTarget;
+                const card = triggerElement.closest('.collection-card');
+                if (!card) return;
+                const name = card.dataset.name;
+                const description = card.dataset.description;
+                const imageUrl = card.dataset.image;
+                const rarity = card.dataset.rarity;
+                const type = card.dataset.type;
+                const owned = card.dataset.owned === 'true';
+                const origin = card.dataset.origin;
+                const dateWon = card.dataset.dateWon;
+                const modalImage = itemDetailModal.querySelector('#itemDetailImage');
+                const modalImagePlaceholder = itemDetailModal.querySelector('#itemDetailImagePlaceholder');
+                const modalName = itemDetailModal.querySelector('#itemDetailName');
+                const modalDescription = itemDetailModal.querySelector('#itemDetailDescription');
+                const modalRarity = itemDetailModal.querySelector('#itemDetailRarity');
+                const modalType = itemDetailModal.querySelector('#itemDetailType');
+                const modalStatus = itemDetailModal.querySelector('#itemDetailStatus');
+                const rewardInfoSection = itemDetailModal.querySelector('#itemDetailRewardInfo');
+                const originEl = itemDetailModal.querySelector('#itemDetailOrigin');
+                const dateWonEl = itemDetailModal.querySelector('#itemDetailDate');
+                modalName.textContent = name;
+                modalDescription.textContent = description || "Este artefato não possui uma descrição detalhada.";
+                modalRarity.innerHTML = `<i class="fas fa-gem fa-fw text-info"></i> Raridade: <strong class="text-white">${rarity}</strong>`;
+                modalType.innerHTML = `<i class="fas fa-tag fa-fw text-info"></i> Tipo: <strong class="text-white">${type}</strong>`;
+                modalStatus.innerHTML = `<i class="fas fa-check-circle fa-fw text-success"></i> Status: <strong class="text-white">Possui</strong>`;
+                if (origin && dateWon && rewardInfoSection) {
+                    originEl.innerHTML = `<strong>Origem:</strong> ${origin}`;
+                    dateWonEl.innerHTML = `<strong>Conquistado em:</strong> ${dateWon}`;
+                    rewardInfoSection.classList.remove('d-none');
+                } else if (rewardInfoSection) {
+                    rewardInfoSection.classList.add('d-none');
+                }
+                if (imageUrl) {
+                    modalImage.src = imageUrl;
+                    modalImage.classList.remove('d-none');
+                    modalImagePlaceholder.classList.add('d-none');
+                } else {
+                    modalImage.classList.add('d-none');
+                    modalImagePlaceholder.classList.remove('d-none');
+                }
+            });
+        }
     });
-});
 </script>
 {% endblock %}
