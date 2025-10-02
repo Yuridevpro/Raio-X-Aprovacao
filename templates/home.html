@@ -26,18 +26,14 @@
         background-size: cover;
         background-position: center;
         color: white;
-        padding: 8rem 0 12rem 0; /* Aumenta o padding inferior para dar espaço para o fade */
-        margin-bottom: -6rem; /* Puxa a seção de baixo para cima, completando o efeito */
+        padding: 8rem 0; /* Padding inferior ajustado */
         text-align: center;
-
-        /* A MÁGICA ACONTECE AQUI: Efeito de fade na parte inferior */
-        -webkit-mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
-        mask-image: linear-gradient(to bottom, black 80%, transparent 100%);
+        /* Efeito de máscara/sombra removido */
     }
     .hero-section h1 {
         font-family: 'Oxanium', sans-serif;
         font-weight: 700;
-        font-size: 3.5rem;
+        font-size: 4rem;
         color: var(--cor-dourada);
         text-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
@@ -90,7 +86,7 @@
     .stats-section .section-title {
         color: var(--cor-dourada);
     }
-    .stat-item .display-3 {
+    .stat-item .display-4 {
         font-family: 'Oxanium', sans-serif;
         font-weight: 700;
         color: var(--cor-dourada);
@@ -104,24 +100,131 @@
         opacity: 0.7;
     }
 
-    /* --- SEÇÃO GAMIFICAÇÃO --- */
-    .gamification-section {
-        background-color: var(--cor-fundo-claro);
+    /* --- SEÇÃO GAMIFICAÇÃO (NOVOS ESTILOS) --- */
+    .gamification-showcase-section {
+        background-color: var(--cor-fundo-body);
         padding: 8rem 0;
     }
-    .gamification-section .list-unstyled i {
-        color: var(--cor-dourada);
-        width: 24px;
+    .gamification-showcase-section .section-title {
+        color: var(--cor-texto-escuro);
+    }
+    .gamification-card {
+        background-color: var(--cor-fundo-claro);
+        border: 1px solid var(--cor-borda);
+        border-radius: var(--raio-borda);
+        box-shadow: var(--sombra-caixa);
+        transition: var(--transicao-padrao);
+        overflow: hidden;
+    }
+    .gamification-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--sombra-caixa-hover);
+    }
+    .gamification-card .card-img-container {
+        position: relative;
+    }
+    .gamification-card .card-img-top {
+        height: 200px;
+        object-fit: cover;
+        object-position: top;
+        border-bottom: 1px solid var(--cor-borda);
+    }
+    .view-full-image-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        opacity: 0;
+        transition: var(--transicao-padrao);
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(4px);
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        border: none;
+    }
+    .gamification-card:hover .view-full-image-btn {
+        opacity: 1;
+    }
+    .gamification-card .card-body {
+        padding: 1.5rem;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .gamification-card .card-title {
+        font-size: 1.5rem;
+        font-family: var(--fonte-display);
+        color: var(--cor-primaria-escura);
+        margin-bottom: 0.75rem;
+    }
+    .gamification-card .card-text {
+        color: var(--cor-texto-muted);
+        font-size: 0.95rem;
+        line-height: 1.5;
+        flex-grow: 1;
+    }
+    .gamification-card .btn {
+        margin-top: 1rem;
     }
 
     /* --- SEÇÃO CTA FINAL --- */
     .cta-section {
         background: linear-gradient(135deg, var(--cor-primaria), var(--cor-primaria-escura));
         color: white;
-        padding: 6rem 0;
+        padding: 6rem 0; /* Padding padrão */
+        position: relative;
+        margin-bottom: -100px; /* Para garantir a fusão sem linhas finas */
     }
     .cta-section h2 {
         color: white;
+    }
+
+
+    /* Estilo para o botão de fechar do modal */
+#imageModal .btn-close {
+    background-color: rgba(0, 0, 0, 0.6) !important; /* fundo escuro semi-transparente */
+    border-radius: 50%; /* botão arredondado */
+    width: 2rem;
+    height: 2rem;
+    opacity: 1; /* sempre visível */
+}
+
+#imageModal .btn-close::after {
+    content: "×"; /* força um X legível */
+    font-size: 1.5rem;
+    color: #fff; /* branco para contraste */
+    font-weight: bold;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+    /* --- AJUSTES DE RESPONSIVIDADE --- */
+    @media (max-width: 768px) {
+        .hero-section h1 {
+            font-size: 2.8rem;
+        }
+        section {
+            padding: 4rem 0;
+        }
+        .hero-section {
+            padding: 6rem 0;
+        }
+        .stats-section, .features-section, .gamification-showcase-section {
+            padding: 6rem 0;
+        }
+        .cta-section {
+            padding: 4rem 0;
+        }
+        .gamification-card .card-img-top {
+            height: 160px;
+        }
     }
 
     /* ======================================================================= */
@@ -175,31 +278,106 @@
             <h2 class="h2 section-title">Nossa Comunidade em Números</h2>
         </div>
         <div class="row text-center">
-            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-book-open fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_questoes|default:"250k+" }}</h3><p class="stat-label">Questões Cadastradas</p></div>
-            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-users fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_usuarios|default:"15k+" }}</h3><p class="stat-label">Usuários Ativos</p></div>
-            <div class="col-md-4 stat-item"><i class="fas fa-check-double fa-3x mb-3 stat-icon"></i><h3 class="display-3">{{ total_simulados_concluidos|default:"500k+" }}</h3><p class="stat-label">Simulados Realizados</p></div>
+            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-book-open fa-3x mb-3 stat-icon"></i><h3 class="display-4">{{ total_questoes|default:"250k+" }}</h3><p class="stat-label">Questões Cadastradas</p></div>
+            <div class="col-md-4 mb-5 mb-md-0 stat-item"><i class="fas fa-users fa-3x mb-3 stat-icon"></i><h3 class="display-4">{{ total_usuarios|default:"15k+" }}</h3><p class="stat-label">Usuários Ativos</p></div>
+            <div class="col-md-4 stat-item"><i class="fas fa-check-double fa-3x mb-3 stat-icon"></i><h3 class="display-4">{{ total_simulados_concluidos|default:"500k+" }}</h3><p class="stat-label">Simulados Realizados</p></div>
         </div>
     </div>
 </section>
 
-<!-- Seção de Gamificação -->
-<section class="gamification-section">
+<!-- Nova Seção de Gamificação com Cards Responsivos -->
+<section class="gamification-showcase-section">
     <div class="container">
-        <!-- ATUALIZAÇÃO: Adicionada a classe 'justify-content-center' para centralizar a coluna -->
-        <div class="row align-items-center g-5 justify-content-center">
-            
-            <!-- ATUALIZAÇÃO: Adicionada a classe 'text-center' para centralizar o texto -->
-            <div class="col-lg-6 ps-lg-5 text-center">
-                <h2 class="h2 mb-4">Estudar Nunca Foi Tão Recompensador</h2>
-                <p class="text-muted mb-4">Nossa plataforma transforma sua rotina de estudos em uma jornada engajante. Cada ação sua é recompensada:</p>
-                <!-- ATUALIZAÇÃO: A lista é estilizada para se alinhar corretamente no centro -->
-                <ul class="list-unstyled d-inline-block text-start">
-                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-star fa-fw me-3"></i><strong>Suba de Nível:</strong> Ganhe XP a cada questão resolvida.</li>
-                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-coins fa-fw me-3"></i><strong>Junte Moedas:</strong> Acumule "Fragmentos de Conhecimento".</li>
-                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-trophy fa-fw me-3"></i><strong>Desbloqueie Conquistas:</strong> Cumpra desafios e mostre suas medalhas.</li>
-                    <li class="mb-3 d-flex align-items-center"><i class="fas fa-user-circle fa-fw me-3"></i><strong>Personalize seu Perfil:</strong> Adquira avatares e bordas exclusivos.</li>
-                </ul>
+        <div class="text-center mb-5 pb-3">
+            <h2 class="h2 section-title">Um Universo de Gamificação</h2>
+            <p class="text-muted lead">Transforme seus estudos em uma aventura épica e seja recompensado por cada passo.</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/perfil.png' %}" class="card-img-top" alt="Perfil de Estudante Personalizado">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/perfil.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Perfil de Estudante</h5>
+                        <p class="card-text">Seu santuário pessoal, onde você exibe seu nível, suas conquistas e os artefatos que colecionou.</p>
+                        {% if user.is_authenticated %}<a href="{% url 'meu_perfil' %}" class="btn btn-sm btn-outline-primary">Ver Meu Perfil</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
             </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/ranking.png' %}" class="card-img-top" alt="Rankings Competitivos">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/ranking.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Rankings Competitivos</h5>
+                        <p class="card-text">Meça sua força contra outros estudantes nos rankings geral, mensal e semanal. A glória o aguarda!</p>
+                        {% if user.is_authenticated %}<a href="{% url 'gamificacao:ranking' %}" class="btn btn-sm btn-outline-primary">Ver Rankings</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/trilhas.png' %}" class="card-img-top" alt="Trilhas de Conquistas">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/trilhas.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Trilhas de Conquistas</h5>
+                        <p class="card-text">Embarque em jornadas desafiadoras, cumpra objetivos e desbloqueie medalhas por sua dedicação.</p>
+                        {% if user.is_authenticated %}<a href="{% url 'trilhas_de_conquistas' %}" class="btn btn-sm btn-outline-primary">Ver Trilhas</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/loja.png' %}" class="card-img-top" alt="Arsenal Divino (Loja)">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/loja.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Arsenal Divino (Loja)</h5>
+                        <p class="card-text">Use seus "Fragmentos de Conhecimento" para adquirir avatares, bordas e banners exclusivos.</p>
+                        {% if user.is_authenticated %}<a href="{% url 'gamificacao:loja' %}" class="btn btn-sm btn-outline-primary">Visitar Arsenal</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/recompensa.png' %}" class="card-img-top" alt="Câmara dos Tesouros">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/recompensa.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Câmara dos Tesouros</h5>
+                        <p class="card-text">Todos os prêmios que você ganha em eventos e ao subir de nível esperam por você aqui para serem revelados.</p>
+                        {% if user.is_authenticated %}<a href="{% url 'caixa_de_recompensas' %}" class="btn btn-sm btn-outline-primary">Minha Câmara</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="card gamification-card h-100">
+                    <div class="card-img-container">
+                        <img src="{% static 'img/gamification/avatar.png' %}" class="card-img-top" alt="Coleção de Artefatos">
+                        <button class="view-full-image-btn" data-bs-toggle="modal" data-bs-target="#imageModal" data-img-url="{% static 'img/gamification/avatar.png' %}"><i class="fas fa-expand-alt"></i></button>
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Coleção de Artefatos</h5>
+                        <p class="card-text">Organize e exiba todos os avatares, bordas e banners que você já desbloqueou em sua jornada.</p>
+                        {% if user.is_authenticated %}<a href="{% url 'colecao_avatares' %}" class="btn btn-sm btn-outline-primary">Minha Coleção</a>{% else %}<a href="{% url 'cadastro' %}" class="btn btn-sm btn-primary">Comece Agora</a>{% endif %}
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
 </section>
@@ -216,4 +394,32 @@
         </div>
     </div>
 </section>
+
+<!-- Modal para Visualização de Imagem -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-transparent border-0">
+      <div class="modal-body p-0 position-relative">
+        <img src="" id="modalImage" class="img-fluid rounded shadow-lg" alt="Visualização completa">
+        <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const imageModal = document.getElementById('imageModal');
+  if (imageModal) {
+    imageModal.addEventListener('show.bs.modal', function (event) {
+      const button = event.relatedTarget; // Botão que acionou o modal
+      const imageUrl = button.getAttribute('data-img-url');
+      const modalImageEl = document.getElementById('modalImage');
+      modalImageEl.src = imageUrl;
+    });
+  }
+});
+</script>
 {% endblock %}

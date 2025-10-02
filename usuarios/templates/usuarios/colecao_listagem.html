@@ -74,16 +74,23 @@
         opacity: 0.8;
     }
 
-    /* ======================================================================= */
-    /* INÍCIO DA ATUALIZAÇÃO: Fundo Roxo Escuro com Gradiente Cósmico         */
-    /* ======================================================================= */
     .collection-content {
         background: radial-gradient(ellipse at center, #2D2F55 0%, #16192e 80%); /* COR BASE MAIS ESCURA */
         border-radius: 12px; /* Borda interna um pouco menor que a externa */
         padding: 1.5rem;
     }
     /* ======================================================================= */
-    /* FIM DA ATUALIZAÇÃO                                                      */
+    /* INÍCIO DA CORREÇÃO: Habilitando interação com o botão em cards bloqueados */
+    /* ======================================================================= */
+    .collection-card.locked {
+        pointer-events: none; /* Desabilita interações no card bloqueado */
+    }
+    .collection-card.locked .btn,
+    .collection-card.locked .view-details-link {
+        pointer-events: all; /* Reabilita interações APENAS para o botão e o link */
+    }
+    /* ======================================================================= */
+    /* FIM DA CORREÇÃO                                                         */
     /* ======================================================================= */
 
      @media (max-width: 575px) {
@@ -155,6 +162,13 @@
     <div class="mt-4">{% include 'includes/_paginacao.html' with paginated_object=paginated_object %}</div>
 </div>
 
+<!-- ======================================================================= -->
+<!-- INÍCIO DA ADIÇÃO: Modal para detalhes do item -->
+<!-- ======================================================================= -->
+{% include 'usuarios/includes/_modal_detalhes_item.html' %}
+<!-- ======================================================================= -->
+<!-- FIM DA ADIÇÃO -->
+<!-- ======================================================================= -->
 {% endblock %}
 
 {% block scripts %}
@@ -171,6 +185,57 @@ document.addEventListener('DOMContentLoaded', function() {
                 filterForm.submit();
             });
         }
+    }
+
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+
+    const itemDetailModal = document.getElementById('itemDetailModal');
+    if (itemDetailModal) {
+        itemDetailModal.addEventListener('show.bs.modal', function (event) {
+            const triggerElement = event.relatedTarget;
+            const card = triggerElement.closest('.collection-card');
+
+            // Captura todos os dados do card
+            const name = card.dataset.name;
+            const description = card.dataset.description;
+            const imageUrl = card.dataset.image;
+            const rarity = card.dataset.rarity;
+            const type = card.dataset.type;
+            const owned = card.dataset.owned === 'true';
+
+            // Seleciona os elementos do modal
+            const modalImage = itemDetailModal.querySelector('#itemDetailImage');
+            const modalImagePlaceholder = itemDetailModal.querySelector('#itemDetailImagePlaceholder');
+            const modalName = itemDetailModal.querySelector('#itemDetailName');
+            const modalDescription = itemDetailModal.querySelector('#itemDetailDescription');
+            const modalRarity = itemDetailModal.querySelector('#itemDetailRarity');
+            const modalType = itemDetailModal.querySelector('#itemDetailType');
+            const modalStatus = itemDetailModal.querySelector('#itemDetailStatus');
+
+            // Preenche os dados básicos
+            modalName.textContent = name;
+            modalDescription.textContent = description;
+
+            // Preenche os novos campos de informação
+            modalRarity.innerHTML = `<i class="fas fa-gem fa-fw text-info"></i> Raridade: <strong class="text-white">${rarity}</strong>`;
+            modalType.innerHTML = `<i class="fas fa-tag fa-fw text-info"></i> Tipo: <strong class="text-white">${type}</strong>`;
+            if (owned) {
+                modalStatus.innerHTML = `<i class="fas fa-check-circle fa-fw text-success"></i> Status: <strong class="text-white">Possui</strong>`;
+            } else {
+                modalStatus.innerHTML = `<i class="fas fa-times-circle fa-fw text-danger"></i> Status: <strong class="text-white">Não Possui</strong>`;
+            }
+
+            // Lida com a imagem
+            if (imageUrl) {
+                modalImage.src = imageUrl;
+                modalImage.classList.remove('d-none');
+                modalImagePlaceholder.classList.add('d-none');
+            } else {
+                modalImage.classList.add('d-none');
+                modalImagePlaceholder.classList.remove('d-none');
+            }
+        });
     }
 });
 </script>

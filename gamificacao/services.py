@@ -368,14 +368,20 @@ def verificar_e_gerar_rankings():
     _verificar_e_gerar_ranking_semanal()
     _verificar_e_gerar_ranking_mensal()
 
+# gamificacao/services.py
 def _verificar_e_gerar_ranking_semanal():
     hoje = timezone.now()
     log_semanal, _ = TarefaAgendadaLog.objects.get_or_create(nome_tarefa='gerar_ranking_semanal', defaults={'ultima_execucao': hoje - timedelta(days=8)})
-    if (hoje - log_semanal.ultima_execucao).days < 7: return
+    
+    # REMOÇÃO DA VALIDAÇÃO DE TEMPO: A verificação de existência no método
+    # _processar_e_salvar_ranking é suficiente e mais flexível para desenvolvimento.
+    # if (hoje - log_semanal.ultima_execucao).days < 7: return
+    
     semana_passada_data = hoje.date() - timedelta(days=7)
     ano, semana, _ = semana_passada_data.isocalendar()
     start_of_week = date.fromisocalendar(ano, semana, 1)
     end_of_week = start_of_week + timedelta(days=6)
+    
     if _processar_e_salvar_ranking('semanal', start_of_week, end_of_week):
         log_semanal.ultima_execucao = hoje
         log_semanal.save()
@@ -383,30 +389,85 @@ def _verificar_e_gerar_ranking_semanal():
 def _verificar_e_gerar_ranking_mensal():
     hoje = timezone.now()
     log_mensal, _ = TarefaAgendadaLog.objects.get_or_create(nome_tarefa='gerar_ranking_mensal', defaults={'ultima_execucao': hoje - timedelta(days=32)})
-    if log_mensal.ultima_execucao.month == hoje.month and log_mensal.ultima_execucao.year == hoje.year: return
+
+    # REMOÇÃO DA VALIDAÇÃO DE TEMPO: A verificação de existência no método
+    # _processar_e_salvar_ranking é suficiente e mais flexível para desenvolvimento.
+    # if log_mensal.ultima_execucao.month == hoje.month and log_mensal.ultima_execucao.year == hoje.year: return
+    
     primeiro_dia_mes_atual = hoje.date().replace(day=1)
     ultimo_dia_mes_passado = primeiro_dia_mes_atual - timedelta(days=1)
     primeiro_dia_mes_passado = ultimo_dia_mes_passado.replace(day=1)
+
     if _processar_e_salvar_ranking('mensal', primeiro_dia_mes_passado, ultimo_dia_mes_passado):
         log_mensal.ultima_execucao = hoje
         log_mensal.save()
 
+# gamificacao/services.py
 def _processar_e_salvar_ranking(tipo, data_inicio, data_fim):
-    respostas_no_periodo = RespostaUsuario.objects.filter(data_resposta__date__gte=data_inicio, data_resposta__date__lte=data_fim, usuario__is_staff=False, usuario__is_active=True)
-    ranking_data = list(respostas_no_periodo.values('usuario_id').annotate(acertos=Count('id', filter=Q(foi_correta=True)), respostas=Count('id')).order_by('-acertos', '-respostas').values('usuario_id', 'acertos', 'respostas'))
-    
-    if not ranking_data:
-        return True # Retorna sucesso se não houver dados para processar
+    """
+    Processa os dados de um período e salva o ranking correspondente,
+    agora com uma verificação para não criar duplicatas e com lógica aprimorada
+    de DENSE RANK para lidar com empates de forma justa.
+    """
+    if tipo == 'semanal':
+        ano, semana, _ = data_inicio.isocalendar()
+        if RankingSemanal.objects.filter(ano=ano, semana=semana).exists():
+            return True
+    else:
+        ano, mes = data_inicio.year, data_inicio.month
+        if RankingMensal.objects.filter(ano=ano, mes=mes).exists():
+            return True
 
-    user_profiles_map = {up.user_id: up for up in UserProfile.objects.filter(user_id__in=[item['usuario_id'] for item in ranking_data])}
+    respostas_no_periodo = RespostaUsuario.objects.filter(data_resposta__date__gte=data_inicio, data_resposta__date__lte=data_fim, usuario__is_staff=False, usuario__is_active=True)
+    
+    user_profiles_in_period = UserProfile.objects.filter(
+        user__in=respostas_no_periodo.values('usuario').distinct()
+    ).select_related('streak_data')
+    
+    streaks_map = {
+        profile.user_id: profile.streak_data.current_streak if hasattr(profile, 'streak_data') and profile.streak_data else 0
+        for profile in user_profiles_in_period
+    }
+
+    ranking_data_qs = respostas_no_periodo.values('usuario_id').annotate(
+        acertos=Count('id', filter=Q(foi_correta=True)),
+        respostas=Count('id')
+    ).order_by('-acertos', '-respostas')
+
+    ranking_data_list = list(ranking_data_qs)
+
+    for item in ranking_data_list:
+        item['streak'] = streaks_map.get(item['usuario_id'], 0)
+
+    # Ordena a lista em Python usando todos os critérios de desempate
+    ranking_data_sorted = sorted(
+        ranking_data_list,
+        key=lambda x: (-x['acertos'], -x['respostas'], -x['streak'])
+    )
+
+    if not ranking_data_sorted:
+        return True
+
+    user_profiles_map = {up.user_id: up for up in UserProfile.objects.filter(user_id__in=[item['usuario_id'] for item in ranking_data_sorted])}
     
     objetos_para_criar = []
-    for i, item in enumerate(ranking_data):
+    current_rank = 0
+    last_score = (-1, -1, -1) # Inicializa com um valor que não corresponde a nenhuma pontuação real
+
+    for item in ranking_data_sorted:
         user_profile = user_profiles_map.get(item['usuario_id'])
         if not user_profile:
             continue
             
-        posicao = i + 1
+        current_score = (item['acertos'], item['respostas'], item['streak'])
+        
+        # Incrementa o rank apenas quando a pontuação muda
+        if current_score != last_score:
+            current_rank += 1
+        
+        posicao = current_rank
+        last_score = current_score
+            
         if tipo == 'semanal':
             obj = RankingSemanal(user_profile=user_profile, ano=data_inicio.year, semana=data_inicio.isocalendar()[1], posicao=posicao, acertos_periodo=item['acertos'], respostas_periodo=item['respostas'])
         else: # mensal
@@ -414,27 +475,15 @@ def _processar_e_salvar_ranking(tipo, data_inicio, data_fim):
         objetos_para_criar.append(obj)
         
     if objetos_para_criar:
-        # Salva os novos registros de ranking no banco
         if tipo == 'semanal':
             novos_rankings_criados = RankingSemanal.objects.bulk_create(objetos_para_criar)
-        else: # mensal
+        else:
             novos_rankings_criados = RankingMensal.objects.bulk_create(objetos_para_criar)
         
-        # =======================================================================
-        # INÍCIO DA ADIÇÃO: Dispara a distribuição de prêmios IMEDIATAMENTE.
-        # =======================================================================
-        # Após criar o histórico do ranking, iteramos sobre os vencedores
-        # e chamamos a função que verifica as campanhas e envia os prêmios
-        # para a caixa de recompensas de cada um.
         for ranking_item in novos_rankings_criados:
             processar_resultados_ranking(ranking_item, tipo)
-        # =======================================================================
-        # FIM DA ADIÇÃO
-        # =======================================================================
             
     return True
-
-# gamificacao/services.py
 
 def processar_conclusao_simulado(sessao):
     """
@@ -598,10 +647,25 @@ def _avaliar_e_conceder_recompensas(user_profile, gatilho, contexto):
     return recompensas_concedidas, regras_info
 
     
+# gamificacao/services.py
+
 def processar_resultados_ranking(ranking_data, tipo_ranking):
+    """
+    Processa um único registro de ranking (semanal ou mensal) para avaliar e
+    conceder recompensas de campanhas associadas.
+    """
     gatilho = Campanha.Gatilho.RANKING_SEMANAL_CONCLUIDO if tipo_ranking == 'semanal' else Campanha.Gatilho.RANKING_MENSAL_CONCLUIDO
-    for item in ranking_data:
-        _avaliar_e_conceder_recompensas(item.user_profile, gatilho, contexto={'posicao': item.posicao})
+    
+    # A variável ranking_data já é o item individual do ranking, então o loop 'for' foi removido.
+    # O nome da variável foi mantido para consistência com a chamada, mas agora sabemos que é um único objeto.
+    item = ranking_data 
+    
+    # Chama a função de avaliação de recompensas para o usuário do registro de ranking.
+    _avaliar_e_conceder_recompensas(
+        item.user_profile, 
+        gatilho, 
+        contexto={'posicao': item.posicao}
+    )
 
 
 

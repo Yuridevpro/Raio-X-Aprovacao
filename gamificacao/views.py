@@ -28,46 +28,110 @@ from .models import (
 
 
 # gamificacao/views.py
-
-# gamificacao/views.py
-
+from django.db.models.functions import Rank, DenseRank
+from django.urls import reverse
 @login_required
 def ranking(request):
     """
     Exibe a página de ranking, com lógica aprimorada para exibir prêmios por faixa,
     incluindo XP e Moedas, e uma mensagem de parabéns para os vencedores.
+    
+    MELHORIAS IMPLEMENTADAS:
+    - Usa DenseRank para evitar saltos na classificação em caso de empates.
+    - Exibe apenas o TOP 10 e, separadamente, a posição do usuário logado se ele estiver fora do TOP 10.
+    - Critérios de desempate foram aprimorados e clarificados.
+    - Carrega avatares e bordas dos usuários para uma UI mais rica.
+    - Adiciona um "Pódio Anterior" para os rankings semanais e mensais.
     """
     verificar_e_gerar_rankings()
 
     periodo = request.GET.get('periodo', 'geral')
     queryset_ranqueado = UserProfile.objects.none()
-    posicao_usuario_logado = None
     titulo_ranking = "Ranking Geral"
     
-    # --- LÓGICA DE BUSCA DO RANKING (sem alterações) ---
+    vencedores_semana_anterior = None
+    vencedores_mes_anterior = None
+
     if periodo == 'semanal':
         titulo_ranking = "Ranking Semanal"
         ultima_semana = RankingSemanal.objects.order_by('-ano', '-semana').values('ano', 'semana').first()
         if ultima_semana:
-            queryset_ranqueado = RankingSemanal.objects.filter(ano=ultima_semana['ano'], semana=ultima_semana['semana']).select_related('user_profile__user', 'user_profile__streak_data').annotate(rank=F('posicao'), nome=F('user_profile__nome'), sobrenome=F('user_profile__sobrenome'), user=F('user_profile__user'), total_acertos=F('acertos_periodo'), total_respostas=F('respostas_periodo'), streak_data=F('user_profile__streak_data')).order_by('posicao')
+            queryset_ranqueado = RankingSemanal.objects.filter(
+                ano=ultima_semana['ano'], semana=ultima_semana['semana']
+            ).select_related(
+                'user_profile__user', 'user_profile__streak_data', 
+                'user_profile__avatar_equipado', 'user_profile__borda_equipada'
+            ).annotate(
+                rank=F('posicao'), nome=F('user_profile__nome'), sobrenome=F('user_profile__sobrenome'), 
+                total_acertos=F('acertos_periodo'), total_respostas=F('respostas_periodo'), 
+            ).order_by('posicao', '-user_profile__streak_data__current_streak')
             
+            # Busca vencedores da semana anterior
+            data_ref = date.fromisocalendar(ultima_semana['ano'], ultima_semana['semana'], 1) - timedelta(days=7)
+            ano_anterior, semana_anterior, _ = data_ref.isocalendar()
+            vencedores_semana_anterior = RankingSemanal.objects.filter(
+                ano=ano_anterior, semana=semana_anterior, posicao__lte=2
+            ).select_related('user_profile__user', 'user_profile__avatar_equipado', 'user_profile__borda_equipada').order_by('posicao')
+
     elif periodo == 'mensal':
         titulo_ranking = "Ranking Mensal"
         ultimo_mes = RankingMensal.objects.order_by('-ano', '-mes').values('ano', 'mes').first()
         if ultimo_mes:
-            queryset_ranqueado = RankingMensal.objects.filter(ano=ultimo_mes['ano'], mes=ultimo_mes['mes']).select_related('user_profile__user', 'user_profile__streak_data').annotate(rank=F('posicao'), nome=F('user_profile__nome'), sobrenome=F('user_profile__sobrenome'), user=F('user_profile__user'), total_acertos=F('acertos_periodo'), total_respostas=F('respostas_periodo'), streak_data=F('user_profile__streak_data')).order_by('posicao')
+            queryset_ranqueado = RankingMensal.objects.filter(
+                ano=ultimo_mes['ano'], mes=ultimo_mes['mes']
+            ).select_related(
+                'user_profile__user', 'user_profile__streak_data',
+                'user_profile__avatar_equipado', 'user_profile__borda_equipada'
+            ).annotate(
+                rank=F('posicao'), nome=F('user_profile__nome'), sobrenome=F('user_profile__sobrenome'), 
+                total_acertos=F('acertos_periodo'), total_respostas=F('respostas_periodo'), 
+            ).order_by('posicao', '-user_profile__streak_data__current_streak')
 
+            # Busca vencedores do mês anterior
+            data_ref = date(ultimo_mes['ano'], ultimo_mes['mes'], 1) - timedelta(days=1)
+            vencedores_mes_anterior = RankingMensal.objects.filter(
+                ano=data_ref.year, mes=data_ref.month, posicao__lte=2
+            ).select_related('user_profile__user', 'user_profile__avatar_equipado', 'user_profile__borda_equipada').order_by('posicao')
+            
     else: # Período 'geral'
-        base_queryset = UserProfile.objects.filter(user__is_active=True, user__is_staff=False).select_related('user', 'streak_data').annotate(total_respostas_geral=Count('user__respostausuario'), total_acertos_geral=Count('user__respostausuario', filter=Q(user__respostausuario__foi_correta=True))).filter(total_respostas_geral__gt=0)
-        ordenacao = ('-total_acertos_geral', '-streak_data__current_streak')
-        queryset_ranqueado = base_queryset.annotate(rank=Window(expression=Rank(), order_by=[F(field[1:]).desc() if field.startswith('-') else F(field).asc() for field in ordenacao])).order_by(*ordenacao)
+        base_queryset = UserProfile.objects.filter(user__is_active=True, user__is_staff=False, user__respostausuario__isnull=False).select_related(
+            'user', 'streak_data', 'avatar_equipado', 'borda_equipada'
+        ).annotate(
+            total_respostas_geral=Count('user__respostausuario'), 
+            total_acertos_geral=Count('user__respostausuario', filter=Q(user__respostausuario__foi_correta=True))
+        ).distinct()
+        
+        ordenacao = ('-total_acertos_geral', '-streak_data__current_streak', '-total_respostas_geral')
+        
+        queryset_ranqueado = base_queryset.annotate(
+            rank=Window(expression=DenseRank(), order_by=[F(field[1:]).desc() if field.startswith('-') else F(field).asc() for field in ordenacao])
+        ).order_by(*ordenacao)
 
-    if queryset_ranqueado.exists():
-        if periodo != 'geral':
-             posicao_usuario_logado = queryset_ranqueado.filter(user_profile__user=request.user).first()
-        else:
-             posicao_usuario_logado = queryset_ranqueado.filter(user=request.user).first()
+    # --- LÓGICA ROBUSTA PARA ENCONTRAR O USUÁRIO E MONTAR A LISTA DE EXIBIÇÃO ---
+    full_ranking_list = list(queryset_ranqueado)
+    posicao_usuario_logado = None
 
+    for item in full_ranking_list:
+        user_id_item = item.user.id if periodo == 'geral' else item.user_profile.user.id
+        if user_id_item == request.user.id:
+            posicao_usuario_logado = item
+            break
+
+    ranking_top_10 = full_ranking_list[:10]
+    usuario_no_top_10 = False
+    if posicao_usuario_logado:
+        for item_top_10 in ranking_top_10:
+            user_id_item = item_top_10.user.id if periodo == 'geral' else item_top_10.user_profile.user.id
+            if user_id_item == request.user.id:
+                usuario_no_top_10 = True
+                break
+    
+    ranking_para_exibir = ranking_top_10
+    if posicao_usuario_logado and not usuario_no_top_10:
+        setattr(posicao_usuario_logado, 'is_user_outside_top_10', True)
+        ranking_para_exibir.append(posicao_usuario_logado)
+    
+    # --- LÓGICA DE PRÊMIOS (sem alterações) ---
     premios_por_faixa = []
     gatilho_campanha = None
     agora = timezone.now()
@@ -78,93 +142,41 @@ def ranking(request):
         gatilho_campanha = Campanha.Gatilho.RANKING_MENSAL_CONCLUIDO
 
     if gatilho_campanha:
-        campanhas_ativas = Campanha.objects.filter(
-            ativo=True, gatilho=gatilho_campanha,
-            data_inicio__lte=agora
-        ).filter(Q(data_fim__gte=agora) | Q(data_fim__isnull=True))
-        
+        campanhas_ativas = Campanha.objects.filter(ativo=True, gatilho=gatilho_campanha, data_inicio__lte=agora).filter(Q(data_fim__gte=agora) | Q(data_fim__isnull=True))
         all_reward_ids = {'avatares': set(), 'bordas': set(), 'banners': set()}
         for campanha in campanhas_ativas:
             for grupo in campanha.grupos_de_condicoes:
-                all_reward_ids['avatares'].update(grupo.get('avatares', []))
-                all_reward_ids['bordas'].update(grupo.get('bordas', []))
-                all_reward_ids['banners'].update(grupo.get('banners', []))
-
-        avatares = {a.id: a for a in Avatar.objects.filter(id__in=all_reward_ids['avatares'])}
-        bordas = {b.id: b for b in Borda.objects.filter(id__in=all_reward_ids['bordas'])}
-        banners = {b.id: b for b in Banner.objects.filter(id__in=all_reward_ids['banners'])}
-        
+                all_reward_ids['avatares'].update(grupo.get('avatares', [])); all_reward_ids['bordas'].update(grupo.get('bordas', [])); all_reward_ids['banners'].update(grupo.get('banners', []))
+        avatares = {a.id: a for a in Avatar.objects.filter(id__in=all_reward_ids['avatares'])}; bordas = {b.id: b for b in Borda.objects.filter(id__in=all_reward_ids['bordas'])}; banners = {b.id: b for b in Banner.objects.filter(id__in=all_reward_ids['banners'])}
         faixas_processadas = {}
         for campanha in campanhas_ativas:
             for grupo in campanha.grupos_de_condicoes:
-                descricao_faixa = ""
-                pos_exata = grupo.get('condicao_posicao_exata')
-                pos_ate = grupo.get('condicao_posicao_ate')
-                
-                # =======================================================================
-                # INÍCIO DA CORREÇÃO DA MENSAGEM
-                # =======================================================================
-                if pos_exata:
-                    descricao_faixa = f"Para o {pos_exata}º Lugar"
-                elif pos_ate:
-                    if pos_ate == 1:
-                        descricao_faixa = "Para o 1º Lugar"
-                    else:
-                        descricao_faixa = f"Prêmios do 1º ao {pos_ate}º Lugar"
-                # =======================================================================
-                # FIM DA CORREÇÃO DA MENSAGEM
-                # =======================================================================
-                
+                descricao_faixa = ""; pos_exata = grupo.get('condicao_posicao_exata'); pos_ate = grupo.get('condicao_posicao_ate')
+                if pos_exata: descricao_faixa = f"Para o {pos_exata}º Lugar"
+                elif pos_ate: descricao_faixa = "Para o 1º Lugar" if pos_ate == 1 else f"Prêmios do 1º ao {pos_ate}º Lugar"
                 if not descricao_faixa: continue
-                
-                if descricao_faixa not in faixas_processadas:
-                    faixas_processadas[descricao_faixa] = {'recompensas': set(), 'xp': 0, 'moedas': 0}
-
-                faixas_processadas[descricao_faixa]['xp'] += grupo.get('xp_extra', 0)
-                faixas_processadas[descricao_faixa]['moedas'] += grupo.get('moedas_extras', 0)
-                
-                recompensas_grupo = []
-                recompensas_grupo.extend([avatares[id] for id in grupo.get('avatares', []) if id in avatares])
-                recompensas_grupo.extend([bordas[id] for id in grupo.get('bordas', []) if id in bordas])
-                recompensas_grupo.extend([banners[id] for id in grupo.get('banners', []) if id in banners])
-                faixas_processadas[descricao_faixa]['recompensas'].update(recompensas_grupo)
-        
-        premios_por_faixa = sorted(
-            [{'faixa': faixa, 'recompensas': list(dados['recompensas']), 'xp': dados['xp'], 'moedas': dados['moedas']} for faixa, dados in faixas_processadas.items()],
-            key=lambda x: int(''.join(filter(str.isdigit, x['faixa'])))
-        )
+                if descricao_faixa not in faixas_processadas: faixas_processadas[descricao_faixa] = {'recompensas': set(), 'xp': 0, 'moedas': 0}
+                faixas_processadas[descricao_faixa]['xp'] += grupo.get('xp_extra', 0); faixas_processadas[descricao_faixa]['moedas'] += grupo.get('moedas_extras', 0)
+                recompensas_grupo = []; recompensas_grupo.extend([avatares[id] for id in grupo.get('avatares', []) if id in avatares]); recompensas_grupo.extend([bordas[id] for id in grupo.get('bordas', []) if id in bordas]); recompensas_grupo.extend([banners[id] for id in grupo.get('banners', []) if id in banners]); faixas_processadas[descricao_faixa]['recompensas'].update(recompensas_grupo)
+        premios_por_faixa = sorted([{'faixa': faixa, 'recompensas': list(dados['recompensas']), 'xp': dados['xp'], 'moedas': dados['moedas']} for faixa, dados in faixas_processadas.items()], key=lambda x: int(''.join(filter(str.isdigit, x['faixa']))))
     
     mensagem_vencedor = None
-    if periodo != 'geral':
-        tem_premios_pendentes = RecompensaPendente.objects.filter(
-            user_profile=request.user.userprofile,
-            resgatado_em__isnull=True,
-            origem_desbloqueio__icontains='campanha'
-        ).filter(
-            Q(origem_desbloqueio__icontains='semanal') | Q(origem_desbloqueio__icontains='mensal')
-        ).exists()
-
+    if periodo != 'geral' and request.user.userprofile:
+        tem_premios_pendentes = RecompensaPendente.objects.filter(user_profile=request.user.userprofile, resgatado_em__isnull=True, origem_desbloqueio__icontains='campanha').filter(Q(origem_desbloqueio__icontains='semanal') | Q(origem_desbloqueio__icontains='mensal')).exists()
         if tem_premios_pendentes:
-            mensagem_vencedor = {
-                'titulo': 'Parabéns, Campeão!',
-                'texto': 'Você ganhou prêmios no último período do ranking! Eles já foram enviados para sua Caixa de Recompensas para serem resgatados.',
-                'link_caixa': reverse('caixa_de_recompensas')
-            }
-            
-    page_obj, page_numbers, per_page = paginar_itens(request, queryset_ranqueado, 25)
+            mensagem_vencedor = {'titulo': 'Parabéns, Campeão!', 'texto': 'Você ganhou prêmios no último período do ranking! Eles já foram enviados para sua Caixa de Recompensas para serem resgatados.', 'link_caixa': reverse('caixa_de_recompensas')}
 
     context = {
-        'ranking_list': page_obj, 'paginated_object': page_obj, 'page_numbers': page_numbers,
-        'per_page': per_page, 'posicao_usuario_logado': posicao_usuario_logado,
+        'ranking_list': ranking_para_exibir,
+        'posicao_usuario_logado': posicao_usuario_logado,
         'premios_por_faixa': premios_por_faixa,
         'mensagem_vencedor': mensagem_vencedor,
         'periodo_ativo': periodo,
         'titulo_ranking': titulo_ranking,
+        'vencedores_semana_anterior': vencedores_semana_anterior,
+        'vencedores_mes_anterior': vencedores_mes_anterior,
     }
     return render(request, 'gamificacao/ranking.html', context)
-
-
-# gamificacao/views.py
 
 @login_required
 def loja(request):
@@ -273,17 +285,22 @@ def comprar_item_ajax(request):
         item_tipo = data.get('item_tipo')
 
         ModelMap = {'Avatar': Avatar, 'Borda': Borda, 'Banner': Banner}
-        Model = ModelMap.get(item_tipo)
+        
+        # =======================================================================
+        # INÍCIO DA CORREÇÃO: Torna a verificação do tipo de item case-insensitive
+        # =======================================================================
+        Model = None
+        if item_tipo and isinstance(item_tipo, str):
+            # Capitaliza a string ("avatar" -> "Avatar") para corresponder à chave do ModelMap
+            Model = ModelMap.get(item_tipo.capitalize())
+        # =======================================================================
+        # FIM DA CORREÇÃO
+        # =======================================================================
 
         if not Model:
             return JsonResponse({'status': 'error', 'message': 'Tipo de item inválido.'}, status=400)
         
-        # =======================================================================
-        # CORREÇÃO DA QUERY AQUI
-        # Trocamos `tipo_desbloqueio='LOJA'` por `tipos_desbloqueio__nome='LOJA'`
-        # =======================================================================
         item = get_object_or_404(Model, id=item_id, tipos_desbloqueio__nome='LOJA')
-        # =======================================================================
         
         user_profile = request.user.userprofile
         gamificacao_data = user_profile.gamificacao_data
@@ -292,11 +309,11 @@ def comprar_item_ajax(request):
             return JsonResponse({'status': 'error', 'message': 'Você não tem moedas suficientes.'}, status=403)
 
         created = False
-        if item_tipo == 'Avatar':
+        if item_tipo.capitalize() == 'Avatar':
             _, created = AvatarUsuario.objects.get_or_create(user_profile=user_profile, avatar=item)
-        elif item_tipo == 'Borda':
+        elif item_tipo.capitalize() == 'Borda':
             _, created = BordaUsuario.objects.get_or_create(user_profile=user_profile, borda=item)
-        elif item_tipo == 'Banner':
+        elif item_tipo.capitalize() == 'Banner':
             _, created = BannerUsuario.objects.get_or_create(user_profile=user_profile, banner=item)
         
         if not created:

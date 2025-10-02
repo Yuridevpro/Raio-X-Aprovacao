@@ -85,9 +85,16 @@
         filter: grayscale(80%);
         pointer-events: none; /* Impede cliques no card inteiro */
     }
-    .item-card.locked .btn {
-        pointer-events: all; /* Permite que o tooltip no botão funcione */
+    /* ======================================================================= */
+    /* INÍCIO DA CORREÇÃO: Habilitando cliques no botão E no link "Ver mais..." */
+    /* ======================================================================= */
+    .item-card.locked .btn,
+    .item-card.locked .view-details-link {
+        pointer-events: all; /* Permite que o tooltip no botão e o link de detalhes funcionem */
     }
+    /* ======================================================================= */
+    /* FIM DA CORREÇÃO                                                         */
+    /* ======================================================================= */
     /* ======================================================================= */
     /* FIM DA REFORMULAÇÃO DE DESIGN                                           */
     /* ======================================================================= */
@@ -127,7 +134,19 @@
     <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="lista-itens-loja">
         {% for item in itens_loja %}
         <div class="col">
-            <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %} {% if item.is_locked %}locked{% endif %}">
+            <!-- ======================================================================= -->
+            <!-- INÍCIO DA ALTERAÇÃO: Adicionando data attributes para o modal -->
+            <!-- ======================================================================= -->
+            <div class="card h-100 item-card {% rarity_class item.raridade %} {% if item.ja_possui %}owned{% endif %} {% if item.is_locked %}locked{% endif %}"
+                 data-name="{{ item.nome }}"
+                 data-description="{{ item.descricao }}"
+                 data-image="{% if item.imagem %}{{ item.imagem.url }}{% else %}{% endif %}"
+                 data-rarity="{{ item.get_raridade_display }}"
+                 data-type="{{ item|class_name }}"
+                 data-owned="{% if item.ja_possui %}true{% else %}false{% endif %}">
+            <!-- ======================================================================= -->
+            <!-- FIM DA ALTERAÇÃO -->
+            <!-- ======================================================================= -->
                 
                 <div class="card-img-container">
                     {% if item.imagem %}
@@ -140,15 +159,25 @@
                     <span class="badge rarity-badge {% rarity_class item.raridade %}">{{ item.get_raridade_display }}</span>
                 </div>
                 
-                <div class="card-body">
+                <div class="card-body d-flex flex-column">
                     <h5 class="card-title">{{ item.nome }}</h5>
-                    <p class="card-text small">{{ item.descricao|truncatechars:80 }}</p>
+                    <!-- ======================================================================= -->
+                    <!-- INÍCIO DA ALTERAÇÃO: Lógica de truncamento e link para modal -->
+                    <!-- ======================================================================= -->
+                    {% if item.descricao %}
+                        <p class="card-text small mb-1">{{ item.descricao|truncatewords:12 }}</p>
+                        {% if item.descricao|wordcount > 12 %}
+                            <a href="#" class="view-details-link small mt-auto" data-bs-toggle="modal" data-bs-target="#itemDetailModal" style="text-decoration: none;">
+                                Ver mais...
+                            </a>
+                        {% endif %}
+                    {% endif %}
+                    <!-- ======================================================================= -->
+                    <!-- FIM DA ALTERAÇÃO -->
+                    <!-- ======================================================================= -->
                 </div>
                 
                 <div class="card-footer">
-                    <!-- ======================================================================= -->
-                    <!-- INÍCIO DA CORREÇÃO: Layout responsivo para o footer do card        -->
-                    <!-- ======================================================================= -->
                     <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center">
                         <span class="preco-tag mb-2 mb-sm-0"><i class="fas fa-coins me-1"></i> {{ item.preco_moedas }}</span>
                         
@@ -164,9 +193,6 @@
                             </button>
                         {% endif %}
                     </div>
-                    <!-- ======================================================================= -->
-                    <!-- FIM DA CORREÇÃO                                                         -->
-                    <!-- ======================================================================= -->
                 </div>
             </div>
         </div>
@@ -183,13 +209,20 @@
 
     <div class="mt-5">{% include 'includes/_paginacao.html' with paginated_object=itens_loja %}</div>
 </div>
+
+<!-- ======================================================================= -->
+<!-- INÍCIO DA ADIÇÃO: Modal para detalhes do item -->
+<!-- ======================================================================= -->
+{% include 'usuarios/includes/_modal_detalhes_item.html' %}
+<!-- ======================================================================= -->
+<!-- FIM DA ADIÇÃO -->
+<!-- ======================================================================= -->
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicialização dos tooltips para os botões bloqueados.
     const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
     const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
 
@@ -264,6 +297,54 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     }
                 });
+            }
+        });
+    }
+
+    const itemDetailModal = document.getElementById('itemDetailModal');
+    if (itemDetailModal) {
+        itemDetailModal.addEventListener('show.bs.modal', function (event) {
+            const triggerElement = event.relatedTarget;
+            const card = triggerElement.closest('.item-card, .collection-card');
+
+            // Captura todos os dados do card
+            const name = card.dataset.name;
+            const description = card.dataset.description;
+            const imageUrl = card.dataset.image;
+            const rarity = card.dataset.rarity;
+            const type = card.dataset.type;
+            const owned = card.dataset.owned === 'true';
+
+            // Seleciona os elementos do modal
+            const modalImage = itemDetailModal.querySelector('#itemDetailImage');
+            const modalImagePlaceholder = itemDetailModal.querySelector('#itemDetailImagePlaceholder');
+            const modalName = itemDetailModal.querySelector('#itemDetailName');
+            const modalDescription = itemDetailModal.querySelector('#itemDetailDescription');
+            const modalRarity = itemDetailModal.querySelector('#itemDetailRarity');
+            const modalType = itemDetailModal.querySelector('#itemDetailType');
+            const modalStatus = itemDetailModal.querySelector('#itemDetailStatus');
+
+            // Preenche os dados básicos
+            modalName.textContent = name;
+            modalDescription.textContent = description;
+
+            // Preenche os novos campos de informação
+            modalRarity.innerHTML = `<i class="fas fa-gem fa-fw text-info"></i> Raridade: <strong class="text-white">${rarity}</strong>`;
+            modalType.innerHTML = `<i class="fas fa-tag fa-fw text-info"></i> Tipo: <strong class="text-white">${type}</strong>`;
+            if (owned) {
+                modalStatus.innerHTML = `<i class="fas fa-check-circle fa-fw text-success"></i> Status: <strong class="text-white">Possui</strong>`;
+            } else {
+                modalStatus.innerHTML = `<i class="fas fa-times-circle fa-fw text-danger"></i> Status: <strong class="text-white">Não Possui</strong>`;
+            }
+            
+            // Lida com a imagem
+            if (imageUrl) {
+                modalImage.src = imageUrl;
+                modalImage.classList.remove('d-none');
+                modalImagePlaceholder.classList.add('d-none');
+            } else {
+                modalImage.classList.add('d-none');
+                modalImagePlaceholder.classList.remove('d-none');
             }
         });
     }

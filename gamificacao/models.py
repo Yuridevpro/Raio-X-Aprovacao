@@ -231,7 +231,13 @@ class Recompensa(models.Model):
         MITICO = 'MITICO', 'Mítico'
     
     nome = models.CharField(max_length=100, verbose_name="Nome")
-    descricao = models.CharField(max_length=255, help_text="Como desbloquear este item.", verbose_name="Descrição")
+    # =======================================================================
+    # INÍCIO DA CORREÇÃO: Alterado de CharField para TextField
+    # =======================================================================
+    descricao = models.TextField(help_text="Como desbloquear este item.", verbose_name="Descrição")
+    # =======================================================================
+    # FIM DA CORREÇÃO
+    # =======================================================================
     imagem = models.ImageField(upload_to='gamificacao_recompensas/', storage=S3Boto3Storage(), null=True, blank=True, verbose_name="Imagem")
     
     tipos_desbloqueio = models.ManyToManyField(TipoDesbloqueio, blank=True, verbose_name="Formas de Desbloqueio")

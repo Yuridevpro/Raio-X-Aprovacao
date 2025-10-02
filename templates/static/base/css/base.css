@@ -111,7 +111,7 @@ a:hover {
 }
 
 /* ========================================================================= */
-/* 4. NAVBAR E FOOTER
+/* 4. NAVBAR E FOOTER (COM ATUALIZAÇÃO PARA FUSÃO)
 /* ========================================================================= */
 .navbar-custom {
     background-color: var(--cor-fundo-escuro);
@@ -129,18 +129,17 @@ a:hover {
 .navbar-custom .nav-link {
     color: rgba(255, 255, 255, 0.75);
     font-weight: 500;
-    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out; /* Adicionada transição de background */
-    padding: .5rem .8rem; /* Padding ajustado para o visual */
-    border-radius: 8px; /* Borda arredondada */
+    transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    padding: .5rem .8rem;
+    border-radius: 8px;
 }
 
 .navbar-custom .nav-link:hover,
 .navbar-custom .nav-link.active {
     color: var(--cor-texto-claro);
-    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
 }
 
-/* ✅ NOVO ESTILO PARA DROPDOWN ATIVO */
 .navbar-custom .nav-item.dropdown.show > .nav-link {
     background-color: rgba(255, 255, 255, 0.08);
 }
@@ -166,44 +165,12 @@ a:hover {
     margin: auto 1.5rem;
 }
 
-/* ========================================================================= */
-/* REGRAS PARA O MENU MOBILE OTIMIZADO */
-/* ========================================================================= */
-@media (max-width: 991.98px) {
-    .nav-block {
-        padding: 1rem 0.5rem;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        width: 100%;
-    }
-    .nav-block:last-child {
-        border-bottom: none;
-    }
-
-    .nav-block-title {
-        margin-bottom: 0.75rem;
-        padding-left: 0;
-    }
-
-    .nav-block .navbar-nav {
-        gap: 0.5rem 1rem;
-    }
-    
-    .nav-block-user {
-        border-bottom: none;
-        padding-top: 0.5rem;
-        padding-bottom: 0.5rem;
-    }
-
-    .nav-block-user .navbar-nav {
-        justify-content: center;
-        width: 100%;
-    }
-}
-
 .footer-custom {
     background-color: var(--cor-fundo-escuro);
     color: rgba(255, 255, 255, 0.8);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    position: relative; /* Necessário para o z-index funcionar */
+    z-index: 1; /* Coloca o footer atrás do divisor de onda */
+    padding-top: 80px; /* Ajuste o padding para dar espaço à onda SVG */
 }
 
 .footer-custom h5 {
@@ -258,4 +225,62 @@ a:hover {
 
 .navbar-custom .dropdown-divider {
     border-top-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ========================================================================= */
+/* 6. REGRAS PARA O MENU MOBILE OTIMIZADO
+/* ========================================================================= */
+@media (max-width: 991.98px) {
+    .nav-block {
+        padding: 1rem 0.5rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        width: 100%;
+    }
+    .nav-block:last-child {
+        border-bottom: none;
+    }
+
+    .nav-block-title {
+        margin-bottom: 0.75rem;
+        padding-left: 0;
+    }
+
+    .nav-block .navbar-nav {
+        gap: 0.5rem 1rem;
+    }
+    
+    .nav-block-user {
+        border-bottom: none;
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .nav-block-user .navbar-nav {
+        justify-content: center;
+        width: 100%;
+    }
+
+    /* ✅ AJUSTE PARA DROPDOWNS NO MOBILE */
+    /* Força o dropdown a se comportar como um pop-up (menu flutuante) */
+    .navbar-collapse .nav-item.dropdown {
+        position: static; /* Alterado de 'relative' para 'static' para melhor alinhamento */
+    }
+
+    .navbar-collapse .dropdown-menu {
+        position: absolute; 
+        /* ✅ AJUSTE DE ALINHAMENTO: Alinha a borda direita do menu com a borda direita do link pai */
+        left: auto;
+        right: 0;
+        width: auto; /* Permite que o menu tenha a largura do seu conteúdo */
+        min-width: 200px; /* Garante uma largura mínima razoável */
+        box-shadow: var(--sombra-caixa);
+        
+        background-color: var(--cor-fundo-escuro);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    
+    /* Adiciona um ajuste específico para os blocos de navegação para conter os dropdowns */
+    .navbar-collapse .nav-block {
+        position: relative;
+    }
 }
