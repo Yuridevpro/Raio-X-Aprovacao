@@ -1,4 +1,5 @@
 <!-- gestao/templates/gestao/listar_questoes_deletadas.html -->
+<!-- gestao/templates/gestao/listar_questoes_deletadas.html -->
 {% extends 'base.html' %}
 {% load static %}
 {% load questoes_extras %}
@@ -56,9 +57,9 @@
         <div class="collapse" id="collapseFilters">
             <div class="card-body p-4">
                 <!-- ======================================================================= -->
-                <!-- ✅ INÍCIO DA CORREÇÃO: Passando as variáveis corretas para o include -->
+                <!-- ✅ INÍCIO DA CORREÇÃO: Passando TODAS as variáveis corretas para o include -->
                 <!-- ======================================================================= -->
-                {% include 'gestao/includes/_filtros_questoes.html' with form_action_url=request.path disciplinas=disciplinas bancas=bancas instituicoes=instituicoes anos=anos %}
+                {% include 'gestao/includes/_filtros_questoes.html' with form_action_url=request.path disciplinas=disciplinas bancas=bancas instituicoes=instituicoes anos=anos palavra_chave_buscada=palavra_chave_buscada selected_disciplinas=selected_disciplinas selected_assuntos=selected_assuntos selected_bancas=selected_bancas selected_instituicoes=selected_instituicoes selected_anos=selected_anos %}
                 <!-- ======================================================================= -->
                 <!-- FIM DA CORREÇÃO -->
                 <!-- ======================================================================= -->
