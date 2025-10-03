@@ -624,16 +624,13 @@ def caixa_de_recompensas(request):
 
 from django.db.models import Prefetch # ✅ LINHA ADICIONADA PARA CORRIGIR O ERRO
 
-# usuarios/views.py
-# usuarios/views.py
 @login_required
 def trilhas_de_conquistas(request):
     """
     Exibe as trilhas de conquistas com lógica de agrupamento aprimorada,
-    incluindo o nome da série para exibição no template.
+    incluindo o nome da série e múltiplos progressos para exibição no template.
     """
     user_profile = request.user.userprofile
-    # Pré-carrega a série junto com as conquistas para otimizar a consulta
     trilhas = TrilhaDeConquistas.objects.prefetch_related(
         Prefetch('conquistas', queryset=Conquista.objects.select_related('serie')),
         'conquistas__pre_requisitos',
@@ -654,7 +651,6 @@ def trilhas_de_conquistas(request):
     banners_map = {b.id: b for b in Banner.objects.filter(id__in=reward_ids['banners'])}
 
     for trilha in trilhas:
-        # Agrupa conquistas por série para facilitar a construção das sequências
         conquistas_em_serie = [c for c in trilha.conquistas.all() if c.serie]
         conquistas_individuais = [c for c in trilha.conquistas.all() if not c.serie]
         
@@ -664,25 +660,17 @@ def trilhas_de_conquistas(request):
                 series_agrupadas[c.serie.id] = {'serie_obj': c.serie, 'conquistas': []}
             series_agrupadas[c.serie.id]['conquistas'].append(c)
 
-        # =======================================================================
-        # INÍCIO DA ALTERAÇÃO: Monta a estrutura de dados com o nome da série
-        # =======================================================================
         trilha.sequencias_com_titulo = []
         for serie_id, dados_serie in series_agrupadas.items():
-            # Ordena as conquistas pela ordem definida no modelo
             conquistas_ordenadas = sorted(dados_serie['conquistas'], key=lambda x: x.ordem_na_serie)
             trilha.sequencias_com_titulo.append({
                 'titulo': dados_serie['serie_obj'].nome,
                 'descricao': dados_serie['serie_obj'].descricao,
                 'conquistas': conquistas_ordenadas
             })
-        # =======================================================================
-        # FIM DA ALTERAÇÃO
-        # =======================================================================
 
         trilha.conquistas_individuais = conquistas_individuais
 
-        # Processa status, progresso e condições para TODAS as conquistas
         for conquista in trilha.conquistas.all():
             conquista.unlock_conditions_humanized = []
             
@@ -694,17 +682,27 @@ def trilhas_de_conquistas(request):
                 pre_req_ids = set(p.id for p in conquista.pre_requisitos.all())
                 if pre_req_ids.issubset(conquistas_usuario_ids):
                     conquista.status = 'available'
+                    
+                    # ✅ INÍCIO DA ALTERAÇÃO: Lógica para múltiplos progressos
+                    conquista.progress_bars = []
+                    # ✅ FIM DA ALTERAÇÃO
+
                     for condicao in conquista.condicoes.all():
                         cond_text = f"{condicao.variavel.nome_exibicao} {condicao.get_operador_display().lower()} {condicao.valor}"
                         conquista.unlock_conditions_humanized.append(cond_text)
                     
-                    condicao_principal = conquista.condicoes.first()
-                    if condicao_principal:
-                        valor_atual = _obter_valor_variavel(user_profile, condicao_principal.variavel.chave, condicao_principal.contexto_json)
-                        valor_meta = condicao_principal.valor
+                        # ✅ INÍCIO DA ALTERAÇÃO: Calcula o progresso para cada condição
+                        valor_atual = _obter_valor_variavel(user_profile, condicao.variavel.chave, condicao.contexto_json)
+                        valor_meta = condicao.valor
                         if valor_meta > 0:
                             progresso = min((valor_atual / valor_meta) * 100, 100)
-                            conquista.progresso = {'atual': int(valor_atual), 'meta': valor_meta, 'percentual': int(progresso)}
+                            conquista.progress_bars.append({
+                                'label': condicao.variavel.nome_exibicao,
+                                'atual': int(valor_atual), 
+                                'meta': valor_meta, 
+                                'percentual': int(progresso)
+                            })
+                        # ✅ FIM DA ALTERAÇÃO
                 else:
                     conquista.status = 'locked'
                     for pre_req in conquista.pre_requisitos.all():

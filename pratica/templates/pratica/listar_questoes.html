@@ -232,33 +232,26 @@
     /* SEÇÃO DE COMENTÁRIOS (Reorganizado e Otimizado)
     /* ========================================================================= */
 
-        /* ✅ INÍCIO DA CORREÇÃO DEFINITIVA: Layout do Formulário de Resposta
-    /* ======================================================================= */
-
-    /* 1. Transforma o contêiner do formulário de resposta em um flex container */
     .new-comment-form-container {
         display: flex;
-        align-items: flex-start; /* Alinha o topo do avatar com o topo do formulário */
-        gap: 15px; /* Espaço entre o avatar e o formulário */
+        align-items: flex-start;
+        gap: 15px;
     }
 
-    /* 2. Anula o posicionamento absoluto APENAS para o avatar dentro do formulário de resposta */
     .new-comment-form-container .comment-avatar {
-        position: relative; /* Remove o 'position: absolute' herdado */
+        position: relative;
         left: auto;
         top: auto;
-        width: 40px; /* Define um tamanho fixo e menor para o avatar de resposta */
+        width: 40px;
         height: 40px;
     }
 
-    /* 3. Garante que o avatar padrão (bolinha azul) se ajuste ao novo tamanho */
     .new-comment-form-container .comment-default-avatar {
         width: 100%;
         height: 100%;
         font-size: 1.2rem;
     }
 
-    /* --- Estrutura Geral --- */
     .comentarios-section {
         background-color: #f8f9fa;
         border-radius: 0 0 var(--raio-borda) var(--raio-borda);
@@ -266,16 +259,15 @@
 
     .comment-wrapper {
         position: relative;
-        padding-left: 115px; /* Espaço para avatar grande (100px) + margem (15px) */
-        margin-bottom: 1.25rem; /* Espaço ENTRE os comentários */
+        padding-left: 115px;
+        margin-bottom: 1.25rem;
     }
 
-    /* --- Avatar do Comentário --- */
     .comment-avatar {
         position: absolute;
         left: 0;
         top: 0;
-        width: 100px; /* Tamanho do container com borda */
+        width: 100px;
         height: 100px;
         display: flex;
         align-items: center;
@@ -283,7 +275,7 @@
     }
     
     .comment-avatar.with-frame .comment-avatar-image {
-        width: 65%; /* Avatar ocupa 65% do espaço da moldura */
+        width: 65%;
         height: 65%;
         border-radius: 8px;
         border: none;
@@ -325,14 +317,13 @@
         font-size: 1.4rem;
     }
 
-    /* --- Card do Comentário --- */
     .comment-card {
         background-color: var(--cor-fundo-claro);
         border: 1px solid var(--cor-borda);
         border-radius: var(--raio-borda);
         position: relative;
         box-shadow: none;
-        padding: 0.75rem 1.25rem; /* MODIFICADO: Padding interno reduzido */
+        padding: 0.75rem 1.25rem;
     }
 
     .comment-user {
@@ -349,7 +340,7 @@
         font-size: 1.1rem;
         line-height: 1.7;
         color: var(--cor-texto-escuro);
-        margin-top: 0.5rem; /* MODIFICADO: Controla o espaço abaixo do nome */
+        margin-top: 0.5rem;
     }
 
     .comment-footer {
@@ -357,7 +348,7 @@
         gap: 1.5rem;
         align-items: center;
         flex-wrap: wrap;
-        margin-top: 0.75rem; /* MODIFICADO: Espaço acima dos botões reduzido */
+        margin-top: 0.75rem;
     }
 
     .comment-footer a {
@@ -376,7 +367,6 @@
         font-weight: bold;
     }
 
-    /* --- Respostas --- */
     .comment-replies {
         border-left: 2px solid var(--cor-borda);
         padding-left: 1.25rem;
@@ -384,9 +374,6 @@
         margin-left: 40px; 
     }
 
-    /* ========================================================================= */
-    /* EDITOR DE TEXTO TIPTAP
-    /* ========================================================================= */
     .tiptap-toolbar {
         border: 1px solid var(--cor-borda);
         border-bottom: none;
@@ -440,20 +427,11 @@
         border-top-right-radius: 0;
     }
 
-    /* ========================================================================= */
-    /* AJUSTES PARA MOBILE (ATÉ 768px)
-    /* ========================================================================= */
     @media (max-width: 768px) {
-        /* ======================================================================= */
-        /* INÍCIO DA CORREÇÃO: Removendo o padding negativo do container */
-        /* ======================================================================= */
         .container {
             padding-left: 1rem;
             padding-right: 1rem;
         }
-        /* ======================================================================= */
-        /* FIM DA CORREÇÃO */
-        /* ======================================================================= */
         
         .card-body, .card-header, .card-footer, .comentarios-section { 
             padding-left: 1rem;
@@ -474,7 +452,6 @@
             padding-left: 55px; 
         }
         
-        /* Ajuste do tamanho do avatar para mobile */
         .comment-avatar {
             width: 40px;
             height: 40px;
@@ -499,13 +476,7 @@
 
 
 {% block content %}
-<!-- ======================================================================= -->
-<!-- INÍCIO DA CORREÇÃO: Removida a classe 'container' e adicionada uma div wrapper -->
-<!-- ======================================================================= -->
 <div class="container-fluid container-lg mt-5">
-<!-- ======================================================================= -->
-<!-- FIM DA CORREÇÃO -->
-<!-- ======================================================================= -->
 
     <!-- CABEÇALHO E FILTROS -->
     <div class="filtros-card p-4 mb-5">
@@ -658,29 +629,6 @@
 
 <!-- LÓGICA JS ESPECÍFICA DA PÁGINA -->
 <script>
-
-/**
-     * Função genérica para exibir toasts de gamificação.
-     * @param {string} title - O título do toast.
-     * @param {string} bodyContent - O conteúdo HTML do corpo do toast.
-     * @param {string} icon - Classes do ícone Font Awesome (ex: 'fas fa-star').
-     * @param {string} color - A cor do ícone.
-     */
-     function showGamificationToast(title, bodyContent, icon, color = '#0d6efd') {
-        const toastEl = document.getElementById('gamificationToast');
-        if (!toastEl) return;
-
-        const toast = bootstrap.Toast.getOrCreateInstance(toastEl);
-        const toastTitle = document.getElementById('gamificationToastTitle');
-        const toastBody = document.getElementById('gamificationToastBody');
-        
-        toastTitle.innerHTML = `<i class="${icon} me-2" style="color: ${color};"></i> ${title}`;
-        toastBody.innerHTML = bodyContent;
-        
-        toast.show();
-    }
-
-
     document.addEventListener('DOMContentLoaded', function() {
         // =======================================================================
         // INICIALIZAÇÃO E VARIÁVEIS
@@ -688,7 +636,6 @@
         const tiptapEditors = {}; // Armazena instâncias dos editores Tiptap
         let editTiptapEditor = null; // Editor único para edição de comentários
     
-        // Inicializa o editor de edição de comentários assim que o Tiptap estiver disponível
         if (window.TipTap) {
             const { Editor, StarterKit, Markdown, Underline, Placeholder } = window.TipTap;
             editTiptapEditor = new Editor({
@@ -750,16 +697,13 @@
             const button = target.closest('button');
             const icon = target.closest('.fa-star');
     
-            // Ações em links (<a>)
             if (link) {
                 if (link.classList.contains('btn-like')) { e.preventDefault(); handleLikeComentario(link); }
                 else if (link.classList.contains('toggle-replies-btn')) { e.preventDefault(); handleToggleReplies(link); }
                 else if (link.classList.contains('sort-comments-btn')) { e.preventDefault(); handleSortClick(link); }
             }
-            // Ações em botões (<button>)
             else if (button) {
                 if (button.id === 'btn-confirmar-salvar-filtro') { handleSalvarFiltro(); }
-                else if (button.classList.contains('btn-responder')) { handleResponder(button); }
                 else if (button.classList.contains('btn-deletar-filtro')) {
                     const filtroId = button.dataset.filtroId;
                     const nomeFiltro = button.closest('.list-group-item').querySelector('a').textContent;
@@ -776,21 +720,14 @@
                 else if (button.classList.contains('btn-salvar-edicao')) { handleSalvarEdicao(button); }
                 else if (button.classList.contains('btn-cancelar-edicao')) { cancelarEdicao(button.closest('.comment-edit-form')); }
             }
-            // Ações em ícones (<i>)
             else if (icon) {
                 handleFavoritar(icon);
             }
         });
     
         document.body.addEventListener('submit', function(e) {
-            if (e.target.classList.contains('form-comentario')) {
-                e.preventDefault();
-                handleAdicionarComentario(e.target);
-            }
-            if (e.target.id === 'form-notificar-erro') {
-                e.preventDefault();
-                handleNotificarErro(e.target);
-            }
+            if (e.target.classList.contains('form-comentario')) { e.preventDefault(); handleAdicionarComentario(e.target); }
+            if (e.target.id === 'form-notificar-erro') { e.preventDefault(); handleNotificarErro(e.target); }
         });
     
         // =======================================================================
@@ -839,124 +776,113 @@
         }
     
         function handleResponder(button) {
-        const questaoId = button.dataset.questaoId;
-        const questaoCard = document.getElementById(`questao-${questaoId}`);
-        const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
-        
-        if (!alternativaSelecionada) { 
-            window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
-            return; 
-        }
-        
-        fetch("{% url 'pratica:verificar_resposta' %}", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
-            body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            const questaoId = button.dataset.questaoId;
+            const questaoCard = document.getElementById(`questao-${questaoId}`);
+            const alternativaSelecionada = questaoCard.querySelector(`input[name="alternativa-${questaoId}"]:checked`);
+            
+            if (!alternativaSelecionada) { 
+                window.showNotificationModal('Atenção', 'Por favor, selecione uma alternativa.', 'info'); 
+                return; 
             }
-            return response.json();
-        })
-        .then(result => {
-            if (result.status === 'success') {
-                const feedbackDiv = questaoCard.querySelector('.feedback');
-                const alertDiv = feedbackDiv.querySelector('.alert');
-                const alternativasDiv = questaoCard.querySelector('.alternativas');
-                
-                alternativasDiv.classList.add('respondido');
-                questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
-                button.style.display = 'none';
+            
+            fetch("{% url 'pratica:verificar_resposta' %}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                body: JSON.stringify({ questao_id: questaoId, alternativa: alternativaSelecionada.value })
+            })
+            .then(response => {
+                if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+                return response.json();
+            })
+            .then(result => {
+                if (result.status === 'success') {
+                    const feedbackDiv = questaoCard.querySelector('.feedback');
+                    const alertDiv = feedbackDiv.querySelector('.alert');
+                    const alternativasDiv = questaoCard.querySelector('.alternativas');
+                    
+                    alternativasDiv.classList.add('respondido');
+                    questaoCard.querySelectorAll('.form-check-input').forEach(input => input.disabled = true);
+                    button.style.display = 'none';
 
-                alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
-                alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
-                
-                questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
-                    const input = item.querySelector('input');
-                    const label = item.querySelector('label');
-                    if (input.value === result.gabarito) {
-                        label.classList.add('label-correta');
-                    } else if (input.checked && !result.correta) {
-                        label.classList.add('label-errada');
-                    }
-                });
-
-                if (result.explicacao) {
-                    feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
-                    questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
-                }
-                feedbackDiv.style.display = 'block';
-
-                let delay = 100;
-
-                // INÍCIO DA MODIFICAÇÃO: Lógica de Feedback de Bloqueio
-                if (result.motivo_bloqueio) {
-                    let title = "Ação Rápida!";
-                    let message = "Você respondeu muito rápido! Para garantir um aprendizado eficaz e justo, o ganho de XP foi desabilitado para esta resposta.";
-                    let icon = 'fas fa-stopwatch';
-                    let color = '#fd7e14';
-
-                    if (result.motivo_bloqueio === 'COOLDOWN_QUESTAO') {
-                        title = "Revisão Recente";
-                        message = "Você já respondeu esta questão recentemente. O ganho de XP está em cooldown para incentivar a prática de novas questões.";
-                        icon = 'fas fa-history';
-                        color = '#6c757d';
-                    } else if (result.motivo_bloqueio === 'TETO_XP_DIARIO') {
-                        title = "Teto de XP Atingido!";
-                        message = "Parabéns, você atingiu o limite máximo de XP que pode ser ganho hoje! Volte amanhã para continuar acumulando.";
-                        icon = 'fas fa-battery-full';
-                        color = '#0dcaf0';
-                    }
-                    showGamificationToast(title, message, icon, color);
-                } else {
-                    // Exibe toasts de recompensas normais apenas se não houver bloqueio
-                    if (result.xp_ganho > 0) {
-                        let xpMessage = `pela sua resposta.`;
-                        if (result.bonus_ativo) {
-                            xpMessage = `pelo seu <strong>combo de acertos!</strong>`;
+                    alertDiv.className = result.correta ? 'alert alert-success' : 'alert alert-danger';
+                    alertDiv.textContent = result.correta ? `Correto! O gabarito é ${result.gabarito}.` : `Incorreto. A resposta correta era ${result.gabarito}.`;
+                    
+                    questaoCard.querySelectorAll('.alternativa-item').forEach(item => {
+                        const input = item.querySelector('input');
+                        const label = item.querySelector('label');
+                        if (input.value === result.gabarito) {
+                            label.classList.add('label-correta');
+                        } else if (input.checked && !result.correta) {
+                            label.classList.add('label-errada');
                         }
-                        showGamificationToast(`+${result.xp_ganho} XP`, xpMessage, 'fas fa-star', '#ffc107');
-                        delay += 2000;
-                    }
-                    if (result.moedas_ganhas > 0) {
-                        const saldoAtual = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
-                        updateNavbarCoinBalance(saldoAtual + result.moedas_ganhas);
-                        setTimeout(() => showCoinToast(result.moedas_ganhas, 'pela sua resposta'), delay);
-                        delay += 2000;
-                    }
-                }
-                // FIM DA MODIFICAÇÃO
+                    });
 
-                if (result.meta_completa_info) {
-                    const meta = result.meta_completa_info;
-                    const saldoAtualMoedas = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
-                    updateNavbarCoinBalance(saldoAtualMoedas + meta.moedas_bonus);
-                    const metaBody = `Você completou sua meta e ganhou <strong>+${meta.xp_bonus} XP</strong> e <strong>+${meta.moedas_bonus} FC</strong> de bônus!`;
-                    setTimeout(() => showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745'), delay);
-                    delay += 2500;
-                }
+                    if (result.explicacao) {
+                        feedbackDiv.querySelector('.explicacao-conteudo').innerHTML = result.explicacao;
+                        questaoCard.querySelector('.btn-toggle-explicacao').classList.remove('d-none');
+                    }
+                    feedbackDiv.style.display = 'block';
 
-                if (result.level_up_info) {
-                    const levelUpBody = `Parabéns! Você alcançou o <strong>Nível ${result.level_up_info.novo_level}</strong>! Novos prêmios podem estar esperando na sua Caixa de Recompensas.`;
-                    setTimeout(() => showGamificationToast('Subiu de Nível!', levelUpBody, 'fas fa-star', '#f7b733'), delay);
-                    delay += 2500;
+                    // ✅ INÍCIO DA ALTERAÇÃO: Lógica de feedback de gamificação aprimorada
+                    let delay = 100;
+
+                    if (result.motivo_bloqueio) {
+                        let title = "Ação Rápida!";
+                        let message = "Você respondeu muito rápido! Para garantir um aprendizado eficaz e justo, o ganho de XP foi desabilitado para esta resposta.";
+                        if (result.motivo_bloqueio === 'COOLDOWN_QUESTAO') {
+                            title = "Revisão Recente";
+                            message = "Você já respondeu esta questão recentemente. O ganho de XP está em cooldown para incentivar a prática de novas questões.";
+                        } else if (result.motivo_bloqueio === 'TETO_XP_DIARIO') {
+                            title = "Teto de XP Atingido!";
+                            message = "Parabéns, você atingiu o limite máximo de XP que pode ser ganho hoje! Volte amanhã para continuar acumulando.";
+                        }
+                        showGamificationToast(title, message, 'fas fa-info-circle', '#6c757d');
+                    } else {
+                        if (result.xp_ganho > 0) {
+                            let xpMessage = `pela sua resposta.`;
+                            if (result.bonus_ativo) { xpMessage = `pelo seu <strong>combo de acertos!</strong>`; }
+                            showGamificationToast(`+${result.xp_ganho} XP`, xpMessage, 'fas fa-star', '#ffc107');
+                            delay += 2000;
+                        }
+                        if (result.moedas_ganhas > 0) {
+                            if (result.novo_saldo_moedas !== undefined) {
+                                updateNavbarCoinBalance(result.novo_saldo_moedas);
+                            }
+                            setTimeout(() => showCoinToast(result.moedas_ganhas, 'pela sua resposta'), delay);
+                            delay += 2000;
+                        }
+                    }
+                    
+                    if (result.meta_completa_info) {
+                        const meta = result.meta_completa_info;
+                        if (result.novo_saldo_moedas !== undefined) { updateNavbarCoinBalance(result.novo_saldo_moedas); }
+                        const metaBody = `Você completou sua meta e ganhou <strong>+${meta.xp_bonus} XP</strong> e <strong>+${meta.moedas_bonus} FC</strong> de bônus!`;
+                        setTimeout(() => showGamificationToast('Meta Diária Cumprida!', metaBody, 'fas fa-calendar-check', '#28a745'), delay);
+                        delay += 2500;
+                    }
+
+                    if (result.level_up_info) {
+                        setTimeout(() => triggerLevelUpNotification(result.level_up_info), delay);
+                        delay += 3000;
+                    }
+
+                    if (result.novas_recompensas && result.novas_recompensas.length > 0) {
+                        let source = result.nova_conquista ? { type: 'conquista', ...result.nova_conquista } : null;
+                        setTimeout(() => triggerNewPendingRewardsNotification(result.novas_recompensas, source), delay);
+                    } else if (result.nova_conquista) {
+                        const conquista = result.nova_conquista;
+                        const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
+                        setTimeout(() => showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor), delay);
+                    }
+                    // ✅ FIM DA ALTERAÇÃO
+                } else {
+                    window.showNotificationModal('Erro ao Responder', result.message, 'error');
                 }
-                
-                if (result.nova_conquista) {
-                    const conquista = result.nova_conquista;
-                    const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
-                    setTimeout(() => showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor), delay);
-                }
-                
-            } else {
-                window.showNotificationModal('Erro ao Responder', result.message, 'error');
-            }
-        }).catch(err => {
-            console.error('Erro no fetch da resposta:', err);
-            window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta. Verifique sua conexão e tente novamente.', 'error')
-        });
-    }
+            }).catch(err => {
+                console.error('Erro no fetch da resposta:', err);
+                window.showNotificationModal('Erro de Rede', 'Não foi possível verificar a resposta. Verifique sua conexão e tente novamente.', 'error')
+            });
+        }
         
         function handleToggleExplicacao(button) {
             const questaoId = button.dataset.questaoId;
@@ -1072,10 +998,6 @@
         if (isHidden) {
             const formContainer = repliesWrapper.querySelector('.reply-form-container');
             if (!formContainer.querySelector('form')) {
-
-                // =======================================================================
-                // CORREÇÃO: Lógica para exibir o avatar do USUÁRIO LOGADO no form de resposta
-                // =======================================================================
                 let currentUserAvatarHtml = '';
                 const avatarUrl = "{{ avatar_equipado_url|default:'' }}";
                 const bordaUrl = "{{ borda_equipada_url|default:'' }}";
@@ -1097,8 +1019,7 @@
                 }
 
                 currentUserAvatarHtml = `<div class="${containerClasses}">${innerAvatarHtml}</div>`;
-                // =======================================================================
-
+                
                 formContainer.innerHTML = `
                     <div class="new-comment-form-container mt-3">
                         ${currentUserAvatarHtml}
@@ -1226,15 +1147,8 @@
             innerAvatarHtml += `<div class="comment-default-avatar">${c.usuario.charAt(0).toUpperCase()}</div>`;
         }
         
-        // =======================================================================
-        // INÍCIO DA CORREÇÃO: Envolvendo o avatar com a tag <a>
-        // =======================================================================
-        
         const profileUrl = `/auth/perfil/${c.usuario_username}/`;
         const avatarContainerHtml = `<a href="${profileUrl}" class="${containerClasses}">${innerAvatarHtml}</a>`;
-        // =======================================================================
-        // FIM DA CORREÇÃO
-        // =======================================================================
         
         template.innerHTML = `
             <div class="comment-wrapper" id="comment-wrapper-${c.id}">
@@ -1358,9 +1272,6 @@
                 });
             });
         }
-        // =======================================================================
-        // FIM DA ALTERAÇÃO
-        // =======================================================================
     });
 </script>
 {% endblock %}

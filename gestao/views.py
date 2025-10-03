@@ -80,7 +80,7 @@ from .forms import (
     TrilhaDeConquistasForm, ConquistaForm, CondicaoForm, VariavelDoJogoForm,
     AvatarForm, BordaForm, BannerForm, CampanhaForm, 
     GamificationSettingsForm, ConcessaoManualForm,
-    SerieDeConquistasForm,
+    SerieDeConquistasForm, BaseCondicaoFormSet,
     
     # Formulários de Simulados
     SimuladoForm, SimuladoMetaForm, SimuladoWizardForm,
@@ -2208,21 +2208,36 @@ def _get_recompensas_with_full_urls(model):
 from django.core.exceptions import ValidationError # <-- ADICIONE ESTA IMPORTAÇÃO
 from django.forms import inlineformset_factory # <-- ADICIONE ESTA IMPORTAÇÃO
 
+
+# gestao/views.py
+
+# gestao/views.py
+
+# gestao/views.py
+
 @user_passes_test(is_staff_member)
 @login_required
 @transaction.atomic
 def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_conquista_id=None, conquista_id=None):
     """
-    View unificada e contextual para criar ou editar uma Conquista.
-    Agora, implementa a herança de condições para conquistas sequenciais.
+    View unificada e contextual para criar ou editar uma Conquista, agora usando o
+    formset customizado com validação de progressão.
     """
     trilha = None
     serie = get_object_or_404(SerieDeConquistas, id=serie_id) if serie_id else None
-    previous_conquista = get_object_or_404(Conquista, id=previous_conquista_id) if previous_conquista_id else None
+    previous_conquista = get_object_or_404(Conquista.objects.prefetch_related('condicoes__variavel'), id=previous_conquista_id) if previous_conquista_id else None
     instancia = get_object_or_404(Conquista, id=conquista_id) if conquista_id else None
 
     if instancia:
         trilha = instancia.trilha
+        if not previous_conquista and instancia.serie and instancia.ordem_na_serie > 1:
+            try:
+                previous_conquista = Conquista.objects.prefetch_related('condicoes__variavel').get(
+                    serie=instancia.serie,
+                    ordem_na_serie=instancia.ordem_na_serie - 1
+                )
+            except Conquista.DoesNotExist:
+                pass
     elif serie:
         trilha = serie.trilha
     elif trilha_id:
@@ -2248,16 +2263,27 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
 
     is_sequential_context = not can_edit_conditions_structure
     
-    # =======================================================================
-    # INÍCIO DA CORREÇÃO FINAL: Lógica para o "Campo Fantasma"
-    # =======================================================================
     initial_formset_data = []
+    form_kwargs_for_formset = {'is_sequential': is_sequential_context}
     
-    if previous_conquista: # Criando conquista sequencial
+    if previous_conquista:
         condicoes_herdadas = previous_conquista.condicoes.all()
-        for cond in condicoes_herdadas:
+        
+        form_kwargs_for_formset['inherited_conditions'] = [
+            {'variavel': c.variavel, 'operador': c.operador} for c in condicoes_herdadas
+        ]
+
+        for i, cond in enumerate(condicoes_herdadas):
+            valor_para_form = cond.valor
+            if instancia:
+                condicao_atual = instancia.condicoes.filter(variavel=cond.variavel).first()
+                if condicao_atual:
+                    valor_para_form = condicao_atual.valor
+
             initial_dict = {
-                'variavel': cond.variavel, 'operador': cond.operador, 'valor': cond.valor,
+                'variavel': cond.variavel_id,
+                'operador': cond.operador,
+                'valor': valor_para_form,
             }
             if cond.contexto_json:
                 if disc_id := cond.contexto_json.get('disciplina_id'): initial_dict['disciplina_contexto'] = disc_id
@@ -2265,15 +2291,25 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
                 if assunto_id := cond.contexto_json.get('assunto_id'): initial_dict['assunto_contexto'] = assunto_id
                 if dif := cond.contexto_json.get('dificuldade'): initial_dict['dificuldade_contexto'] = dif
             initial_formset_data.append(initial_dict)
-        extra_forms = len(initial_formset_data)
+        
+        if not instancia:
+            extra_forms = len(initial_formset_data)
+        else:
+            extra_forms = 0
     else:
-        # Mostra 1 campo extra (fantasma) se puder editar, senão mostra 0.
-        extra_forms = 1 if can_edit_conditions_structure else 0
+        if can_edit_conditions_structure and not instancia:
+            extra_forms = 1
+        else:
+            extra_forms = 0
 
-    DynamicCondicaoFormSet = inlineformset_factory(
-        Conquista, Condicao, form=CondicaoForm, 
+
+    DynamicCondicaoFormSet = forms.inlineformset_factory(
+        Conquista,
+        Condicao,
+        form=CondicaoForm,
+        formset=BaseCondicaoFormSet,
         fields=('variavel', 'operador', 'valor'),
-        extra=extra_forms, 
+        extra=extra_forms,
         can_delete=can_edit_conditions_structure,
         widgets={
             'variavel': forms.Select(attrs={'class': 'form-select form-select-sm tom-select-single'}),
@@ -2281,11 +2317,11 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
             'valor': forms.NumberInput(attrs={'class': 'form-control form-control-sm'}),
         }
     )
-    # =======================================================================
-    # FIM DA CORREÇÃO
-    # =======================================================================
     
-    formset_init_kwargs = {'form_kwargs': {'is_sequential': is_sequential_context}}
+    formset_init_kwargs = {
+        'form_kwargs': form_kwargs_for_formset,
+        'previous_conquista': previous_conquista
+    }
 
     if request.method == 'POST':
         form_conquista = ConquistaForm(request.POST, instance=instancia, **form_kwargs)
@@ -2294,9 +2330,11 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
         if form_conquista.is_valid() and formset_condicao.is_valid():
             conquista = form_conquista.save()
             recompensas = {
-                'xp': form_conquista.cleaned_data.get('recompensa_xp'), 'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
+                'xp': form_conquista.cleaned_data.get('recompensa_xp'),
+                'moedas': form_conquista.cleaned_data.get('recompensa_moedas'),
                 'avatares': [int(v) for v in request.POST.getlist('recompensa_avatares')],
-                'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')], 'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
+                'bordas': [int(v) for v in request.POST.getlist('recompensa_bordas')],
+                'banners': [int(v) for v in request.POST.getlist('recompensa_banners')],
             }
             conquista.recompensas = {k: v for k, v in recompensas.items() if v}
             formset_condicao.instance = conquista
@@ -2305,6 +2343,17 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
             
             messages.success(request, f'Conquista "{conquista.nome}" salva com sucesso!')
             return redirect('gestao:gerenciar_conquistas_da_trilha', trilha_id=conquista.trilha.id)
+        else:
+            import pprint
+            print("\n--- [DEBUG] ERROS DE VALIDAÇÃO ---")
+            if not form_conquista.is_valid():
+                print("[ConquistaForm Errors]:", form_conquista.errors.as_json())
+            if not formset_condicao.is_valid():
+                print("[CondicaoFormSet Non Form Errors]:", formset_condicao.non_form_errors())
+                for i, form in enumerate(formset_condicao.forms):
+                    if form.errors:
+                        print(f"[Form {i} Errors]:", form.errors.as_json())
+            print("--- [FIM DEBUG] ---\n")
     else:
         form_conquista = ConquistaForm(instance=instancia, **form_kwargs)
         formset_condicao = DynamicCondicaoFormSet(instance=instancia, prefix='condicao', initial=initial_formset_data, **formset_init_kwargs)
@@ -2316,13 +2365,36 @@ def criar_ou_editar_conquista(request, trilha_id=None, serie_id=None, previous_c
     else:
         titulo = f'Nova Conquista Individual para a Trilha "{trilha.nome}"'
     
+    tomselect_variavel_options = [
+        {'value': v.id, 'text': v.nome_exibicao} 
+        for v in VariavelDoJogo.objects.all().order_by('nome_exibicao')
+    ]
+    tomselect_operador_options = [
+        {'value': val, 'text': display} 
+        for val, display in CondicaoForm.OPERATOR_CHOICES
+    ]
+    disciplina_options = [{'value': d.id, 'text': d.nome} for d in Disciplina.objects.all().order_by('nome')]
+    banca_options = [{'value': b.id, 'text': b.nome} for b in Banca.objects.all().order_by('nome')]
+    assunto_options = [{'value': a.id, 'text': a.nome} for a in Assunto.objects.all().order_by('nome')]
+    dificuldade_options = [{'value': val, 'text': display} for val, display in NivelDificuldade.choices]
+    
     context = {
-        'form_conquista': form_conquista, 'formset_condicao': formset_condicao, 'trilha': trilha,
-        'serie': instancia.serie if instancia else serie, 'titulo': titulo, 'active_tab': 'trilhas',
+        'form_conquista': form_conquista,
+        'formset_condicao': formset_condicao,
+        'trilha': trilha,
+        'serie': instancia.serie if instancia else serie,
+        'titulo': titulo,
+        'active_tab': 'trilhas',
         'can_edit_conditions_structure': can_edit_conditions_structure,
         'avatares_disponiveis': _get_recompensas_with_full_urls(Avatar),
         'bordas_disponiveis': _get_recompensas_with_full_urls(Borda),
         'banners_disponiveis': _get_recompensas_with_full_urls(Banner),
+        'tomselect_variavel_options': tomselect_variavel_options,
+        'tomselect_operador_options': tomselect_operador_options,
+        'disciplina_options': disciplina_options,
+        'banca_options': banca_options,
+        'assunto_options': assunto_options,
+        'dificuldade_options': dificuldade_options,
     }
     return render(request, 'gestao/form_conquista.html', context)
 

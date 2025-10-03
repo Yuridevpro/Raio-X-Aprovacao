@@ -1,7 +1,6 @@
-# gestao/forms.py
 from django import forms
 from django.contrib.auth.models import User
-from django.forms import inlineformset_factory
+from django.forms import inlineformset_factory, BaseInlineFormSet
 
 from .models import SolicitacaoExclusao
 from gamificacao.models import (
@@ -14,6 +13,8 @@ import json
 from gamificacao.services import _obter_valor_variavel 
 import inspect
 from django.db.models import Max
+from django.db.models import Q, Count, Max, Prefetch, Exists, OuterRef, Avg, Sum, F, Window
+from django.forms import inlineformset_factory, BaseInlineFormSet # Garanta que BaseInlineFormSet esteja importado
 
 # =======================================================================
 # FORMULÁRIOS DE CONFIGURAÇÃO E GESTÃO GERAL
@@ -145,15 +146,9 @@ class RecompensaBaseForm(forms.ModelForm):
         if 'tipos_desbloqueio' in self.fields:
             self.fields['tipos_desbloqueio'].queryset = TipoDesbloqueio.objects.exclude(nome='CONQUISTA')
         
-        # =======================================================================
-        # INÍCIO DA MODIFICAÇÃO: Desabilitar campo na edição
-        # =======================================================================
         if self.instance and self.instance.pk:
             self.fields['tipos_desbloqueio'].disabled = True
             self.fields['tipos_desbloqueio'].help_text = 'Não é possível editar as formas de desbloqueio de um item existente.'
-        # =======================================================================
-        # FIM DA MODIFICAÇÃO
-        # =======================================================================
 
         self.fields['preco_moedas'].required = False
         self.fields['nivel_necessario'].required = False
@@ -183,7 +178,6 @@ class RecompensaBaseForm(forms.ModelForm):
         cleaned_data = super().clean()
         tipos_desbloqueio = cleaned_data.get('tipos_desbloqueio')
         
-        # Se os tipos de desbloqueio estiverem desabilitados (edição), não há o que validar
         if not tipos_desbloqueio and self.instance and self.instance.pk:
             return cleaned_data
             
@@ -315,39 +309,62 @@ class ConquistaForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if self.trilha:
-            qs_individuais = Conquista.objects.filter(trilha=self.trilha, serie__isnull=True)
-            series_da_trilha = SerieDeConquistas.objects.filter(trilha=self.trilha).prefetch_related('conquistas')
-            ultimas_conquistas_de_series_ids = []
-            for s in series_da_trilha:
-                ultima = s.conquistas.order_by('-ordem_na_serie').first()
-                if ultima:
-                    ultimas_conquistas_de_series_ids.append(ultima.id)
-            
-            qs_ultimas_de_series = Conquista.objects.filter(id__in=ultimas_conquistas_de_series_ids)
-            queryset = qs_individuais | qs_ultimas_de_series
+            is_editing_sequential = self.instance and self.instance.pk and self.instance.serie and self.instance.ordem_na_serie > 1
+            is_creating_sequential = self.previous_conquista is not None
 
-            if self.instance and self.instance.pk: 
-                queryset = queryset.exclude(pk=self.instance.pk)
-
-            is_editing_first_in_series = self.instance.pk and self.instance.serie and self.instance.ordem_na_serie == 1
-            
-            if is_editing_first_in_series:
-                queryset = queryset.exclude(serie=self.instance.serie)
-                self.fields['pre_requisitos'].help_text = "Pré-requisitos para iniciar esta série. Não pode selecionar outras conquistas da mesma série."
-
-            is_editing_sequential = self.instance.pk and self.instance.serie and self.instance.ordem_na_serie > 1
-            
-            if is_editing_sequential:
+            if is_editing_sequential or is_creating_sequential:
                 self.fields['pre_requisitos'].disabled = True
                 self.fields['pre_requisitos'].help_text = "Pré-requisito definido automaticamente pela sequência da série."
-
-            elif self.previous_conquista:
-                self.fields['pre_requisitos'].queryset = Conquista.objects.filter(pk=self.previous_conquista.pk)
-                self.fields['pre_requisitos'].initial = [self.previous_conquista.pk]
-                self.fields['pre_requisitos'].disabled = True
-                self.fields['pre_requisitos'].help_text = "Pré-requisito definido automaticamente pela sequência da série."
+                
+                if self.previous_conquista:
+                    prev_pk = self.previous_conquista.pk
+                    self.fields['pre_requisitos'].queryset = Conquista.objects.filter(pk=prev_pk)
+                    self.fields['pre_requisitos'].initial = [prev_pk]
+                elif self.instance and self.instance.pre_requisitos.exists():
+                    prev_pk = self.instance.pre_requisitos.first().pk
+                    self.fields['pre_requisitos'].queryset = Conquista.objects.filter(pk=prev_pk)
             
-            self.fields['pre_requisitos'].queryset = queryset.distinct().order_by('serie__nome', 'nome')
+            else:
+                # =======================================================================
+                # INÍCIO DA CORREÇÃO DEFINITIVA PARA O TypeError
+                # =======================================================================
+                # Coleta IDs de todas as fontes possíveis
+                
+                # 1. Conquistas individuais da trilha
+                qs_individuais_ids = list(Conquista.objects.filter(
+                    serie__isnull=True, trilha=self.trilha
+                ).values_list('pk', flat=True))
+
+                # 2. Última conquista de cada série na trilha
+                series_da_trilha = SerieDeConquistas.objects.filter(trilha=self.trilha)
+                ultimas_conquistas_de_series_ids = []
+                for s in series_da_trilha:
+                    ultima = s.conquistas.order_by('-ordem_na_serie').first()
+                    if ultima:
+                        ultimas_conquistas_de_series_ids.append(ultima.id)
+
+                # 3. Pré-requisitos que já estão salvos na instância (para o caso de edição)
+                current_prereq_ids = []
+                if self.instance and self.instance.pk:
+                    current_prereq_ids = list(self.instance.pre_requisitos.values_list('pk', flat=True))
+                
+                # Combina todos os IDs em um único conjunto para remover duplicatas
+                all_valid_ids = set(qs_individuais_ids + ultimas_conquistas_de_series_ids + current_prereq_ids)
+                
+                # Monta o queryset final com base nos IDs coletados
+                queryset = Conquista.objects.filter(pk__in=all_valid_ids)
+
+                if self.instance and self.instance.pk: 
+                    queryset = queryset.exclude(pk=self.instance.pk)
+
+                if self.instance and self.instance.pk and self.instance.serie and self.instance.ordem_na_serie == 1:
+                    queryset = queryset.exclude(serie=self.instance.serie)
+                    self.fields['pre_requisitos'].help_text = "Pré-requisitos para iniciar esta série. Não pode selecionar outras conquistas da mesma série."
+                
+                self.fields['pre_requisitos'].queryset = queryset.order_by('serie__nome', 'nome')
+                # =======================================================================
+                # FIM DA CORREÇÃO
+                # =======================================================================
 
         if self.serie:
             self.fields['trilha'].initial = self.serie.trilha_id
@@ -376,9 +393,21 @@ class ConquistaForm(forms.ModelForm):
         
         return instance
 
-
 class CondicaoForm(forms.ModelForm):
     """ Formulário para uma única condição, com campos de contexto e widgets padronizados. """
+    
+    OPERATOR_CHOICES = [
+        ('>=', '≥'),
+        ('==', '='),
+        ('>', '>'),
+    ]
+    
+    operador = forms.ChoiceField(
+        choices=OPERATOR_CHOICES, 
+        required=False, # Será tratado no __init__
+        widget=forms.Select(attrs={'class': 'form-select form-select-sm tom-select-single'})
+    )
+
     disciplina_contexto = forms.ModelChoiceField(queryset=Disciplina.objects.all().order_by('nome'), required=False, label="Filtrar por Disciplina", widget=forms.Select(attrs={'class': 'form-select form-select-sm mb-2 tom-select-single'}))
     banca_contexto = forms.ModelChoiceField(queryset=Banca.objects.all().order_by('nome'), required=False, label="Filtrar por Banca", widget=forms.Select(attrs={'class': 'form-select form-select-sm mb-2 tom-select-single'}))
     assunto_contexto = forms.ModelChoiceField(queryset=Assunto.objects.all().order_by('nome'), required=False, label="Filtrar por Assunto", widget=forms.Select(attrs={'class': 'form-select form-select-sm mb-2 tom-select-single'}))
@@ -389,24 +418,45 @@ class CondicaoForm(forms.ModelForm):
         fields = ('variavel', 'operador', 'valor', 'disciplina_contexto', 'banca_contexto', 'assunto_contexto', 'dificuldade_contexto')
         
     def __init__(self, *args, **kwargs):
-        # =======================================================================
-        # INÍCIO DA CORREÇÃO: Receber o contexto da view para desabilitar campos
-        # =======================================================================
+        inherited_conditions = kwargs.pop('inherited_conditions', None)
         is_sequential = kwargs.pop('is_sequential', False)
+
         super().__init__(*args, **kwargs)
+        
+        self.is_sequential = is_sequential
+        self.inherited_variavel = None
+        self.inherited_operador = None
+
+        if is_sequential and inherited_conditions:
+            form_index_str = self.prefix.split('-')[-1]
+            if form_index_str.isdigit():
+                form_index = int(form_index_str)
+                if form_index < len(inherited_conditions):
+                    inherited_data = inherited_conditions[form_index]
+                    self.inherited_variavel = inherited_data['variavel']
+                    self.inherited_operador = inherited_data['operador']
         
         self.fields['variavel'].queryset = VariavelDoJogo.objects.all().order_by('nome_exibicao')
         
         if is_sequential:
+            self.fields['variavel'].required = False
+            self.fields['operador'].required = False
+            
             self.fields['variavel'].disabled = True
             self.fields['operador'].disabled = True
             self.fields['disciplina_contexto'].disabled = True
             self.fields['banca_contexto'].disabled = True
             self.fields['assunto_contexto'].disabled = True
             self.fields['dificuldade_contexto'].disabled = True
-        # =======================================================================
-        # FIM DA CORREÇÃO
-        # =======================================================================
+            
+            if self.instance and self.instance.pk:
+                self.initial['variavel'] = self.instance.variavel_id
+                self.initial['operador'] = self.instance.operador
+            elif self.inherited_variavel:
+                 self.initial['variavel'] = self.inherited_variavel.pk
+                 self.initial['operador'] = self.inherited_operador
+        else:
+            self.fields['operador'].required = True
 
         if self.instance and self.instance.pk and self.instance.contexto_json:
             contexto = self.instance.contexto_json
@@ -418,18 +468,80 @@ class CondicaoForm(forms.ModelForm):
             except (Disciplina.DoesNotExist, Banca.DoesNotExist, Assunto.DoesNotExist): pass
 
     def save(self, commit=True):
-        contexto = {}
-        if disciplina := self.cleaned_data.get('disciplina_contexto'): contexto['disciplina_id'] = disciplina.id
-        if banca := self.cleaned_data.get('banca_contexto'): contexto['banca_id'] = banca.id
-        if assunto := self.cleaned_data.get('assunto_contexto'): contexto['assunto_id'] = assunto.id
-        if dificuldade := self.cleaned_data.get('dificuldade_contexto'): contexto['dificuldade'] = dificuldade
-        self.instance.contexto_json = contexto
-        instance = super(forms.ModelForm, self).save(commit=False)
-        if commit: instance.save()
+        instance = super().save(commit=False)
+
+        if self.is_sequential:
+            if not instance.variavel_id and self.inherited_variavel:
+                instance.variavel = self.inherited_variavel
+            if not instance.operador and self.inherited_operador:
+                instance.operador = self.inherited_operador
+        
+        if not self.is_sequential:
+            contexto = {}
+            if disciplina := self.cleaned_data.get('disciplina_contexto'): contexto['disciplina_id'] = disciplina.id
+            if banca := self.cleaned_data.get('banca_contexto'): contexto['banca_id'] = banca.id
+            if assunto := self.cleaned_data.get('assunto_contexto'): contexto['assunto_id'] = assunto.id
+            if dificuldade := self.cleaned_data.get('dificuldade_contexto'): contexto['dificuldade'] = dificuldade
+            instance.contexto_json = contexto
+        
+        if commit:
+            instance.save()
+        
         return instance
-# =======================================================================
-# REMOÇÃO: A definição do CondicaoFormSet foi movida para a view.
-# =======================================================================
+
+class BaseCondicaoFormSet(BaseInlineFormSet):
+    """
+    Formset customizado com validação para garantir que os valores em conquistas
+    sequenciais sejam sempre progressivos.
+    """
+    def __init__(self, *args, **kwargs):
+        self.previous_conquista = kwargs.pop('previous_conquista', None)
+        super().__init__(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        
+        if not self.previous_conquista:
+             return
+
+        previous_conditions_map = {
+            cond.variavel.chave: cond
+            for cond in self.previous_conquista.condicoes.all() if cond.variavel
+        }
+
+        for i, form in enumerate(self.forms):
+            if not form.is_valid():
+                continue
+            if self.can_delete and self._should_delete_form(form):
+                continue
+
+            cleaned_data = form.cleaned_data
+            
+            variavel = cleaned_data.get('variavel')
+            if not variavel and form.instance and hasattr(form.instance, 'variavel'):
+                variavel = form.instance.variavel
+            elif not variavel and form.initial.get('variavel'):
+                try:
+                    variavel = VariavelDoJogo.objects.get(pk=form.initial.get('variavel'))
+                except VariavelDoJogo.DoesNotExist:
+                    continue
+
+            valor_atual = cleaned_data.get('valor')
+
+            if not variavel:
+                continue
+            
+            previous_cond = previous_conditions_map.get(variavel.chave)
+            
+            if previous_cond:
+                valor_anterior = previous_cond.valor
+                
+                if valor_atual is not None and valor_anterior is not None:
+                    if valor_atual < valor_anterior:
+                        form.add_error(
+                            'valor',
+                            f"O valor não pode ser menor que {valor_anterior} (valor da conquista anterior)."
+                        )
 
 class VariavelDoJogoForm(forms.ModelForm):
     """ Formulário para criar/editar as variáveis, agora com widget padronizado. """

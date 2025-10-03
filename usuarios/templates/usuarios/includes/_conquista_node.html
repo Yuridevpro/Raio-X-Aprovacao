@@ -1,3 +1,4 @@
+
 <!-- usuarios/templates/usuarios/includes/_conquista_node.html -->
 {% load gamificacao_extras %}
 <div class="conquista-node {{ conquista.status }}">
@@ -5,9 +6,6 @@
         <div class="step-indicator">{{ step }}</div>
     {% endif %}
 
-    <!-- ======================================================================= -->
-    <!-- INÍCIO DA CORREÇÃO: Lógica de estilo do ícone aprimorada -->
-    <!-- ======================================================================= -->
     <div class="conquista-icon-wrapper" 
          style="background-color: {{ conquista.cor }}; 
                 {% if conquista.status == 'locked' %} 
@@ -19,9 +17,6 @@
                   {% endif %}">
         </i>
     </div>
-    <!-- ======================================================================= -->
-    <!-- FIM DA CORREÇÃO -->
-    <!-- ======================================================================= -->
 
     <div class="flex-grow-1 conquista-details">
         <h6 class="fw-bold mb-0">
@@ -36,15 +31,24 @@
         </h6>
         <small class="text-muted">{{ conquista.descricao }}</small>
 
-        {% if conquista.status == 'available' and conquista.progresso %}
-        <div class="progress mt-2" role="progressbar" aria-valuenow="{{ conquista.progresso.percentual }}" aria-valuemin="0" aria-valuemax="100" title="{{ conquista.progresso.percentual|floatformat:0 }}%">
-            <div class="progress-bar" style="width: {{ conquista.progresso.percentual }}%;"></div>
-        </div>
-        <div class="d-flex justify-content-between small text-muted">
-            <span>Progresso</span>
-            <span>{{ conquista.progresso.atual }} / {{ conquista.progresso.meta }}</span>
-        </div>
+        <!-- ✅ INÍCIO DA ALTERAÇÃO: Loop para múltiplos progressos -->
+        {% if conquista.status == 'available' and conquista.progress_bars %}
+            <div class="mt-2">
+                {% for progress_item in conquista.progress_bars %}
+                    <div class="progress-wrapper mb-2">
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>{{ progress_item.label }}</span>
+                            <span>{{ progress_item.atual }} / {{ progress_item.meta }}</span>
+                        </div>
+                        <div class="progress" role="progressbar" aria-valuenow="{{ progress_item.percentual }}" aria-valuemin="0" aria-valuemax="100" title="{{ progress_item.percentual|floatformat:0 }}%">
+                            <div class="progress-bar" style="width: {{ progress_item.percentual }}%;"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
         {% endif %}
+        <!-- ✅ FIM DA ALTERAÇÃO -->
+
 
         <!-- CONDIÇÕES DE DESBLOQUEIO -->
         {% if conquista.unlock_conditions_humanized %}

@@ -1,5 +1,7 @@
-<!-- gestao/templates/gestao/form_conquista.html -->
+<!-- form_conquista.html -->
 {% extends 'base.html' %}
+
+
 {% load static %}
 {% block title %}{{ titulo }}{% endblock %}
 
@@ -190,6 +192,7 @@
                     <div class="card-header"><h5 class="mb-0">Condições de Desbloqueio</h5></div>
                     <div class="card-body p-4">
                         <p class="text-muted small">Adicione uma ou mais condições. O usuário precisará cumprir TODAS.</p>
+                        
                         <div id="condicao-formset-container">
                             <!-- Cabeçalho visível apenas em desktop -->
                             <div class="d-none d-md-grid" style="grid-template-columns: 40% 1fr 1fr auto; gap: 0.75rem; padding: 0 0.75rem; margin-bottom: 0.5rem;">
@@ -200,6 +203,11 @@
                             </div>
 
                             {{ formset_condicao.management_form }}
+                            {% if formset_condicao.non_form_errors %}
+                                <div class="alert alert-danger">
+                                    {{ formset_condicao.non_form_errors }}
+                                </div>
+                            {% endif %}
                             
                             <!-- Formulários existentes -->
                             {% for form in formset_condicao.forms %}
@@ -212,6 +220,19 @@
                                             <div class="delete-checkbox-wrapper">{{ form.id }}{{ form.DELETE }}<button type="button" class="btn btn-sm btn-light manual-delete-btn" title="Remover Condição"><i class="fas fa-trash text-danger"></i></button></div>
                                         </div>
                                         <div class="context-field">{{ form.disciplina_contexto }}{{ form.banca_contexto }}{{ form.assunto_contexto }}{{ form.dificuldade_contexto }}</div>
+                                        
+                                        {% if form.errors %}
+                                            <div class="alert alert-danger p-2 mt-2 small">
+                                                <ul class="mb-0 ps-3">
+                                                {% for field, error_list in form.errors.items %}
+                                                    {% for error in error_list %}
+                                                        <li>{{ error }}</li>
+                                                    {% endfor %}
+                                                {% endfor %}
+                                                </ul>
+                                            </div>
+                                        {% endif %}
+
                                     </div>
                                 </div>
                             {% endfor %}
@@ -231,6 +252,14 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Botão de Adicionar renderizado manualmente -->
+                        {% if can_edit_conditions_structure %}
+                            <button type="button" id="add-condition-row-btn" class="btn btn-outline-success btn-sm mt-3 w-100">
+                                <i class="fas fa-plus me-2"></i>Adicionar Condição
+                            </button>
+                        {% endif %}
+
                     </div>
                 </div>
             </div>
@@ -273,6 +302,13 @@
 {{ avatares_disponiveis|json_script:"avatares-data" }}
 {{ bordas_disponiveis|json_script:"bordas-data" }}
 {{ banners_disponiveis|json_script:"banners-data" }}
+{{ tomselect_variavel_options|json_script:"variavel-options-data" }}
+{{ tomselect_operador_options|json_script:"operador-options-data" }}
+{{ disciplina_options|json_script:"disciplina-options-data" }}
+{{ banca_options|json_script:"banca-options-data" }}
+{{ assunto_options|json_script:"assunto-options-data" }}
+{{ dificuldade_options|json_script:"dificuldade-options-data" }}
+
 
 <!-- Bibliotecas JS -->
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -355,27 +391,73 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeTomSelectIn(this);
     });
 
-    // =======================================================================
-    // INÍCIO DA CORREÇÃO: Inicialização condicional e robusta do Formset
-    // =======================================================================
     {% if can_edit_conditions_structure %}
+    // =======================================================================
+    // INÍCIO DA CORREÇÃO: A função `added` agora separa a criação do TomSelect
+    // da adição das opções, o que é mais robusto e corrige o bug.
+    // =======================================================================
     $('#condicao-formset-container').formset({
         prefix: '{{ formset_condicao.prefix }}',
-        addText: '<i class="fas fa-plus me-2"></i>Adicionar Condição',
-        addCssClass: 'btn btn-outline-success btn-sm mt-2 w-100 mt-3',
+        addSelector: '#add-condition-row-btn',
         deleteCssClass: 'manual-delete-btn',
-        formTemplate: '#condicao-empty-form-template', // Usa nosso molde
+        formTemplate: '#condicao-empty-form-template',
         added: function(row) {
+            console.log('[LOG] Formset `added` function fired. A new row was added.');
             row.removeClass('d-none');
-            initializeTomSelectIn(row[0]);
-            handleContextFields();
-        },
-        hideLastAddForm: true
+            
+            try {
+                const allOptions = {
+                    variavel: JSON.parse(document.getElementById('variavel-options-data').textContent),
+                    operador: JSON.parse(document.getElementById('operador-options-data').textContent),
+                    disciplina_contexto: JSON.parse(document.getElementById('disciplina-options-data').textContent),
+                    banca_contexto: JSON.parse(document.getElementById('banca-options-data').textContent),
+                    assunto_contexto: JSON.parse(document.getElementById('assunto-options-data').textContent),
+                    dificuldade_contexto: JSON.parse(document.getElementById('dificuldade-options-data').textContent),
+                };
+
+                row.find('select').each(function() {
+                    const select = this;
+                    const name = select.getAttribute('name');
+                    
+                    if (select.tomselect) {
+                        select.tomselect.destroy();
+                    }
+
+                    let optionsKey = null;
+                    if (name.includes('-variavel')) optionsKey = 'variavel';
+                    else if (name.includes('-operador')) optionsKey = 'operador';
+                    else if (name.includes('-disciplina_contexto')) optionsKey = 'disciplina_contexto';
+                    else if (name.includes('-banca_contexto')) optionsKey = 'banca_contexto';
+                    else if (name.includes('-assunto_contexto')) optionsKey = 'assunto_contexto';
+                    else if (name.includes('-dificuldade_contexto')) optionsKey = 'dificuldade_contexto';
+
+                    // PASSO 1: Cria a instância do TomSelect sem as opções
+                    const tomselectInstance = new TomSelect(select, {
+                        placeholder: 'Selecione...',
+                        valueField: 'value',
+                        labelField: 'text',
+                        searchField: 'text',
+                        shouldSort: (optionsKey !== 'operador')
+                    });
+
+                    // PASSO 2: Adiciona as opções à instância recém-criada
+                    if (optionsKey && allOptions[optionsKey]) {
+                        tomselectInstance.addOption(allOptions[optionsKey]);
+                    }
+                });
+
+                handleContextFields();
+                console.log('[LOG] `added` function finished successfully.');
+
+            } catch (error) {
+                console.error('[ERROR] An error occurred in the `added` function:', error);
+            }
+        }
     });
-    {% endif %}
     // =======================================================================
     // FIM DA CORREÇÃO
     // =======================================================================
+    {% endif %}
 
     const formsetContainer = document.getElementById('condicao-formset-container');
     formsetContainer.addEventListener('click', function(e) {

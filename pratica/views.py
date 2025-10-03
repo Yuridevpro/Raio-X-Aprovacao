@@ -83,8 +83,6 @@ def listar_questoes(request):
 
 
 
-# pratica/views.py
-
 @login_required
 @require_POST
 def verificar_resposta(request):
@@ -109,15 +107,9 @@ def verificar_resposta(request):
             conquista = gamificacao_eventos['nova_conquista']
             nova_conquista_data = {'nome': conquista.nome, 'icone': conquista.icone, 'cor': conquista.cor}
 
-        # =======================================================================
-        # ✅ INÍCIO DA CORREÇÃO: Usando a biblioteca markdown para converter
-        # =======================================================================
         explicacao_html = markdown.markdown(
             questao.explicacao, extensions=['extra', 'fenced_code', 'tables']
         ) if questao.explicacao else ""
-        # =======================================================================
-        # FIM DA CORREÇÃO
-        # =======================================================================
         
         return JsonResponse({
             'status': 'success',
@@ -128,8 +120,11 @@ def verificar_resposta(request):
             'level_up_info': gamificacao_eventos.get('level_up_info'),
             'meta_completa_info': gamificacao_eventos.get('meta_completa_info'),
             'xp_ganho': gamificacao_eventos.get('xp_ganho', 0),
+            'moedas_ganhas': gamificacao_eventos.get('moedas_ganhas', 0),
             'bonus_ativo': gamificacao_eventos.get('bonus_ativo', False),
-            'motivo_bloqueio': gamificacao_eventos.get('motivo_bloqueio')
+            'motivo_bloqueio': gamificacao_eventos.get('motivo_bloqueio'),
+            'novas_recompensas': gamificacao_eventos.get('novas_recompensas', []),
+            'novo_saldo_moedas': gamificacao_eventos.get('novo_saldo_moedas')
         })
     except Exception as e:
         print(f"Erro inesperado em verificar_resposta: {e}")

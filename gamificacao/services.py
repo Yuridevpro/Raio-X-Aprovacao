@@ -37,15 +37,9 @@ def calcular_xp_para_nivel(level):
     """Calcula o total de XP necessário para atingir um determinado nível."""
     return 50 * (level ** 2) + 50 * level
 
-# gamificacao/services.py
-
-# gamificacao/services.py
-
-
-
 def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     """
-    Motor de regras de gamificação, agora com feedback claro sobre bloqueios de XP.
+    Motor de regras de gamificação, agora com feedback claro sobre bloqueios de XP e retorno de recompensas detalhadas.
     """
     settings = GamificationSettings.load()
     user_profile, _ = UserProfile.objects.get_or_create(user=user)
@@ -58,7 +52,8 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     bloqueio_retorno = {
         "xp_ganho": 0, "moedas_ganhas": 0, "bonus_ativo": False, 
         "level_up_info": None, "nova_conquista": None, "meta_completa_info": None, 
-        "correta": correta, "gabarito": questao.gabarito
+        "correta": correta, "gabarito": questao.gabarito, "novas_recompensas": [],
+        "novo_saldo_moedas": gamificacao_data.moedas
     }
 
     try:
@@ -118,18 +113,35 @@ def processar_resposta_gamificacao(user, questao, alternativa_selecionada):
     
     meta_completa_info = _processar_meta_diaria(user_profile, gamificacao_data, meta_hoje, xp_ganho, settings)
     level_up_info = _verificar_level_up(gamificacao_data)
-    gamificacao_data.save()
     
     nova_conquista = _avaliar_e_conceder_conquistas(user_profile)
+    
+    novas_recompensas_serializadas = []
+    if nova_conquista and nova_conquista.recompensas:
+        recompensas_dict = nova_conquista.recompensas
+        avatares = Avatar.objects.filter(id__in=recompensas_dict.get('avatares', []))
+        bordas = Borda.objects.filter(id__in=recompensas_dict.get('bordas', []))
+        banners = Banner.objects.filter(id__in=recompensas_dict.get('banners', []))
+        
+        for r in chain(avatares, bordas, banners):
+             novas_recompensas_serializadas.append({
+                'nome': r.nome, 'imagem_url': r.imagem.url if r.imagem else '',
+                'raridade': r.get_raridade_display(), 'tipo': r.__class__.__name__
+            })
+
     if level_up_info or nova_conquista:
         _verificar_desbloqueio_recompensas(user_profile, conquista_ganha=nova_conquista)
 
+    gamificacao_data.save()
+    
     return {
         "xp_ganho": xp_ganho, "moedas_ganhas": moedas_ganhas, "bonus_ativo": bonus_aplicado,
         "level_up_info": level_up_info, "nova_conquista": nova_conquista, "meta_completa_info": meta_completa_info,
-        "correta": correta, "gabarito": questao.gabarito
+        "correta": correta, "gabarito": questao.gabarito, "motivo_bloqueio": None,
+        "novas_recompensas": novas_recompensas_serializadas,
+        "novo_saldo_moedas": gamificacao_data.moedas
     }
-
+    
 def _processar_meta_diaria(user_profile, gamificacao_data, meta_hoje, xp_atual, settings):
     meta_hoje.xp_ganho_dia += xp_atual
     meta_hoje.questoes_resolvidas += 1
@@ -490,13 +502,11 @@ def processar_conclusao_simulado(sessao):
     Processa a finalização de um simulado, concedendo XP, moedas e avaliando
     o desbloqueio de Campanhas e Conquistas.
     """
-    # 1. Carrega dados e configurações iniciais
     settings = GamificationSettings.load()
     user_profile = sessao.usuario.userprofile
     gamificacao_data = user_profile.gamificacao_data
     simulado_id_str = str(sessao.simulado.id)
 
-    # 2. Verifica a regra de cooldown para o mesmo simulado
     cooldown_timestamp_str = gamificacao_data.cooldowns_ativos.get("simulados", {}).get(simulado_id_str)
     if cooldown_timestamp_str:
         cooldown_timestamp = parse_datetime(cooldown_timestamp_str)
@@ -504,7 +514,6 @@ def processar_conclusao_simulado(sessao):
         if timezone.now() < cooldown_timestamp + cooldown_delta:
             return {'xp_ganho': 0, 'moedas_ganhas': 0, 'regras_info': [], 'level_up_info': None, 'novas_recompensas': [], 'nova_conquista': None, 'percentual_acerto': 0}
     
-    # 3. Calcula as métricas de desempenho do simulado
     total_questoes = sessao.simulado.questoes.count()
     if total_questoes == 0:
         return {'xp_ganho': 0, 'moedas_ganhas': 0, 'regras_info': [], 'level_up_info': None, 'novas_recompensas': [], 'nova_conquista': None, 'percentual_acerto': 0}
@@ -512,7 +521,6 @@ def processar_conclusao_simulado(sessao):
     total_acertos = sessao.respostas.filter(foi_correta=True).count()
     percentual_acerto = (total_acertos / total_questoes) * 100 if total_questoes > 0 else 0
     
-    # 4. Calcula o ganho base de XP e Moedas
     xp_ganho = 0
     if settings.usar_xp_dinamico_simulado:
         xp_bruto = total_acertos * settings.xp_por_acerto
@@ -528,10 +536,6 @@ def processar_conclusao_simulado(sessao):
         
     moedas_ganhas = settings.moedas_por_conclusao_simulado
     
-    # =======================================================================
-    # 5. AVALIA AS CAMPANHAS - LINHA ALTERADA
-    # Agora passamos o ID do simulado no contexto para a verificação.
-    # =======================================================================
     recompensas_ganhas, campanhas_info = _avaliar_e_conceder_recompensas(
         user_profile, 
         Campanha.Gatilho.COMPLETAR_SIMULADO, 
@@ -540,28 +544,21 @@ def processar_conclusao_simulado(sessao):
             'simulado_id': sessao.simulado.id
         }
     )
-    # =======================================================================
     
-    # 6. Soma os bônus das campanhas aos ganhos totais
     xp_extra_campanhas = sum(info.get('xp_extra', 0) for info in campanhas_info)
     moedas_extras_campanhas = sum(info.get('moedas_extras', 0) for info in campanhas_info)
     
     gamificacao_data.xp += xp_ganho + xp_extra_campanhas
     gamificacao_data.moedas += moedas_ganhas + moedas_extras_campanhas
     
-    # 7. Avalia conquistas
     nova_conquista_obj = _avaliar_e_conceder_conquistas(user_profile)
-    
-    # 8. Verifica level up
     level_up_info = _verificar_level_up(gamificacao_data)
     
-    # 9. Atualiza cooldown e salva
     if "simulados" not in gamificacao_data.cooldowns_ativos: 
         gamificacao_data.cooldowns_ativos["simulados"] = {}
     gamificacao_data.cooldowns_ativos["simulados"][simulado_id_str] = timezone.now().isoformat()
     gamificacao_data.save()
     
-    # 10. Prepara o retorno para o frontend
     recompensas_serializadas = [{'nome': r.nome, 'imagem_url': r.imagem.url if r.imagem else '', 'raridade': r.get_raridade_display(), 'tipo': r.__class__.__name__} for r in recompensas_ganhas]
     
     nova_conquista_serializada = None
@@ -578,9 +575,9 @@ def processar_conclusao_simulado(sessao):
         'level_up_info': level_up_info,
         'novas_recompensas': recompensas_serializadas,
         'nova_conquista': nova_conquista_serializada,
-        'percentual_acerto': round(percentual_acerto, 2)
+        'percentual_acerto': round(percentual_acerto, 2),
+        'novo_saldo_moedas': gamificacao_data.moedas
     }
-
 
 def _avaliar_e_conceder_recompensas(user_profile, gatilho, contexto):
     """

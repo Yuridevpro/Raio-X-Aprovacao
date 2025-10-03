@@ -1,3 +1,4 @@
+// gamificacao/static/js/gamification-effects.js
 /**
  * ===================================================================
  * FUNÇÕES GLOBAIS DE FEEDBACK VISUAL
@@ -100,11 +101,18 @@ function triggerLevelUpNotification(levelUpInfo) {
 /**
  * Aciona um modal notificando que novos prêmios foram enviados para a Caixa de Recompensas.
  * @param {Array} rewards - Uma lista de objetos de recompensa serializados.
+ * @param {object|null} source - Opcional. A fonte da recompensa (ex: uma conquista).
  */
-function triggerNewPendingRewardsNotification(rewards) {
+function triggerNewPendingRewardsNotification(rewards, source = null) {
     if (!rewards || rewards.length === 0) return;
 
-    const title = `<i class="fas fa-gift text-primary fa-3x"></i><h2 class="h3 mt-3">Novos Prêmios Ganhos!</h2>`;
+    let title = `<i class="fas fa-gift text-primary fa-3x"></i><h2 class="h3 mt-3">Novos Prêmios Ganhos!</h2>`;
+    let leadText = '<p class="lead">Você ganhou os seguintes itens por seu desempenho:</p>';
+
+    if (source && source.type === 'conquista') {
+        title = `<i class="${source.icon} fa-3x" style="color:${source.cor};"></i><h2 class="h3 mt-3">Conquista Desbloqueada!</h2>`;
+        leadText = `<p class="lead">Ao desbloquear "<strong>${source.nome}</strong>", você ganhou:</p>`;
+    }
     
     const groupedRewards = rewards.reduce((acc, reward) => {
         const tipo = reward.tipo || 'Outro';
@@ -113,7 +121,7 @@ function triggerNewPendingRewardsNotification(rewards) {
         return acc;
     }, {});
 
-    let rewardsHtml = '<p class="lead">Você ganhou os seguintes itens por seu desempenho:</p>';
+    let rewardsHtml = leadText;
 
     for (const tipo in groupedRewards) {
         const plural = groupedRewards[tipo].length > 1 ? 's' : '';
@@ -168,7 +176,7 @@ function updateNavbarCoinBalance(newBalance) {
         }
         window.requestAnimationFrame(animationStep);
         
-        // A animação de "flash" requer Animate.css. Se não estiver usando, pode remover este bloco.
+        // Efeito de flash (opcional, pode ser removido se Animate.css não for usado)
         setTimeout(() => {
             if (typeof balanceElement.classList.add === 'function') {
                 balanceElement.classList.add('animate__animated', 'animate__flash');
@@ -179,4 +187,3 @@ function updateNavbarCoinBalance(newBalance) {
         }, duration);
     }
 }
-// ✅ CORREÇÃO: A chave '}' extra foi removida daqui.

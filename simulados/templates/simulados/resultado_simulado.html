@@ -1,7 +1,7 @@
 <!-- templates/simulados/resultado_simulado.html -->
 {% extends 'base.html' %}
 {% load static %}
-{% load pratica_extras %} <!-- ✅ GARANTA QUE O TEMPLATETAG ESTÁ CARREGADO -->
+{% load pratica_extras %}
 
 {% block title %}Resultado do Simulado{% endblock %}
 
@@ -199,7 +199,6 @@
                 </button>
                 <div class="collapse mt-2" id="explicacao-{{ item.questao.id }}">
                     <div class="explicacao-container p-3">
-                        <!-- ✅ CORREÇÃO AQUI -->
                         {{ item.explicacao_html|safe }}
                     </div>
                 </div>
@@ -262,15 +261,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const eventosDataElement = document.getElementById('eventos-gamificacao-data');
     const eventos = eventosDataElement ? JSON.parse(eventosDataElement.textContent) : null;
-    const novasRecompensas = (eventos && eventos.novas_recompensas) ? eventos.novas_recompensas : [];
     
     let delay = 1500;
 
     if (eventos) {
-        if (eventos.moedas_ganhas > 0) {
-            const saldoAtual = parseInt(document.getElementById('navbar-coin-balance').textContent, 10);
-            updateNavbarCoinBalance(saldoAtual + eventos.moedas_ganhas);
+        if (eventos.novo_saldo_moedas !== undefined) {
+            updateNavbarCoinBalance(eventos.novo_saldo_moedas);
         }
+
         if (eventos.xp_ganho > 0) {
             setTimeout(() => { showGamificationToast('Simulado Concluído!', `Você ganhou <strong>${eventos.xp_ganho} XP</strong> pelo seu desempenho!`, 'fas fa-flag-checkered', '#28a745'); }, delay);
             delay += 2500;
@@ -291,8 +289,15 @@ document.addEventListener('DOMContentLoaded', function() {
             setTimeout(() => { triggerLevelUpNotification(eventos.level_up_info); }, delay);
             delay += 3000;
         }
-        if (novasRecompensas && novasRecompensas.length > 0) {
-            setTimeout(() => { triggerNewPendingRewardsNotification(novasRecompensas); }, delay);
+
+        const novasRecompensas = eventos.novas_recompensas || [];
+        if (novasRecompensas.length > 0) {
+            let source = eventos.nova_conquista ? { type: 'conquista', ...eventos.nova_conquista } : null;
+            setTimeout(() => { triggerNewPendingRewardsNotification(novasRecompensas, source); }, delay);
+        } else if (eventos.nova_conquista) {
+            const conquista = eventos.nova_conquista;
+            const conquistaBody = `Você desbloqueou: <strong>${conquista.nome}</strong>`;
+            setTimeout(() => showGamificationToast('Conquista Desbloqueada!', conquistaBody, conquista.icone, conquista.cor), delay);
         }
     }
 });
